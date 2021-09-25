@@ -848,32 +848,40 @@ window.addEventListener("load", async () => {
 class PuppetParameters {
     constructor() {
         this.bodyGravity = new BABYLON.Vector3(0, 0, -1);
+        this.torsoSpringK = 10;
         this.kneeMass = 0.1;
         this.kneeRGravity = new BABYLON.Vector3(0.5, 0, 1);
         this.kneeGravityFactor = 20;
         this.footMass = 0.8;
         this.footTargetDistance = 0.5;
+        this.legSpringK = 10;
+        this.footSpringK = 10;
         this.elbowMass = 0.05;
         this.elbowRGravity = new BABYLON.Vector3(1, -0.5, -1);
         this.elbowGravityFactor = 5;
-        this.handAnchorPosition = new BABYLON.Vector3(0.75, 0, 1);
+        this.armSpringK = 10;
+        this.foreArmSpringK = 10;
+        this.handAnchorPosition = new BABYLON.Vector3(0.75, -0.5, 0);
     }
     randomize() {
         console.log(Object.keys(this));
-        for (let i in Object.keys(this)) {
-            let v = this[i];
+        Object.keys(this).forEach((k) => {
+            let v = this[k];
+            console.log(v);
             if (v instanceof BABYLON.Vector3) {
                 let l = v.length();
                 let r = new BABYLON.Vector3(-1 + 2 * Math.random(), -1 + 2 * Math.random(), -1 + 2 * Math.random());
                 r.normalize();
                 r.scaleInPlace(l);
                 r.scaleInPlace(0.5 + Math.random());
-                this[i] = r;
+                r.scaleInPlace(0.5);
+                this[k].addInPlace(r);
             }
             if (typeof (v) === "number") {
-                this[i] = v * (0.5 + Math.random());
+                this[k] = v * (0.5 + Math.random());
             }
-        }
+        });
+        console.log(this);
     }
 }
 class PuppetTarget extends BABYLON.Mesh {
@@ -948,16 +956,16 @@ class Puppet {
         };
         let handR = new PuppetNode(false);
         let handL = new PuppetNode(false);
-        this.links.push(PuppetSpring.Connect(body, kneeR));
-        this.links.push(PuppetSpring.Connect(body, kneeL));
-        this.links.push(PuppetSpring.Connect(kneeR, footR));
-        this.links.push(PuppetSpring.Connect(kneeL, footL));
-        let torso = PuppetSpring.Connect(body, shoulder);
+        this.links.push(PuppetSpring.Connect(body, kneeR, this.pupperParams.legSpringK));
+        this.links.push(PuppetSpring.Connect(body, kneeL, this.pupperParams.legSpringK));
+        this.links.push(PuppetSpring.Connect(kneeR, footR, this.pupperParams.footSpringK));
+        this.links.push(PuppetSpring.Connect(kneeL, footL, this.pupperParams.footSpringK));
+        let torso = PuppetSpring.Connect(body, shoulder, this.pupperParams.torsoSpringK);
         this.links.push(torso);
-        this.links.push(PuppetSpring.Connect(shoulder, elbowR, 0.8));
-        this.links.push(PuppetSpring.Connect(shoulder, elbowL, 0.8));
-        this.links.push(PuppetSpring.Connect(elbowR, handR, 0.8));
-        this.links.push(PuppetSpring.Connect(elbowL, handL, 0.8));
+        this.links.push(PuppetSpring.Connect(shoulder, elbowR, this.pupperParams.armSpringK, 0.8));
+        this.links.push(PuppetSpring.Connect(shoulder, elbowL, this.pupperParams.armSpringK, 0.8));
+        this.links.push(PuppetSpring.Connect(elbowR, handR, this.pupperParams.foreArmSpringK, 0.8));
+        this.links.push(PuppetSpring.Connect(elbowL, handL, this.pupperParams.foreArmSpringK, 0.8));
         this.anchorFootR = new PuppetNode();
         this.anchorFootR.position.copyFromFloats(0.5, 5, 0);
         this.links.push(PuppetRope.Connect(footR, this.anchorFootR));
@@ -1344,7 +1352,7 @@ class PuppetSpring extends PuppetLink {
         this.k = 10;
         this.l0 = 1;
     }
-    static Connect(nodeA, nodeB, l0) {
+    static Connect(nodeA, nodeB, k = 10, l0) {
         let link = new PuppetSpring();
         if (isFinite(l0)) {
             link.l0 = l0;
