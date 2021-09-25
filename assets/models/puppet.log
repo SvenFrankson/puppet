@@ -39,10 +39,30 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  272
+	processing begun of mesh:  arm
+		WARNING: No materials have been assigned: 
+		num positions      :  221
+		num normals        :  221
+		num tangents       :  0
+		num uvs            :  442
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  256
+	processing begun of mesh:  forearm
+		WARNING: No materials have been assigned: 
+		num positions      :  221
+		num normals        :  221
+		num tangents       :  0
+		num uvs            :  442
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  256
 ========= Writing of JSON file started =========
 	writing mesh:  body
 	writing mesh:  leg
 	writing mesh:  foot
+	writing mesh:  arm
+	writing mesh:  forearm
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0804 secs
+elapsed time:  0 min, 0.1183 secs
