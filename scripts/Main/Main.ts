@@ -203,19 +203,24 @@ class Main {
 		camera.attachControl(Main.Canvas);
 		
 		for (let i = 0; i < 5; i++) {
-			let puppet = new Puppet(new BABYLON.Vector3(i * 5, 0, 0));
+			
+			let material = new BABYLON.StandardMaterial("preview-blue-material", Main.Scene);
+			material.diffuseColor.copyFromFloats(Math.random(), Math.random(), Math.random());
+			material.specularColor.copyFromFloats(0.1, 0.1, 0.1);
+
+			let puppet = new Puppet(new BABYLON.Vector3(i *3, 0, 0), material);
 			Main.Scene.onBeforeRenderObservable.add(() => {
 				puppet.update();
 			})
 			let controler = new FlightPlanPuppetControler(puppet);
 			controler.flightPlan = [
-				new BABYLON.Vector2(i * 5, 0),
-				new BABYLON.Vector2(i * 5 + 2.5, 10),
-				new BABYLON.Vector2(i * 5 , 15),
-				new BABYLON.Vector2(i * 5 - 2.5, 10),
-				new BABYLON.Vector2(i * 5 + 2.5, - 10),
-				new BABYLON.Vector2(i * 5 , - 15),
-				new BABYLON.Vector2(i * 5 - 2.5, - 10)
+				new BABYLON.Vector2(i *3, 0),
+				new BABYLON.Vector2(i *3 + 1, 10),
+				new BABYLON.Vector2(i *3 , 15),
+				new BABYLON.Vector2(i *3 - 1, 10),
+				new BABYLON.Vector2(i *3 + 1, - 10),
+				new BABYLON.Vector2(i *3 , - 15),
+				new BABYLON.Vector2(i *3 - 1, - 10)
 			]
 			puppet.puppetControler = controler;
 			puppet.puppetControler.initialize();
