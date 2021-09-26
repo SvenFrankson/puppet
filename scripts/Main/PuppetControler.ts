@@ -11,6 +11,47 @@ class PuppetControler {
     }
 }
 
+class FlightPlanPuppetControler extends PuppetControler {
+
+    public flightPlan: BABYLON.Vector2[] = [];
+    public waypointIndex: number = 0;
+
+    public initialize(): void {
+        Main.Scene.onBeforeRenderObservable.add(this.update);
+    }
+
+    public update = () => {
+        let target = this.flightPlan[this.waypointIndex];
+
+        let d = new BABYLON.Vector2(
+            this.puppet.target.position.x - target.x,
+            this.puppet.target.position.z - target.y
+        );
+
+        if (d.length() < 1) {
+            this.waypointIndex = (this.waypointIndex + 1) % this.flightPlan.length;
+            return;
+        }
+
+        d.normalize();
+        let f = new BABYLON.Vector2(
+            this.puppet.target.forward.x,
+            this.puppet.target.forward.z
+        );
+
+        let cross = d.x * f.y - d.y * f.x;
+        if (cross < 0) {
+            this.inputDirs.push(5);
+            this.inputDirs.remove(4);
+        }
+        else if (cross > 0) {
+            this.inputDirs.remove(5);
+            this.inputDirs.push(4);
+        }
+        this.inputDirs.push(3);
+    }
+}
+
 class WalkAroundPuppetControler extends PuppetControler {
 
     public target: BABYLON.Vector2 = BABYLON.Vector2.Zero();

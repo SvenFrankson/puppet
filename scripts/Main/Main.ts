@@ -203,11 +203,21 @@ class Main {
 		camera.attachControl(Main.Canvas);
 		
 		for (let i = 0; i < 5; i++) {
-			let puppet = new Puppet();
+			let puppet = new Puppet(new BABYLON.Vector3(i * 5, 0, 0));
 			Main.Scene.onBeforeRenderObservable.add(() => {
 				puppet.update();
 			})
-			puppet.puppetControler = new WalkAroundPuppetControler(puppet);
+			let controler = new FlightPlanPuppetControler(puppet);
+			controler.flightPlan = [
+				new BABYLON.Vector2(i * 5, 0),
+				new BABYLON.Vector2(i * 5 + 2.5, 10),
+				new BABYLON.Vector2(i * 5 , 15),
+				new BABYLON.Vector2(i * 5 - 2.5, 10),
+				new BABYLON.Vector2(i * 5 + 2.5, - 10),
+				new BABYLON.Vector2(i * 5 , - 15),
+				new BABYLON.Vector2(i * 5 - 2.5, - 10)
+			]
+			puppet.puppetControler = controler;
 			puppet.puppetControler.initialize();
 		}
 

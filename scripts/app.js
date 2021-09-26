@@ -711,11 +711,21 @@ class Main {
         let camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 4, 20, BABYLON.Vector3.Zero(), Main.Scene);
         camera.attachControl(Main.Canvas);
         for (let i = 0; i < 5; i++) {
-            let puppet = new Puppet();
+            let puppet = new Puppet(new BABYLON.Vector3(i * 5, 0, 0));
             Main.Scene.onBeforeRenderObservable.add(() => {
                 puppet.update();
             });
-            puppet.puppetControler = new WalkAroundPuppetControler(puppet);
+            let controler = new FlightPlanPuppetControler(puppet);
+            controler.flightPlan = [
+                new BABYLON.Vector2(i * 5, 0),
+                new BABYLON.Vector2(i * 5 + 2.5, 10),
+                new BABYLON.Vector2(i * 5, 15),
+                new BABYLON.Vector2(i * 5 - 2.5, 10),
+                new BABYLON.Vector2(i * 5 + 2.5, -10),
+                new BABYLON.Vector2(i * 5, -15),
+                new BABYLON.Vector2(i * 5 - 2.5, -10)
+            ];
+            puppet.puppetControler = controler;
             puppet.puppetControler.initialize();
         }
         Main.EnableGlowLayer();
@@ -903,22 +913,24 @@ class PuppetTarget extends BABYLON.Mesh {
     }
 }
 class Puppet {
-    constructor() {
-        //this.pupperParams.randomize();
+    constructor(position) {
         this.pupperParams = new PuppetParameters();
         this.nodes = [];
         this.links = [];
         this.t = 0;
         this._movingLegCount = 0;
+        this.pupperParams.randomize();
         this.target = new PuppetTarget(this);
-        let body = new PuppetNode(false);
+        this.target.position.x = position.x;
+        this.target.position.z = position.z;
+        let body = new PuppetNode(position, false);
         body.gravity = () => {
             let n = this.pupperParams.bodyGravity.clone();
             this.target.getDirectionToRef(n, n);
             n.normalize().scaleInPlace(30 * body.mass);
             return n;
         };
-        let kneeR = new PuppetNode(false);
+        let kneeR = new PuppetNode(position, false);
         kneeR.mass = this.pupperParams.kneeMass;
         kneeR.gravity = () => {
             let n = this.pupperParams.kneeRGravity.clone();
@@ -926,9 +938,9 @@ class Puppet {
             n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * kneeR.mass);
             return n;
         };
-        let footR = new PuppetNode(false);
+        let footR = new PuppetNode(position, false);
         footR.mass = this.pupperParams.footMass;
-        let kneeL = new PuppetNode(false);
+        let kneeL = new PuppetNode(position, false);
         kneeL.mass = this.pupperParams.kneeMass;
         kneeL.gravity = () => {
             let n = this.pupperParams.kneeRGravity.clone();
@@ -937,10 +949,10 @@ class Puppet {
             n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * kneeL.mass);
             return n;
         };
-        let footL = new PuppetNode(false);
+        let footL = new PuppetNode(position, false);
         footL.mass = this.pupperParams.footMass;
-        let shoulder = new PuppetNode(false);
-        let elbowR = new PuppetNode(false);
+        let shoulder = new PuppetNode(position, false);
+        let elbowR = new PuppetNode(position, false);
         elbowR.mass = this.pupperParams.elbowMass;
         elbowR.gravity = () => {
             let n = this.pupperParams.elbowRGravity.clone();
@@ -948,7 +960,7 @@ class Puppet {
             n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * elbowR.mass);
             return n;
         };
-        let elbowL = new PuppetNode(false);
+        let elbowL = new PuppetNode(position, false);
         elbowL.mass = this.pupperParams.elbowMass;
         elbowL.gravity = () => {
             let n = this.pupperParams.elbowRGravity.clone();
@@ -957,8 +969,8 @@ class Puppet {
             n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * elbowL.mass);
             return n;
         };
-        let handR = new PuppetNode(false);
-        let handL = new PuppetNode(false);
+        let handR = new PuppetNode(position, false);
+        let handL = new PuppetNode(position, false);
         this.links.push(PuppetSpring.Connect(body, kneeR, this.pupperParams.legSpringK));
         this.links.push(PuppetSpring.Connect(body, kneeL, this.pupperParams.legSpringK));
         this.links.push(PuppetSpring.Connect(kneeR, footR, this.pupperParams.footSpringK));
@@ -970,13 +982,13 @@ class Puppet {
         this.links.push(PuppetSpring.Connect(elbowR, handR, this.pupperParams.foreArmSpringK, 0.8));
         this.links.push(PuppetSpring.Connect(elbowL, handL, this.pupperParams.foreArmSpringK, 0.8));
         this.anchorFootR = new PuppetNode();
-        this.anchorFootR.position.copyFromFloats(0.5, 5, 0);
+        this.anchorFootR.position.copyFromFloats(0.5, 5, 0).addInPlace(position);
         this.links.push(PuppetRope.Connect(footR, this.anchorFootR));
         this.anchorFootL = new PuppetNode();
-        this.anchorFootL.position.copyFromFloats(-0.5, 5, 0);
+        this.anchorFootL.position.copyFromFloats(-0.5, 5, 0).addInPlace(position);
         this.links.push(PuppetRope.Connect(footL, this.anchorFootL));
         this.anchorHead = new PuppetNode();
-        this.anchorHead.position.copyFromFloats(0, 5, 0);
+        this.anchorHead.position.copyFromFloats(0, 5, 0).addInPlace(position);
         let headRope = PuppetRope.Connect(shoulder, this.anchorHead);
         headRope.l0 = 2;
         this.links.push(headRope);
@@ -995,22 +1007,31 @@ class Puppet {
         this.links.push(handLRope);
         this.nodes = [body, shoulder, kneeR, kneeL, footR, footL, elbowR, elbowL, handR, handL];
         this.bodyMesh = new BABYLON.Mesh("bodymesh");
+        this.bodyMesh.position.copyFrom(position);
         this.bodyMesh.material = Main.whiteMaterial;
         this.legRMesh = new BABYLON.Mesh("legRMesh");
+        this.legRMesh.position.copyFrom(position);
         this.legRMesh.material = Main.whiteMaterial;
         this.legLMesh = new BABYLON.Mesh("legLMesh");
+        this.legLMesh.position.copyFrom(position);
         this.legLMesh.material = Main.whiteMaterial;
         this.footRMesh = new BABYLON.Mesh("footRMesh");
+        this.footRMesh.position.copyFrom(position);
         this.footRMesh.material = Main.whiteMaterial;
         this.footLMesh = new BABYLON.Mesh("footLMesh");
+        this.footLMesh.position.copyFrom(position);
         this.footLMesh.material = Main.whiteMaterial;
         this.armRMesh = new BABYLON.Mesh("armRMesh");
+        this.armRMesh.position.copyFrom(position);
         this.armRMesh.material = Main.whiteMaterial;
         this.armLMesh = new BABYLON.Mesh("armLMesh");
+        this.armLMesh.position.copyFrom(position);
         this.armLMesh.material = Main.whiteMaterial;
         this.foreArmRMesh = new BABYLON.Mesh("foreArmRMesh");
+        this.foreArmRMesh.position.copyFrom(position);
         this.foreArmRMesh.material = Main.whiteMaterial;
         this.foreArmLMesh = new BABYLON.Mesh("foreArmLMesh");
+        this.foreArmLMesh.position.copyFrom(position);
         this.foreArmLMesh.material = Main.whiteMaterial;
         BABYLON.SceneLoader.ImportMesh("", "assets/models/puppet.babylon", "", Main.Scene, (meshes) => {
             let body = meshes.find(m => { return m.name === "body"; });
@@ -1251,7 +1272,7 @@ class Puppet {
     }
 }
 class PuppetNode {
-    constructor(showMesh = true) {
+    constructor(position = BABYLON.Vector3.Zero(), showMesh = true) {
         this.showMesh = showMesh;
         this.mass = 0.1;
         this.position = BABYLON.Vector3.Zero();
@@ -1261,6 +1282,7 @@ class PuppetNode {
             return new BABYLON.Vector3(0, -9.8 * this.mass, 0);
         };
         this.position.copyFromFloats(-1 + Math.random() * 2, -1 + Math.random() * 2 + 2, -1 + Math.random() * 2);
+        this.position.addInPlace(position);
         if (this.showMesh) {
             this.mesh = BABYLON.MeshBuilder.CreateBox("box", { size: 0.2 });
         }
@@ -1367,6 +1389,36 @@ class PuppetControler {
         this.inputDirs = new UniqueList();
     }
     initialize() {
+    }
+}
+class FlightPlanPuppetControler extends PuppetControler {
+    constructor() {
+        super(...arguments);
+        this.flightPlan = [];
+        this.waypointIndex = 0;
+        this.update = () => {
+            let target = this.flightPlan[this.waypointIndex];
+            let d = new BABYLON.Vector2(this.puppet.target.position.x - target.x, this.puppet.target.position.z - target.y);
+            if (d.length() < 1) {
+                this.waypointIndex = (this.waypointIndex + 1) % this.flightPlan.length;
+                return;
+            }
+            d.normalize();
+            let f = new BABYLON.Vector2(this.puppet.target.forward.x, this.puppet.target.forward.z);
+            let cross = d.x * f.y - d.y * f.x;
+            if (cross < 0) {
+                this.inputDirs.push(5);
+                this.inputDirs.remove(4);
+            }
+            else if (cross > 0) {
+                this.inputDirs.remove(5);
+                this.inputDirs.push(4);
+            }
+            this.inputDirs.push(3);
+        };
+    }
+    initialize() {
+        Main.Scene.onBeforeRenderObservable.add(this.update);
     }
 }
 class WalkAroundPuppetControler extends PuppetControler {
