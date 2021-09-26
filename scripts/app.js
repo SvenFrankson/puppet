@@ -710,10 +710,14 @@ class Main {
         */
         let camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 4, 20, BABYLON.Vector3.Zero(), Main.Scene);
         camera.attachControl(Main.Canvas);
-        let puppet = new Puppet();
-        Main.Scene.onBeforeRenderObservable.add(() => {
-            puppet.update();
-        });
+        for (let i = 0; i < 5; i++) {
+            let puppet = new Puppet();
+            Main.Scene.onBeforeRenderObservable.add(() => {
+                puppet.update();
+            });
+            puppet.puppetControler = new WalkAroundPuppetControler(puppet);
+            puppet.puppetControler.initialize();
+        }
         Main.EnableGlowLayer();
         Main.Light = new BABYLON.HemisphericLight("AmbientLight", new BABYLON.Vector3(1, 3, 2), Main.Scene);
         BABYLON.Effect.ShadersStore["EdgeFragmentShader"] = `
@@ -900,13 +904,12 @@ class PuppetTarget extends BABYLON.Mesh {
 }
 class Puppet {
     constructor() {
+        //this.pupperParams.randomize();
         this.pupperParams = new PuppetParameters();
         this.nodes = [];
         this.links = [];
-        this._inputDirs = new UniqueList();
         this.t = 0;
         this._movingLegCount = 0;
-        this.pupperParams.randomize();
         this.target = new PuppetTarget(this);
         let body = new PuppetNode(false);
         body.gravity = () => {
@@ -1053,69 +1056,28 @@ class Puppet {
             this._moveLeg(0, new BABYLON.Vector3(0.5, 5, 6));
         }, 15000);
         */
-        Main.Canvas.addEventListener("keydown", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.push(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.push(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.push(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.push(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.push(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.push(5);
-            }
-        });
-        Main.Canvas.addEventListener("keyup", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.remove(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.remove(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.remove(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.remove(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.remove(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.remove(5);
-            }
-        });
-    }
-    get _inputDir() {
-        return this._inputDirs.getLast();
     }
     update() {
         this.t += Main.Engine.getDeltaTime() / 1000;
-        if (this._inputDirs.contains(0)) {
-            this.target.position.addInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(1)) {
-            this.target.position.subtractInPlace(this.target.forward.scale(2 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(2)) {
-            this.target.position.subtractInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(3)) {
-            this.target.position.addInPlace(this.target.forward.scale(5 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(4)) {
-            this.target.rotation.y -= 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
-        }
-        if (this._inputDirs.contains(5)) {
-            this.target.rotation.y += 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+        if (this.puppetControler) {
+            if (this.puppetControler.inputDirs.contains(0)) {
+                this.target.position.addInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(1)) {
+                this.target.position.subtractInPlace(this.target.forward.scale(2 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(2)) {
+                this.target.position.subtractInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(3)) {
+                this.target.position.addInPlace(this.target.forward.scale(5 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(4)) {
+                this.target.rotation.y -= 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+            }
+            if (this.puppetControler.inputDirs.contains(5)) {
+                this.target.rotation.y += 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+            }
         }
         let extend = this.target.position.subtract(this.bodyMesh.position);
         extend.y = 0;
@@ -1397,6 +1359,89 @@ class PuppetRope extends PuppetLink {
     }
     getForceOn(node) {
         return BABYLON.Vector3.Zero();
+    }
+}
+class PuppetControler {
+    constructor(puppet) {
+        this.puppet = puppet;
+        this.inputDirs = new UniqueList();
+    }
+    initialize() {
+    }
+}
+class WalkAroundPuppetControler extends PuppetControler {
+    constructor() {
+        super(...arguments);
+        this.target = BABYLON.Vector2.Zero();
+        this.update = () => {
+            let d = new BABYLON.Vector2(this.puppet.target.position.x - this.target.x, this.puppet.target.position.z - this.target.y);
+            if (d.length() < 1) {
+                this.target.x = -20 + 40 * Math.random();
+                this.target.y = -20 + 40 * Math.random();
+                let debug = BABYLON.MeshBuilder.CreateBox("debug", { size: 1 });
+                debug.position.x = this.target.x;
+                debug.position.z = this.target.y;
+            }
+            d.normalize();
+            let f = new BABYLON.Vector2(this.puppet.target.forward.x, this.puppet.target.forward.z);
+            let cross = d.x * f.y - d.y * f.x;
+            if (cross < 0) {
+                this.inputDirs.push(5);
+                this.inputDirs.remove(4);
+            }
+            else if (cross > 0) {
+                this.inputDirs.remove(5);
+                this.inputDirs.push(4);
+            }
+            this.inputDirs.push(3);
+        };
+    }
+    initialize() {
+        Main.Scene.onBeforeRenderObservable.add(this.update);
+    }
+}
+class KeyBoardPuppetControler extends PuppetControler {
+    initialize() {
+        Main.Canvas.addEventListener("keydown", (e) => {
+            if (e.code === "KeyD") {
+                this.inputDirs.push(0);
+            }
+            if (e.code === "KeyS") {
+                this.inputDirs.push(1);
+            }
+            if (e.code === "KeyA") {
+                this.inputDirs.push(2);
+            }
+            if (e.code === "KeyW") {
+                this.inputDirs.push(3);
+            }
+            if (e.code === "KeyQ") {
+                this.inputDirs.push(4);
+            }
+            if (e.code === "KeyE") {
+                this.inputDirs.push(5);
+            }
+        });
+        Main.Canvas.addEventListener("keyup", (e) => {
+            if (e.code === "KeyD") {
+                this.inputDirs.remove(0);
+            }
+            if (e.code === "KeyS") {
+                this.inputDirs.remove(1);
+            }
+            if (e.code === "KeyA") {
+                this.inputDirs.remove(2);
+            }
+            if (e.code === "KeyW") {
+                this.inputDirs.remove(3);
+            }
+            if (e.code === "KeyQ") {
+                this.inputDirs.remove(4);
+            }
+            if (e.code === "KeyE") {
+                this.inputDirs.remove(5);
+            }
+        });
     }
 }
 class VMath {

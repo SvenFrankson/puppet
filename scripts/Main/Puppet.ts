@@ -70,6 +70,8 @@ class Puppet {
 
     public pupperParams: PuppetParameters = new PuppetParameters();
 
+    public puppetControler: PuppetControler;
+
     public nodes: PuppetNode[] = [];
     public links: PuppetLink[] = [];
 
@@ -90,13 +92,9 @@ class Puppet {
     public foreArmLMesh: BABYLON.Mesh;
     
     public target: PuppetTarget;
-    private _inputDirs: UniqueList<number> = new UniqueList<number>();
-    private get _inputDir(): number {
-        return this._inputDirs.getLast();
-    }
 
     constructor() {
-        this.pupperParams.randomize();
+        //this.pupperParams.randomize();
 
         this.target = new PuppetTarget(this);
 
@@ -261,48 +259,6 @@ class Puppet {
             this._moveLeg(0, new BABYLON.Vector3(0.5, 5, 6));
         }, 15000);
         */
-
-        Main.Canvas.addEventListener("keydown", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.push(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.push(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.push(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.push(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.push(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.push(5);
-            }
-        });
-
-        Main.Canvas.addEventListener("keyup", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.remove(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.remove(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.remove(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.remove(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.remove(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.remove(5);
-            }
-        });
     }
 
     public t: number = 0;
@@ -310,23 +266,25 @@ class Puppet {
     public update(): void {
         this.t += Main.Engine.getDeltaTime() / 1000;
         
-        if (this._inputDirs.contains(0)) {
-            this.target.position.addInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(1)) {
-            this.target.position.subtractInPlace(this.target.forward.scale(2 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(2)) {
-            this.target.position.subtractInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(3)) {
-            this.target.position.addInPlace(this.target.forward.scale(5 * Main.Engine.getDeltaTime() / 1000));
-        }
-        if (this._inputDirs.contains(4)) {
-            this.target.rotation.y -= 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
-        }
-        if (this._inputDirs.contains(5)) {
-            this.target.rotation.y += 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+        if (this.puppetControler) {
+            if (this.puppetControler.inputDirs.contains(0)) {
+                this.target.position.addInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(1)) {
+                this.target.position.subtractInPlace(this.target.forward.scale(2 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(2)) {
+                this.target.position.subtractInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(3)) {
+                this.target.position.addInPlace(this.target.forward.scale(5 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this.puppetControler.inputDirs.contains(4)) {
+                this.target.rotation.y -= 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+            }
+            if (this.puppetControler.inputDirs.contains(5)) {
+                this.target.rotation.y += 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+            }
         }
 
         let extend = this.target.position.subtract(this.bodyMesh.position);

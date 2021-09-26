@@ -202,10 +202,14 @@ class Main {
 		let camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 4, 20, BABYLON.Vector3.Zero(), Main.Scene);
 		camera.attachControl(Main.Canvas);
 		
-		let puppet = new Puppet();
-		Main.Scene.onBeforeRenderObservable.add(() => {
-			puppet.update();
-		})
+		for (let i = 0; i < 5; i++) {
+			let puppet = new Puppet();
+			Main.Scene.onBeforeRenderObservable.add(() => {
+				puppet.update();
+			})
+			puppet.puppetControler = new WalkAroundPuppetControler(puppet);
+			puppet.puppetControler.initialize();
+		}
 
 		Main.EnableGlowLayer();
 
