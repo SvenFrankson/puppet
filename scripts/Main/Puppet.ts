@@ -1,29 +1,38 @@
 class PuppetParameters {
-    public bodyGravity: BABYLON.Vector3 = new BABYLON.Vector3(0, 0, - 1);
 
     public torsoSpringK: number = 10;
+    
+    public bodyGravity: BABYLON.Vector3 = new BABYLON.Vector3(0, 0, - 1);
+    public bodyFluidC: number = 0.08;
+
+    public shoulderFluidC: number = 0.08;
+
+    public upperLegSpringK: number = 10;
+    public lowerLegSpringK: number = 10;
 
     public kneeMass: number = 0.1;
     public kneeRGravity: BABYLON.Vector3 = new BABYLON.Vector3(0.5, 0, 1);
     public kneeGravityFactor: number = 20;
+    public kneeFluidC: number = 0.08;
 
     public footMass: number = 0.8;
     public footTargetDistance: number = 0.5;
-
-    public legSpringK: number = 10;
-    public footSpringK: number = 10;
-
-    public elbowMass: number = 0.05;
-    public elbowRGravity: BABYLON.Vector3 = new BABYLON.Vector3(1, - 0.5, - 1);
-    public elbowGravityFactor: number = 5;
+    public footFluidC: number = 0.08;
+    public footGroundC: number = 0.5;
 
     public armSpringK: number = 10;
     public foreArmSpringK: number = 10;
 
+    public elbowMass: number = 0.05;
+    public elbowRGravity: BABYLON.Vector3 = new BABYLON.Vector3(1, - 0.5, - 1);
+    public elbowGravityFactor: number = 5;
+    public elbowFluidC: number = 0.08;
+    
+    public handMass: number = 0.05;
+    public handFluidC: number = 0.08;
     public handAnchorPosition: BABYLON.Vector3 = new BABYLON.Vector3(0.75, -0.5, 0);
 
     public randomize(): void {
-        console.log(Object.keys(this));
         Object.keys(this).forEach((k) => {
             let v = this[k];
             console.log(v);
@@ -40,7 +49,6 @@ class PuppetParameters {
                 this[k] = v * (0.9 + Math.random() * 0.2);
             }
         });
-        console.log(this);
     }
 }
 
@@ -105,6 +113,7 @@ class Puppet {
 
         let body = new PuppetNode({
             positionZero: initialPosition,
+            fluidC: this.pupperParams.bodyFluidC,
             showMesh: false
         });
         body.gravity = () => {
@@ -117,6 +126,7 @@ class Puppet {
         let kneeR = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.kneeMass,
+            fluidC: this.pupperParams.kneeFluidC,
             showMesh: false
         });
         kneeR.gravity = () => {
@@ -128,6 +138,7 @@ class Puppet {
         let kneeL = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.kneeMass,
+            fluidC: this.pupperParams.kneeFluidC,
             showMesh: false
         });
         kneeL.gravity = () => {
@@ -140,21 +151,27 @@ class Puppet {
         let footR = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.footMass,
+            fluidC: this.pupperParams.footFluidC,
+            groundC: this.pupperParams.footGroundC,
             showMesh: false
         });
         let footL = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.footMass,
+            fluidC: this.pupperParams.footFluidC,
+            groundC: this.pupperParams.footGroundC,
             showMesh: false
         });
 
         let shoulder = new PuppetNode({
             positionZero: initialPosition,
+            fluidC: this.pupperParams.shoulderFluidC,
             showMesh: false
         });
         let elbowR = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.elbowMass,
+            fluidC: this.pupperParams.elbowFluidC,
             showMesh: false
         });
         elbowR.gravity = () => {
@@ -166,6 +183,7 @@ class Puppet {
         let elbowL = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.elbowMass,
+            fluidC: this.pupperParams.elbowFluidC,
             showMesh: false
         });
         elbowL.gravity = () => {
@@ -177,17 +195,19 @@ class Puppet {
         }
         let handR = new PuppetNode({
             positionZero: initialPosition,
+            fluidC: this.pupperParams.handFluidC,
             showMesh: false
         });
         let handL = new PuppetNode({
             positionZero: initialPosition,
+            fluidC: this.pupperParams.handFluidC,
             showMesh: false
         });
 
-        this.links.push(PuppetSpring.Connect(body, kneeR, this.pupperParams.legSpringK));
-        this.links.push(PuppetSpring.Connect(body, kneeL, this.pupperParams.legSpringK));
-        this.links.push(PuppetSpring.Connect(kneeR, footR, this.pupperParams.footSpringK));
-        this.links.push(PuppetSpring.Connect(kneeL, footL, this.pupperParams.footSpringK));
+        this.links.push(PuppetSpring.Connect(body, kneeR, this.pupperParams.upperLegSpringK));
+        this.links.push(PuppetSpring.Connect(body, kneeL, this.pupperParams.upperLegSpringK));
+        this.links.push(PuppetSpring.Connect(kneeR, footR, this.pupperParams.lowerLegSpringK));
+        this.links.push(PuppetSpring.Connect(kneeL, footL, this.pupperParams.lowerLegSpringK));
         let torso = PuppetSpring.Connect(body, shoulder, this.pupperParams.torsoSpringK);
         this.links.push(torso);
         this.links.push(PuppetSpring.Connect(shoulder, elbowR, this.pupperParams.armSpringK, 0.8));
