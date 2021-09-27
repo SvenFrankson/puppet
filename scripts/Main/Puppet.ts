@@ -33,11 +33,11 @@ class PuppetParameters {
                 r.normalize();
                 r.scaleInPlace(l);
                 r.scaleInPlace(0.5 + Math.random());
-                r.scaleInPlace(0.5);
+                r.scaleInPlace(0.1);
                 this[k].addInPlace(r);
             }
             if (typeof(v) === "number") {
-                this[k] = v * (0.5 + Math.random());
+                this[k] = v * (0.9 + Math.random() * 0.2);
             }
         });
         console.log(this);
@@ -103,25 +103,33 @@ class Puppet {
         this.target.position.x = initialPosition.x;
         this.target.position.z = initialPosition.z;
 
-        let body = new PuppetNode(initialPosition, false);
+        let body = new PuppetNode({
+            positionZero: initialPosition,
+            showMesh: false
+        });
         body.gravity = () => {
             let n = this.pupperParams.bodyGravity.clone();
             this.target.getDirectionToRef(n, n);
             n.normalize().scaleInPlace(30 * body.mass);
             return n;
         }
-        let kneeR = new PuppetNode(initialPosition, false);
-        kneeR.mass = this.pupperParams.kneeMass;
+
+        let kneeR = new PuppetNode({
+            positionZero: initialPosition,
+            mass: this.pupperParams.kneeMass,
+            showMesh: false
+        });
         kneeR.gravity = () => {
             let n = this.pupperParams.kneeRGravity.clone();
             this.target.getDirectionToRef(n, n);
             n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * kneeR.mass);
             return n;
         }
-        let footR = new PuppetNode(initialPosition, false);
-        footR.mass = this.pupperParams.footMass;
-        let kneeL = new PuppetNode(initialPosition, false);
-        kneeL.mass = this.pupperParams.kneeMass;
+        let kneeL = new PuppetNode({
+            positionZero: initialPosition,
+            mass: this.pupperParams.kneeMass,
+            showMesh: false
+        });
         kneeL.gravity = () => {
             let n = this.pupperParams.kneeRGravity.clone();
             n.x *= -1;
@@ -129,19 +137,37 @@ class Puppet {
             n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * kneeL.mass);
             return n;
         }
-        let footL = new PuppetNode(initialPosition, false);
-        footL.mass = this.pupperParams.footMass;
-        let shoulder = new PuppetNode(initialPosition, false);
-        let elbowR = new PuppetNode(initialPosition, false);
-        elbowR.mass = this.pupperParams.elbowMass;
+        let footR = new PuppetNode({
+            positionZero: initialPosition,
+            mass: this.pupperParams.footMass,
+            showMesh: false
+        });
+        let footL = new PuppetNode({
+            positionZero: initialPosition,
+            mass: this.pupperParams.footMass,
+            showMesh: false
+        });
+
+        let shoulder = new PuppetNode({
+            positionZero: initialPosition,
+            showMesh: false
+        });
+        let elbowR = new PuppetNode({
+            positionZero: initialPosition,
+            mass: this.pupperParams.elbowMass,
+            showMesh: false
+        });
         elbowR.gravity = () => {
             let n = this.pupperParams.elbowRGravity.clone();
             this.target.getDirectionToRef(n, n);
             n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * elbowR.mass);
             return n;
         }
-        let elbowL = new PuppetNode(initialPosition, false);
-        elbowL.mass = this.pupperParams.elbowMass;
+        let elbowL = new PuppetNode({
+            positionZero: initialPosition,
+            mass: this.pupperParams.elbowMass,
+            showMesh: false
+        });
         elbowL.gravity = () => {
             let n = this.pupperParams.elbowRGravity.clone();
             n.x *= -1;
@@ -149,8 +175,14 @@ class Puppet {
             n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * elbowL.mass);
             return n;
         }
-        let handR = new PuppetNode(initialPosition, false);
-        let handL = new PuppetNode(initialPosition, false);
+        let handR = new PuppetNode({
+            positionZero: initialPosition,
+            showMesh: false
+        });
+        let handL = new PuppetNode({
+            positionZero: initialPosition,
+            showMesh: false
+        });
 
         this.links.push(PuppetSpring.Connect(body, kneeR, this.pupperParams.legSpringK));
         this.links.push(PuppetSpring.Connect(body, kneeL, this.pupperParams.legSpringK));
@@ -346,7 +378,7 @@ class Puppet {
             this.nodes[i].update();
         }
         for (let i = 0; i < this.links.length; i++) {
-            this.links[i].update();
+            //this.links[i].update();
         }
 
         let bodyPos = this.nodes[0].position.clone();
@@ -498,11 +530,21 @@ class Puppet {
     }
 }
 
+interface IPuppetNodeParam {
+    positionZero?: BABYLON.Vector3;
+    mass?: number;
+    fluidC?: number;
+    groundC?: number;
+    showMesh?: boolean;
+}
+
 class PuppetNode {
 
     public mass: number = 0.1;
     public position: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public velocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
+    public fluidC: number = 0.08;
+    public groundC: number = 0.5;
 
     public links: PuppetLink[] = [];
 
@@ -513,17 +555,28 @@ class PuppetNode {
     }
 
     constructor(
-        position: BABYLON.Vector3 = BABYLON.Vector3.Zero(),
-        public showMesh: boolean = true
+        param?: IPuppetNodeParam
     ) {
         this.position.copyFromFloats(
             - 1 + Math.random() * 2,
             - 1 + Math.random() * 2 + 2,
             - 1 + Math.random() * 2
         );
-        this.position.addInPlace(position);
 
-        if (this.showMesh) {
+        if (param && param.positionZero) {
+            this.position.addInPlace(param.positionZero);
+        }
+        if (param && isFinite(param.mass)) {
+            this.mass = param.mass;
+        }
+        if (param && isFinite(param.fluidC)) {
+            this.fluidC = param.fluidC;
+        }
+        if (param && isFinite(param.groundC)) {
+            this.groundC = param.groundC;
+        }
+
+        if (param && param.showMesh) {
             this.mesh = BABYLON.MeshBuilder.CreateBox("box", { size: 0.2 });
         }
     }
@@ -537,14 +590,14 @@ class PuppetNode {
             }
         }
         if (this.position.y < 0.1) {
-            force.x -= this.velocity.x * 0.5;
-            force.y -= this.velocity.y * 0.08;
-            force.z -= this.velocity.z * 0.5;
+            force.x -= this.velocity.x * this.groundC;
+            force.y -= this.velocity.y * this.fluidC;
+            force.z -= this.velocity.z * this.groundC;
         }
         else {
-            force.x -= this.velocity.x * 0.08;
-            force.y -= this.velocity.y * 0.08;
-            force.z -= this.velocity.z * 0.08;
+            force.x -= this.velocity.x * this.fluidC;
+            force.y -= this.velocity.y * this.fluidC;
+            force.z -= this.velocity.z * this.fluidC;
         }
         
         let a = force.scaleInPlace(1 / this.mass);
@@ -570,7 +623,7 @@ class PuppetNode {
             }
         }
 
-        if (this.showMesh) {
+        if (this.mesh) {
             this.mesh.position.copyFrom(this.position);
         }
     }

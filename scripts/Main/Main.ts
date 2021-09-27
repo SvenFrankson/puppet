@@ -190,7 +190,7 @@ class Main {
 
 		let ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 100, height: 100 }, Main.Scene);
 		let groundMaterial = new BABYLON.StandardMaterial("ground-material", Main.Scene);
-		groundMaterial.diffuseTexture = new BABYLON.Texture("assets/textures/dirt.jpg", Main.Scene);
+		groundMaterial.diffuseColor.copyFromFloats(0.6, 0.4, 0.5)
 		groundMaterial.specularColor.copyFromFloats(0, 0, 0);
 		ground.material = groundMaterial;
 
