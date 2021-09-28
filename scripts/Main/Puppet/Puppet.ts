@@ -268,26 +268,28 @@ class Puppet {
     public t: number = 0;
     private _movingLegCount: number = 0;
     public update(): void {
-        this.t += Main.Engine.getDeltaTime() / 1000;
+        let dt = Main.Engine.getDeltaTime() / 1000;
+        dt = Math.min(dt, 1 / 30);
+        this.t += dt;
         
         if (this.puppetControler) {
             if (this.puppetControler.inputDirs.contains(0)) {
-                this.target.position.addInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+                this.target.position.addInPlace(this.target.right.scale(3 * dt));
             }
             if (this.puppetControler.inputDirs.contains(1)) {
-                this.target.position.subtractInPlace(this.target.forward.scale(2 * Main.Engine.getDeltaTime() / 1000));
+                this.target.position.subtractInPlace(this.target.forward.scale(2 * dt));
             }
             if (this.puppetControler.inputDirs.contains(2)) {
-                this.target.position.subtractInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+                this.target.position.subtractInPlace(this.target.right.scale(3 * dt));
             }
             if (this.puppetControler.inputDirs.contains(3)) {
-                this.target.position.addInPlace(this.target.forward.scale(5 * Main.Engine.getDeltaTime() / 1000));
+                this.target.position.addInPlace(this.target.forward.scale(5 * dt));
             }
             if (this.puppetControler.inputDirs.contains(4)) {
-                this.target.rotation.y -= 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+                this.target.rotation.y -= 0.5 * Math.PI * dt;
             }
             if (this.puppetControler.inputDirs.contains(5)) {
-                this.target.rotation.y += 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+                this.target.rotation.y += 0.5 * Math.PI * dt;
             }
         }
 
@@ -454,7 +456,10 @@ class Puppet {
                 duration *= 0.5;
                 let t = 0;
                 let step = () => {
-                    t += Main.Engine.getDeltaTime() / 1000;
+                    
+                    let dt = Main.Engine.getDeltaTime() / 1000;
+                    dt = Math.min(dt, 1 / 30);
+                    t += dt;
                     let d = t / duration;
                     
                     let df = d * 2;
@@ -541,6 +546,7 @@ class PuppetNode {
 
     public update(): void {
         let dt = Main.Engine.getDeltaTime() / 1000;
+        dt = Math.min(dt, 1 / 30);
         let force = this.gravity();
         for (let i = 0; i < this.links.length; i++) {
             if (!(this.links[i] instanceof PuppetRope)) {
