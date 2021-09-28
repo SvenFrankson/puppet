@@ -214,13 +214,14 @@ class Main {
 			})
 			let controler = new FlightPlanPuppetControler(puppet);
 			controler.flightPlan = [
+				new BABYLON.Vector2(i *3, 20),
+				new BABYLON.Vector2(i *3, 15),
+				new BABYLON.Vector2(i *3, 10),
 				new BABYLON.Vector2(i *3, 0),
-				new BABYLON.Vector2(i *3 + 1, 10),
-				new BABYLON.Vector2(i *3 , 15),
-				new BABYLON.Vector2(i *3 - 1, 10),
-				new BABYLON.Vector2(i *3 + 1, - 10),
-				new BABYLON.Vector2(i *3 , - 15),
-				new BABYLON.Vector2(i *3 - 1, - 10)
+				new BABYLON.Vector2(i *3, - 20),
+				new BABYLON.Vector2(i *3, - 15),
+				new BABYLON.Vector2(i *3, - 10),
+				new BABYLON.Vector2(i *3, 0),
 			]
 			puppet.puppetControler = controler;
 			puppet.puppetControler.initialize();

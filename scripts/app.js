@@ -720,13 +720,14 @@ class Main {
             });
             let controler = new FlightPlanPuppetControler(puppet);
             controler.flightPlan = [
-                new BABYLON.Vector2(i * 3, 0),
-                new BABYLON.Vector2(i * 3 + 1, 10),
+                new BABYLON.Vector2(i * 3, 20),
                 new BABYLON.Vector2(i * 3, 15),
-                new BABYLON.Vector2(i * 3 - 1, 10),
-                new BABYLON.Vector2(i * 3 + 1, -10),
+                new BABYLON.Vector2(i * 3, 10),
+                new BABYLON.Vector2(i * 3, 0),
+                new BABYLON.Vector2(i * 3, -20),
                 new BABYLON.Vector2(i * 3, -15),
-                new BABYLON.Vector2(i * 3 - 1, -10)
+                new BABYLON.Vector2(i * 3, -10),
+                new BABYLON.Vector2(i * 3, 0),
             ];
             puppet.puppetControler = controler;
             puppet.puppetControler.initialize();
@@ -862,48 +863,381 @@ window.addEventListener("load", async () => {
     await main.initialize();
     main.animate();
 });
-class PuppetParameters {
-    constructor() {
-        this.torsoSpringK = 10;
-        this.bodyGravity = new BABYLON.Vector3(0, 0, -1);
-        this.bodyFluidC = 0.08;
-        this.shoulderFluidC = 0.08;
-        this.upperLegSpringK = 10;
-        this.lowerLegSpringK = 10;
-        this.kneeMass = 0.1;
-        this.kneeRGravity = new BABYLON.Vector3(0.5, 0, 1);
-        this.kneeGravityFactor = 20;
-        this.kneeFluidC = 0.08;
-        this.footMass = 0.8;
-        this.footTargetDistance = 0.5;
-        this.footFluidC = 0.08;
-        this.footGroundC = 0.5;
-        this.armSpringK = 10;
-        this.foreArmSpringK = 10;
-        this.elbowMass = 0.05;
-        this.elbowRGravity = new BABYLON.Vector3(1, -0.5, -1);
-        this.elbowGravityFactor = 5;
-        this.elbowFluidC = 0.08;
-        this.handMass = 0.05;
-        this.handFluidC = 0.08;
-        this.handAnchorPosition = new BABYLON.Vector3(0.75, -0.5, 0);
+class VMath {
+    // Method adapted from gre's work (https://github.com/gre/bezier-easing). Thanks !
+    static easeOutElastic(t, b = 0, c = 1, d = 1) {
+        var s = 1.70158;
+        var p = 0;
+        var a = c;
+        if (t == 0) {
+            return b;
+        }
+        if ((t /= d) == 1) {
+            return b + c;
+        }
+        if (!p) {
+            p = d * .3;
+        }
+        if (a < Math.abs(c)) {
+            a = c;
+            s = p / 4;
+        }
+        else {
+            s = p / (2 * Math.PI) * Math.asin(c / a);
+        }
+        return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b;
     }
-    randomize() {
-        Object.keys(this).forEach((k) => {
-            let v = this[k];
-            console.log(v);
-            if (v instanceof BABYLON.Vector3) {
-                let l = v.length();
-                let r = new BABYLON.Vector3(-1 + 2 * Math.random(), -1 + 2 * Math.random(), -1 + 2 * Math.random());
-                r.normalize();
-                r.scaleInPlace(l);
-                r.scaleInPlace(0.5 + Math.random());
-                r.scaleInPlace(0.1);
-                this[k].addInPlace(r);
+    static ProjectPerpendicularAt(v, at) {
+        let p = BABYLON.Vector3.Zero();
+        let k = (v.x * at.x + v.y * at.y + v.z * at.z);
+        k = k / (at.x * at.x + at.y * at.y + at.z * at.z);
+        p.copyFrom(v);
+        p.subtractInPlace(at.multiplyByFloats(k, k, k));
+        return p;
+    }
+    static Angle(from, to) {
+        let pFrom = BABYLON.Vector3.Normalize(from);
+        let pTo = BABYLON.Vector3.Normalize(to);
+        let angle = Math.acos(BABYLON.Vector3.Dot(pFrom, pTo));
+        return angle;
+    }
+    static AngleFromToAround(from, to, around) {
+        let pFrom = VMath.ProjectPerpendicularAt(from, around).normalize();
+        let pTo = VMath.ProjectPerpendicularAt(to, around).normalize();
+        let angle = Math.acos(BABYLON.Vector3.Dot(pFrom, pTo));
+        if (BABYLON.Vector3.Dot(BABYLON.Vector3.Cross(pFrom, pTo), around) < 0) {
+            angle = -angle;
+        }
+        return angle;
+    }
+    static StepAngle(from, to, step) {
+        while (from < 0) {
+            from += 2 * Math.PI;
+        }
+        while (to < 0) {
+            to += 2 * Math.PI;
+        }
+        while (from >= 2 * Math.PI) {
+            from -= 2 * Math.PI;
+        }
+        while (to >= 2 * Math.PI) {
+            to -= 2 * Math.PI;
+        }
+        if (Math.abs(from - to) <= step) {
+            return to;
+        }
+        if (to < from) {
+            step *= -1;
+        }
+        if (Math.abs(from - to) > Math.PI) {
+            step *= -1;
+        }
+        return from + step;
+    }
+    static LerpAngle(from, to, t) {
+        while (from < 0) {
+            from += 2 * Math.PI;
+        }
+        while (to < 0) {
+            to += 2 * Math.PI;
+        }
+        while (from >= 2 * Math.PI) {
+            from -= 2 * Math.PI;
+        }
+        while (to >= 2 * Math.PI) {
+            to -= 2 * Math.PI;
+        }
+        if (Math.abs(from - to) > Math.PI) {
+            if (from > Math.PI) {
+                from -= 2 * Math.PI;
             }
-            if (typeof (v) === "number") {
-                this[k] = v * (0.9 + Math.random() * 0.2);
+            else {
+                to -= 2 * Math.PI;
             }
+        }
+        return from * (1 - t) + to * t;
+    }
+    static AngularDistance(from, to) {
+        while (from < 0) {
+            from += 2 * Math.PI;
+        }
+        while (to < 0) {
+            to += 2 * Math.PI;
+        }
+        while (from >= 2 * Math.PI) {
+            from -= 2 * Math.PI;
+        }
+        while (to >= 2 * Math.PI) {
+            to -= 2 * Math.PI;
+        }
+        let d = Math.abs(from - to);
+        if (d > Math.PI) {
+            d *= -1;
+        }
+        if (to < from) {
+            d *= -1;
+        }
+        return d;
+    }
+    static CatmullRomPath(path) {
+        let interpolatedPoints = [];
+        for (let i = 0; i < path.length; i++) {
+            let p0 = path[(i - 1 + path.length) % path.length];
+            let p1 = path[i];
+            let p2 = path[(i + 1) % path.length];
+            let p3 = path[(i + 2) % path.length];
+            interpolatedPoints.push(BABYLON.Vector3.CatmullRom(p0, p1, p2, p3, 0.5));
+        }
+        for (let i = 0; i < interpolatedPoints.length; i++) {
+            path.splice(2 * i + 1, 0, interpolatedPoints[i]);
+        }
+    }
+    static SetABDistance(a, b, dist) {
+        let n = b.subtract(a);
+        n.normalize().scaleInPlace(dist);
+        return a.add(n);
+    }
+    static SetABDistanceInPlace(a, b, dist, keepAInPlace) {
+        let n = b.subtract(a);
+        let l = n.length();
+        n.normalize();
+        if (keepAInPlace) {
+            b.copyFrom(n).scaleInPlace(dist).addInPlace(a);
+        }
+        else {
+            let d = (l - dist) * 0.5;
+            n.scaleInPlace(d);
+            a.addInPlace(n);
+            b.subtractInPlace(n);
+        }
+    }
+}
+class WalkerTarget extends BABYLON.Mesh {
+    constructor(walker) {
+        super("target");
+        this.walker = walker;
+        this.targets = [];
+        let positions = [
+            new BABYLON.Vector3(-1, 0.4, 0),
+            new BABYLON.Vector3(1, 0.4, 0)
+        ];
+        for (let i = 0; i < walker.legCount; i++) {
+            //let target = new BABYLON.Mesh("target-" + i);
+            let target = BABYLON.MeshBuilder.CreateBox("target-" + i, { size: 0.05 });
+            target.material = Main.redMaterial;
+            target.position.copyFrom(positions[i]);
+            target.parent = this;
+            this.targets[i] = target;
+        }
+    }
+}
+class Walker {
+    constructor() {
+        this.legCount = 2;
+        this.legs = [];
+        this.lowerLegs = [];
+        this.feet = [];
+        this.hipJoints = [];
+        this._inputDirs = new UniqueList();
+        this._movingLegCount = 0;
+        this._movingLegs = new UniqueList();
+        this._update = () => {
+            if (this._inputDirs.contains(0)) {
+                this.target.position.addInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this._inputDirs.contains(1)) {
+                this.target.position.subtractInPlace(this.target.forward.scale(2 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this._inputDirs.contains(2)) {
+                this.target.position.subtractInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this._inputDirs.contains(3)) {
+                this.target.position.addInPlace(this.target.forward.scale(5 * Main.Engine.getDeltaTime() / 1000));
+            }
+            if (this._inputDirs.contains(4)) {
+                this.target.rotation.y -= 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+            }
+            if (this._inputDirs.contains(5)) {
+                this.target.rotation.y += 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
+            }
+            this.body.position.copyFrom(this.feet[0].position);
+            for (let i = 1; i < this.legCount; i++) {
+                this.body.position.addInPlace(this.feet[i].position);
+            }
+            this.body.position.scaleInPlace(1 / this.legCount);
+            this.body.position.y += 3;
+            let left = BABYLON.Vector3.Zero();
+            for (let i = 0; i < 1; i++) {
+                left.addInPlace(this.feet[i].absolutePosition);
+            }
+            let right = BABYLON.Vector3.Zero();
+            for (let i = 1; i < 2; i++) {
+                right.addInPlace(this.feet[i].absolutePosition);
+            }
+            let rightDir = right.subtract(left).normalize();
+            let forward = BABYLON.Vector3.Cross(rightDir, BABYLON.Axis.Y);
+            this.body.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(rightDir, BABYLON.Axis.Y, forward);
+            let q = BABYLON.Quaternion.FromEulerVector(this.target.rotation);
+            this.body.rotationQuaternion = BABYLON.Quaternion.Slerp(this.body.rotationQuaternion, q, 0.75);
+            this.feet[0].rotationQuaternion = this.body.rotationQuaternion;
+            this.feet[1].rotationQuaternion = this.body.rotationQuaternion;
+            for (let i = 0; i < this.legCount; i++) {
+                let knee = this.hipJoints[i].absolutePosition.add(this.feet[i].absolutePosition).scale(0.5);
+                let targetForward = this.target.forward;
+                knee.subtractInPlace(targetForward.scale(3));
+                for (let j = 0; j < 3; j++) {
+                    let legN = knee.subtract(this.hipJoints[i].absolutePosition).normalize();
+                    knee = this.hipJoints[i].absolutePosition.add(legN.scale(2));
+                    let lowerLegN = knee.subtract(this.feet[i].absolutePosition).normalize();
+                    knee = this.feet[i].absolutePosition.add(lowerLegN.scale(2));
+                }
+                this.legs[i].position = this.hipJoints[i].absolutePosition;
+                this.legs[i].lookAt(knee);
+                this.lowerLegs[i].position = knee;
+                this.lowerLegs[i].lookAt(this.feet[i].absolutePosition);
+            }
+            if (this._movingLegCount <= 0) {
+                let index = -1;
+                let dist = 0;
+                for (let i = 0; i < this.legCount; i++) {
+                    if (!this._movingLegs.contains(i)) {
+                        let iDist = BABYLON.Vector3.DistanceSquared(this.feet[i].position, this.target.targets[i].absolutePosition);
+                        if (iDist > dist) {
+                            dist = iDist;
+                            index = i;
+                        }
+                    }
+                }
+                if (dist > 0.01) {
+                    this._movingLegCount++;
+                    this._moveLeg(index, this.target.targets[index].absolutePosition);
+                }
+            }
+        };
+        this.target = new WalkerTarget(this);
+        this.body = BABYLON.MeshBuilder.CreateSphere("body", { diameterX: 1, diameterY: 0.5, diameterZ: 1 }, Main.Scene);
+        this.cameraTarget = new BABYLON.Mesh("camera-target");
+        this.cameraTarget.parent = this.body;
+        this.cameraTarget.position.copyFromFloats(0, 20, -20);
+        this.cameraTarget.rotation.x = Math.PI / 4;
+        let positions = [
+            new BABYLON.Vector3(-1, 0, 0),
+            new BABYLON.Vector3(1, 0, 0)
+        ];
+        for (let i = 0; i < this.legCount; i++) {
+            let hipJoint = BABYLON.MeshBuilder.CreateBox("hipJoint-" + i, { size: 0.1 });
+            hipJoint.material = Main.greenMaterial;
+            hipJoint.position.copyFrom(positions[i]);
+            hipJoint.parent = this.body;
+            this.hipJoints[i] = hipJoint;
+        }
+        for (let i = 0; i < this.legCount; i++) {
+            let foot = new BABYLON.Mesh("foot-" + i);
+            foot.material = Main.blueMaterial;
+            foot.position.copyFrom(this.target.targets[i].absolutePosition);
+            this.feet[i] = foot;
+        }
+        for (let i = 0; i < this.legCount; i++) {
+            let leg = new BABYLON.Mesh("leg-" + i);
+            this.legs[i] = leg;
+            let lowerLeg = new BABYLON.Mesh("lower-leg-" + i);
+            this.lowerLegs[i] = lowerLeg;
+            let foot = new BABYLON.Mesh("foot-" + i);
+            this.feet[i] = foot;
+        }
+        BABYLON.SceneLoader.ImportMesh("", "assets/models/walker.babylon", "", Main.Scene, (meshes) => {
+            let body = meshes.find(m => { return m.name === "body"; });
+            let leg = meshes.find(m => { return m.name === "leg"; });
+            let lowerLeg = meshes.find(m => { return m.name === "lower-leg"; });
+            let foot = meshes.find(m => { return m.name === "foot"; });
+            if (body && leg && lowerLeg && foot) {
+                let bodyMesh = BABYLON.VertexData.ExtractFromMesh(body);
+                bodyMesh.applyToMesh(this.body);
+                let legMesh = BABYLON.VertexData.ExtractFromMesh(leg);
+                let lowerLegMesh = BABYLON.VertexData.ExtractFromMesh(lowerLeg);
+                let footMesh = BABYLON.VertexData.ExtractFromMesh(foot);
+                for (let i = 0; i < this.legCount; i++) {
+                    legMesh.applyToMesh(this.legs[i]);
+                    lowerLegMesh.applyToMesh(this.lowerLegs[i]);
+                    footMesh.applyToMesh(this.feet[i]);
+                }
+                body.dispose();
+                leg.dispose();
+                lowerLeg.dispose();
+                foot.dispose();
+            }
+        });
+        Main.Scene.onBeforeRenderObservable.add(this._update);
+        Main.Canvas.addEventListener("keydown", (e) => {
+            if (e.code === "KeyD") {
+                this._inputDirs.push(0);
+            }
+            if (e.code === "KeyS") {
+                this._inputDirs.push(1);
+            }
+            if (e.code === "KeyA") {
+                this._inputDirs.push(2);
+            }
+            if (e.code === "KeyW") {
+                this._inputDirs.push(3);
+            }
+            if (e.code === "KeyQ") {
+                this._inputDirs.push(4);
+            }
+            if (e.code === "KeyE") {
+                this._inputDirs.push(5);
+            }
+        });
+        Main.Canvas.addEventListener("keyup", (e) => {
+            if (e.code === "KeyD") {
+                this._inputDirs.remove(0);
+            }
+            if (e.code === "KeyS") {
+                this._inputDirs.remove(1);
+            }
+            if (e.code === "KeyA") {
+                this._inputDirs.remove(2);
+            }
+            if (e.code === "KeyW") {
+                this._inputDirs.remove(3);
+            }
+            if (e.code === "KeyQ") {
+                this._inputDirs.remove(4);
+            }
+            if (e.code === "KeyE") {
+                this._inputDirs.remove(5);
+            }
+        });
+    }
+    get _inputDir() {
+        return this._inputDirs.getLast();
+    }
+    async _moveLeg(legIndex, target) {
+        return new Promise(resolve => {
+            this._movingLegs.push(legIndex);
+            let origin = this.feet[legIndex].position.clone();
+            let l = target.subtract(origin).length();
+            let duration = Math.floor(l / 3);
+            duration *= 0.5;
+            duration += 0.5;
+            let t = 0;
+            let step = () => {
+                t += Main.Engine.getDeltaTime() / 1000;
+                let d = t / duration;
+                d = d * d;
+                d = Math.min(d, 1);
+                this.feet[legIndex].position.copyFrom(origin.scale(1 - d).add(target.scale(d)));
+                this.feet[legIndex].position.y += 0.5 * Math.sin(Math.PI * d);
+                if (d < 1) {
+                    requestAnimationFrame(step);
+                }
+                else {
+                    this._movingLegCount -= 1;
+                    this._movingLegs.remove(legIndex);
+                    resolve();
+                }
+            };
+            step();
         });
     }
 }
@@ -1559,381 +1893,73 @@ class KeyBoardPuppetControler extends PuppetControler {
         });
     }
 }
-class VMath {
-    // Method adapted from gre's work (https://github.com/gre/bezier-easing). Thanks !
-    static easeOutElastic(t, b = 0, c = 1, d = 1) {
-        var s = 1.70158;
-        var p = 0;
-        var a = c;
-        if (t == 0) {
-            return b;
-        }
-        if ((t /= d) == 1) {
-            return b + c;
-        }
-        if (!p) {
-            p = d * .3;
-        }
-        if (a < Math.abs(c)) {
-            a = c;
-            s = p / 4;
-        }
-        else {
-            s = p / (2 * Math.PI) * Math.asin(c / a);
-        }
-        return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b;
-    }
-    static ProjectPerpendicularAt(v, at) {
-        let p = BABYLON.Vector3.Zero();
-        let k = (v.x * at.x + v.y * at.y + v.z * at.z);
-        k = k / (at.x * at.x + at.y * at.y + at.z * at.z);
-        p.copyFrom(v);
-        p.subtractInPlace(at.multiplyByFloats(k, k, k));
-        return p;
-    }
-    static Angle(from, to) {
-        let pFrom = BABYLON.Vector3.Normalize(from);
-        let pTo = BABYLON.Vector3.Normalize(to);
-        let angle = Math.acos(BABYLON.Vector3.Dot(pFrom, pTo));
-        return angle;
-    }
-    static AngleFromToAround(from, to, around) {
-        let pFrom = VMath.ProjectPerpendicularAt(from, around).normalize();
-        let pTo = VMath.ProjectPerpendicularAt(to, around).normalize();
-        let angle = Math.acos(BABYLON.Vector3.Dot(pFrom, pTo));
-        if (BABYLON.Vector3.Dot(BABYLON.Vector3.Cross(pFrom, pTo), around) < 0) {
-            angle = -angle;
-        }
-        return angle;
-    }
-    static StepAngle(from, to, step) {
-        while (from < 0) {
-            from += 2 * Math.PI;
-        }
-        while (to < 0) {
-            to += 2 * Math.PI;
-        }
-        while (from >= 2 * Math.PI) {
-            from -= 2 * Math.PI;
-        }
-        while (to >= 2 * Math.PI) {
-            to -= 2 * Math.PI;
-        }
-        if (Math.abs(from - to) <= step) {
-            return to;
-        }
-        if (to < from) {
-            step *= -1;
-        }
-        if (Math.abs(from - to) > Math.PI) {
-            step *= -1;
-        }
-        return from + step;
-    }
-    static LerpAngle(from, to, t) {
-        while (from < 0) {
-            from += 2 * Math.PI;
-        }
-        while (to < 0) {
-            to += 2 * Math.PI;
-        }
-        while (from >= 2 * Math.PI) {
-            from -= 2 * Math.PI;
-        }
-        while (to >= 2 * Math.PI) {
-            to -= 2 * Math.PI;
-        }
-        if (Math.abs(from - to) > Math.PI) {
-            if (from > Math.PI) {
-                from -= 2 * Math.PI;
-            }
-            else {
-                to -= 2 * Math.PI;
-            }
-        }
-        return from * (1 - t) + to * t;
-    }
-    static AngularDistance(from, to) {
-        while (from < 0) {
-            from += 2 * Math.PI;
-        }
-        while (to < 0) {
-            to += 2 * Math.PI;
-        }
-        while (from >= 2 * Math.PI) {
-            from -= 2 * Math.PI;
-        }
-        while (to >= 2 * Math.PI) {
-            to -= 2 * Math.PI;
-        }
-        let d = Math.abs(from - to);
-        if (d > Math.PI) {
-            d *= -1;
-        }
-        if (to < from) {
-            d *= -1;
-        }
-        return d;
-    }
-    static CatmullRomPath(path) {
-        let interpolatedPoints = [];
-        for (let i = 0; i < path.length; i++) {
-            let p0 = path[(i - 1 + path.length) % path.length];
-            let p1 = path[i];
-            let p2 = path[(i + 1) % path.length];
-            let p3 = path[(i + 2) % path.length];
-            interpolatedPoints.push(BABYLON.Vector3.CatmullRom(p0, p1, p2, p3, 0.5));
-        }
-        for (let i = 0; i < interpolatedPoints.length; i++) {
-            path.splice(2 * i + 1, 0, interpolatedPoints[i]);
-        }
-    }
-    static SetABDistance(a, b, dist) {
-        let n = b.subtract(a);
-        n.normalize().scaleInPlace(dist);
-        return a.add(n);
-    }
-    static SetABDistanceInPlace(a, b, dist, keepAInPlace) {
-        let n = b.subtract(a);
-        let l = n.length();
-        n.normalize();
-        if (keepAInPlace) {
-            b.copyFrom(n).scaleInPlace(dist).addInPlace(a);
-        }
-        else {
-            let d = (l - dist) * 0.5;
-            n.scaleInPlace(d);
-            a.addInPlace(n);
-            b.subtractInPlace(n);
-        }
-    }
-}
-class WalkerTarget extends BABYLON.Mesh {
-    constructor(walker) {
-        super("target");
-        this.walker = walker;
-        this.targets = [];
-        let positions = [
-            new BABYLON.Vector3(-1, 0.4, 0),
-            new BABYLON.Vector3(1, 0.4, 0)
-        ];
-        for (let i = 0; i < walker.legCount; i++) {
-            //let target = new BABYLON.Mesh("target-" + i);
-            let target = BABYLON.MeshBuilder.CreateBox("target-" + i, { size: 0.05 });
-            target.material = Main.redMaterial;
-            target.position.copyFrom(positions[i]);
-            target.parent = this;
-            this.targets[i] = target;
-        }
-    }
-}
-class Walker {
+class PuppetParameters {
     constructor() {
-        this.legCount = 2;
-        this.legs = [];
-        this.lowerLegs = [];
-        this.feet = [];
-        this.hipJoints = [];
-        this._inputDirs = new UniqueList();
-        this._movingLegCount = 0;
-        this._movingLegs = new UniqueList();
-        this._update = () => {
-            if (this._inputDirs.contains(0)) {
-                this.target.position.addInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
-            }
-            if (this._inputDirs.contains(1)) {
-                this.target.position.subtractInPlace(this.target.forward.scale(2 * Main.Engine.getDeltaTime() / 1000));
-            }
-            if (this._inputDirs.contains(2)) {
-                this.target.position.subtractInPlace(this.target.right.scale(3 * Main.Engine.getDeltaTime() / 1000));
-            }
-            if (this._inputDirs.contains(3)) {
-                this.target.position.addInPlace(this.target.forward.scale(5 * Main.Engine.getDeltaTime() / 1000));
-            }
-            if (this._inputDirs.contains(4)) {
-                this.target.rotation.y -= 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
-            }
-            if (this._inputDirs.contains(5)) {
-                this.target.rotation.y += 0.5 * Math.PI * Main.Engine.getDeltaTime() / 1000;
-            }
-            this.body.position.copyFrom(this.feet[0].position);
-            for (let i = 1; i < this.legCount; i++) {
-                this.body.position.addInPlace(this.feet[i].position);
-            }
-            this.body.position.scaleInPlace(1 / this.legCount);
-            this.body.position.y += 3;
-            let left = BABYLON.Vector3.Zero();
-            for (let i = 0; i < 1; i++) {
-                left.addInPlace(this.feet[i].absolutePosition);
-            }
-            let right = BABYLON.Vector3.Zero();
-            for (let i = 1; i < 2; i++) {
-                right.addInPlace(this.feet[i].absolutePosition);
-            }
-            let rightDir = right.subtract(left).normalize();
-            let forward = BABYLON.Vector3.Cross(rightDir, BABYLON.Axis.Y);
-            this.body.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(rightDir, BABYLON.Axis.Y, forward);
-            let q = BABYLON.Quaternion.FromEulerVector(this.target.rotation);
-            this.body.rotationQuaternion = BABYLON.Quaternion.Slerp(this.body.rotationQuaternion, q, 0.75);
-            this.feet[0].rotationQuaternion = this.body.rotationQuaternion;
-            this.feet[1].rotationQuaternion = this.body.rotationQuaternion;
-            for (let i = 0; i < this.legCount; i++) {
-                let knee = this.hipJoints[i].absolutePosition.add(this.feet[i].absolutePosition).scale(0.5);
-                let targetForward = this.target.forward;
-                knee.subtractInPlace(targetForward.scale(3));
-                for (let j = 0; j < 3; j++) {
-                    let legN = knee.subtract(this.hipJoints[i].absolutePosition).normalize();
-                    knee = this.hipJoints[i].absolutePosition.add(legN.scale(2));
-                    let lowerLegN = knee.subtract(this.feet[i].absolutePosition).normalize();
-                    knee = this.feet[i].absolutePosition.add(lowerLegN.scale(2));
-                }
-                this.legs[i].position = this.hipJoints[i].absolutePosition;
-                this.legs[i].lookAt(knee);
-                this.lowerLegs[i].position = knee;
-                this.lowerLegs[i].lookAt(this.feet[i].absolutePosition);
-            }
-            if (this._movingLegCount <= 0) {
-                let index = -1;
-                let dist = 0;
-                for (let i = 0; i < this.legCount; i++) {
-                    if (!this._movingLegs.contains(i)) {
-                        let iDist = BABYLON.Vector3.DistanceSquared(this.feet[i].position, this.target.targets[i].absolutePosition);
-                        if (iDist > dist) {
-                            dist = iDist;
-                            index = i;
-                        }
-                    }
-                }
-                if (dist > 0.01) {
-                    this._movingLegCount++;
-                    this._moveLeg(index, this.target.targets[index].absolutePosition);
-                }
-            }
-        };
-        this.target = new WalkerTarget(this);
-        this.body = BABYLON.MeshBuilder.CreateSphere("body", { diameterX: 1, diameterY: 0.5, diameterZ: 1 }, Main.Scene);
-        this.cameraTarget = new BABYLON.Mesh("camera-target");
-        this.cameraTarget.parent = this.body;
-        this.cameraTarget.position.copyFromFloats(0, 20, -20);
-        this.cameraTarget.rotation.x = Math.PI / 4;
-        let positions = [
-            new BABYLON.Vector3(-1, 0, 0),
-            new BABYLON.Vector3(1, 0, 0)
-        ];
-        for (let i = 0; i < this.legCount; i++) {
-            let hipJoint = BABYLON.MeshBuilder.CreateBox("hipJoint-" + i, { size: 0.1 });
-            hipJoint.material = Main.greenMaterial;
-            hipJoint.position.copyFrom(positions[i]);
-            hipJoint.parent = this.body;
-            this.hipJoints[i] = hipJoint;
-        }
-        for (let i = 0; i < this.legCount; i++) {
-            let foot = new BABYLON.Mesh("foot-" + i);
-            foot.material = Main.blueMaterial;
-            foot.position.copyFrom(this.target.targets[i].absolutePosition);
-            this.feet[i] = foot;
-        }
-        for (let i = 0; i < this.legCount; i++) {
-            let leg = new BABYLON.Mesh("leg-" + i);
-            this.legs[i] = leg;
-            let lowerLeg = new BABYLON.Mesh("lower-leg-" + i);
-            this.lowerLegs[i] = lowerLeg;
-            let foot = new BABYLON.Mesh("foot-" + i);
-            this.feet[i] = foot;
-        }
-        BABYLON.SceneLoader.ImportMesh("", "assets/models/walker.babylon", "", Main.Scene, (meshes) => {
-            let body = meshes.find(m => { return m.name === "body"; });
-            let leg = meshes.find(m => { return m.name === "leg"; });
-            let lowerLeg = meshes.find(m => { return m.name === "lower-leg"; });
-            let foot = meshes.find(m => { return m.name === "foot"; });
-            if (body && leg && lowerLeg && foot) {
-                let bodyMesh = BABYLON.VertexData.ExtractFromMesh(body);
-                bodyMesh.applyToMesh(this.body);
-                let legMesh = BABYLON.VertexData.ExtractFromMesh(leg);
-                let lowerLegMesh = BABYLON.VertexData.ExtractFromMesh(lowerLeg);
-                let footMesh = BABYLON.VertexData.ExtractFromMesh(foot);
-                for (let i = 0; i < this.legCount; i++) {
-                    legMesh.applyToMesh(this.legs[i]);
-                    lowerLegMesh.applyToMesh(this.lowerLegs[i]);
-                    footMesh.applyToMesh(this.feet[i]);
-                }
-                body.dispose();
-                leg.dispose();
-                lowerLeg.dispose();
-                foot.dispose();
-            }
-        });
-        Main.Scene.onBeforeRenderObservable.add(this._update);
-        Main.Canvas.addEventListener("keydown", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.push(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.push(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.push(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.push(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.push(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.push(5);
-            }
-        });
-        Main.Canvas.addEventListener("keyup", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.remove(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.remove(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.remove(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.remove(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.remove(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.remove(5);
-            }
-        });
+        this.torsoSpringK = 10;
+        this.bodyGravity = new BABYLON.Vector3(0, 0, -1);
+        this.bodyFluidC = 0.08;
+        this.shoulderFluidC = 0.08;
+        this.upperLegSpringK = 10;
+        this.lowerLegSpringK = 10;
+        this.kneeMass = 0.1;
+        this.kneeRGravity = new BABYLON.Vector3(0.5, 0, 1);
+        this.kneeGravityFactor = 20;
+        this.kneeFluidC = 0.08;
+        this.footMass = 0.8;
+        this.footTargetDistance = 0.5;
+        this.footFluidC = 0.08;
+        this.footGroundC = 0.5;
+        this.armSpringK = 10;
+        this.foreArmSpringK = 10;
+        this.elbowMass = 0.05;
+        this.elbowRGravity = new BABYLON.Vector3(1, -0.5, -1);
+        this.elbowGravityFactor = 5;
+        this.elbowFluidC = 0.08;
+        this.handMass = 0.05;
+        this.handFluidC = 0.08;
+        this.handAnchorPosition = new BABYLON.Vector3(0.75, -0.5, 0);
     }
-    get _inputDir() {
-        return this._inputDirs.getLast();
+    MakeChild(p1, p2, percentMutation = 0.3, mutationAmplitude = 0.3) {
+        let child = new PuppetParameters();
+        Object.keys(child).forEach((k) => {
+            if (Math.random() < percentMutation) {
+                let v = child[k];
+                let v1 = p1[k];
+                let v2 = p2[k];
+                if (v instanceof BABYLON.Vector3) {
+                    v.copyFrom(v1).addInPlace(v2).scaleInPlace(0.5);
+                    let l = v.length();
+                    let r = new BABYLON.Vector3(-1 + 2 * Math.random(), -1 + 2 * Math.random(), -1 + 2 * Math.random());
+                    r.normalize();
+                    r.scaleInPlace(l);
+                    r.scaleInPlace(0.5 + Math.random());
+                    r.scaleInPlace(mutationAmplitude);
+                    child[k].addInPlace(r);
+                }
+                if (typeof (v) === "number") {
+                    child[k] = (v1 + v2) * 0.5 * (1 - mutationAmplitude + Math.random() * 2 * mutationAmplitude);
+                }
+            }
+        });
+        return child;
     }
-    async _moveLeg(legIndex, target) {
-        return new Promise(resolve => {
-            this._movingLegs.push(legIndex);
-            let origin = this.feet[legIndex].position.clone();
-            let l = target.subtract(origin).length();
-            let duration = Math.floor(l / 3);
-            duration *= 0.5;
-            duration += 0.5;
-            let t = 0;
-            let step = () => {
-                t += Main.Engine.getDeltaTime() / 1000;
-                let d = t / duration;
-                d = d * d;
-                d = Math.min(d, 1);
-                this.feet[legIndex].position.copyFrom(origin.scale(1 - d).add(target.scale(d)));
-                this.feet[legIndex].position.y += 0.5 * Math.sin(Math.PI * d);
-                if (d < 1) {
-                    requestAnimationFrame(step);
+    randomize(percentMutation = 0.3, mutationAmplitude = 0.3) {
+        Object.keys(this).forEach((k) => {
+            if (Math.random() < percentMutation) {
+                let v = this[k];
+                if (v instanceof BABYLON.Vector3) {
+                    let l = v.length();
+                    let r = new BABYLON.Vector3(-1 + 2 * Math.random(), -1 + 2 * Math.random(), -1 + 2 * Math.random());
+                    r.normalize();
+                    r.scaleInPlace(l);
+                    r.scaleInPlace(0.5 + Math.random());
+                    r.scaleInPlace(mutationAmplitude);
+                    this[k].addInPlace(r);
                 }
-                else {
-                    this._movingLegCount -= 1;
-                    this._movingLegs.remove(legIndex);
-                    resolve();
+                if (typeof (v) === "number") {
+                    this[k] = v * (1 - mutationAmplitude + Math.random() * 2 * mutationAmplitude);
                 }
-            };
-            step();
+            }
         });
     }
 }
