@@ -710,28 +710,9 @@ class Main {
         */
         let camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 4, 20, BABYLON.Vector3.Zero(), Main.Scene);
         camera.attachControl(Main.Canvas);
-        for (let i = 0; i < 5; i++) {
-            let material = new BABYLON.StandardMaterial("preview-blue-material", Main.Scene);
-            material.diffuseColor.copyFromFloats(Math.random(), Math.random(), Math.random());
-            material.specularColor.copyFromFloats(0.1, 0.1, 0.1);
-            let puppet = new Puppet(new BABYLON.Vector3(i * 3, 0, 0), material);
-            Main.Scene.onBeforeRenderObservable.add(() => {
-                puppet.update();
-            });
-            let controler = new FlightPlanPuppetControler(puppet);
-            controler.flightPlan = [
-                new BABYLON.Vector2(i * 3, 20),
-                new BABYLON.Vector2(i * 3, 15),
-                new BABYLON.Vector2(i * 3, 10),
-                new BABYLON.Vector2(i * 3, 0),
-                new BABYLON.Vector2(i * 3, -20),
-                new BABYLON.Vector2(i * 3, -15),
-                new BABYLON.Vector2(i * 3, -10),
-                new BABYLON.Vector2(i * 3, 0),
-            ];
-            puppet.puppetControler = controler;
-            puppet.puppetControler.initialize();
-        }
+        let content = new GeneticAnimation();
+        content.initializeScene();
+        content.initializeUI();
         Main.EnableGlowLayer();
         Main.Light = new BABYLON.HemisphericLight("AmbientLight", new BABYLON.Vector3(1, 3, 2), Main.Scene);
         BABYLON.Effect.ShadersStore["EdgeFragmentShader"] = `
@@ -1266,131 +1247,131 @@ class Puppet {
         this.target = new PuppetTarget(this);
         this.target.position.x = initialPosition.x;
         this.target.position.z = initialPosition.z;
-        let body = new PuppetNode({
+        this.bodyNode = new PuppetNode({
             positionZero: initialPosition,
             fluidC: this.pupperParams.bodyFluidC,
             showMesh: false
         });
-        body.gravity = () => {
+        this.bodyNode.gravity = () => {
             let n = this.pupperParams.bodyGravity.clone();
             this.target.getDirectionToRef(n, n);
-            n.normalize().scaleInPlace(30 * body.mass);
+            n.normalize().scaleInPlace(30 * this.bodyNode.mass);
             return n;
         };
-        let kneeR = new PuppetNode({
+        this.kneeRNode = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.kneeMass,
             fluidC: this.pupperParams.kneeFluidC,
             showMesh: false
         });
-        kneeR.gravity = () => {
+        this.kneeRNode.gravity = () => {
             let n = this.pupperParams.kneeRGravity.clone();
             this.target.getDirectionToRef(n, n);
-            n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * kneeR.mass);
+            n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * this.kneeRNode.mass);
             return n;
         };
-        let kneeL = new PuppetNode({
+        this.kneeLNode = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.kneeMass,
             fluidC: this.pupperParams.kneeFluidC,
             showMesh: false
         });
-        kneeL.gravity = () => {
+        this.kneeLNode.gravity = () => {
             let n = this.pupperParams.kneeRGravity.clone();
             n.x *= -1;
             this.target.getDirectionToRef(n, n);
-            n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * kneeL.mass);
+            n.normalize().scaleInPlace(this.pupperParams.kneeGravityFactor * this.kneeLNode.mass);
             return n;
         };
-        let footR = new PuppetNode({
+        this.footRNode = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.footMass,
             fluidC: this.pupperParams.footFluidC,
             groundC: this.pupperParams.footGroundC,
             showMesh: false
         });
-        let footL = new PuppetNode({
+        this.footLNode = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.footMass,
             fluidC: this.pupperParams.footFluidC,
             groundC: this.pupperParams.footGroundC,
             showMesh: false
         });
-        let shoulder = new PuppetNode({
+        this.shoulderNode = new PuppetNode({
             positionZero: initialPosition,
             fluidC: this.pupperParams.shoulderFluidC,
             showMesh: false
         });
-        let elbowR = new PuppetNode({
+        this.elbowRNode = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.elbowMass,
             fluidC: this.pupperParams.elbowFluidC,
             showMesh: false
         });
-        elbowR.gravity = () => {
+        this.elbowRNode.gravity = () => {
             let n = this.pupperParams.elbowRGravity.clone();
             this.target.getDirectionToRef(n, n);
-            n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * elbowR.mass);
+            n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * this.elbowRNode.mass);
             return n;
         };
-        let elbowL = new PuppetNode({
+        this.elbowLNode = new PuppetNode({
             positionZero: initialPosition,
             mass: this.pupperParams.elbowMass,
             fluidC: this.pupperParams.elbowFluidC,
             showMesh: false
         });
-        elbowL.gravity = () => {
+        this.elbowLNode.gravity = () => {
             let n = this.pupperParams.elbowRGravity.clone();
             n.x *= -1;
             this.target.getDirectionToRef(n, n);
-            n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * elbowL.mass);
+            n.normalize().scaleInPlace(this.pupperParams.elbowGravityFactor * this.elbowLNode.mass);
             return n;
         };
-        let handR = new PuppetNode({
+        this.handRNode = new PuppetNode({
             positionZero: initialPosition,
             fluidC: this.pupperParams.handFluidC,
             showMesh: false
         });
-        let handL = new PuppetNode({
+        this.handLNode = new PuppetNode({
             positionZero: initialPosition,
             fluidC: this.pupperParams.handFluidC,
             showMesh: false
         });
-        this.links.push(PuppetSpring.Connect(body, kneeR, this.pupperParams.upperLegSpringK));
-        this.links.push(PuppetSpring.Connect(body, kneeL, this.pupperParams.upperLegSpringK));
-        this.links.push(PuppetSpring.Connect(kneeR, footR, this.pupperParams.lowerLegSpringK));
-        this.links.push(PuppetSpring.Connect(kneeL, footL, this.pupperParams.lowerLegSpringK));
-        let torso = PuppetSpring.Connect(body, shoulder, this.pupperParams.torsoSpringK);
+        this.links.push(PuppetSpring.Connect(this.bodyNode, this.kneeRNode, this.pupperParams.upperLegSpringK));
+        this.links.push(PuppetSpring.Connect(this.bodyNode, this.kneeLNode, this.pupperParams.upperLegSpringK));
+        this.links.push(PuppetSpring.Connect(this.kneeRNode, this.footRNode, this.pupperParams.lowerLegSpringK));
+        this.links.push(PuppetSpring.Connect(this.kneeLNode, this.footLNode, this.pupperParams.lowerLegSpringK));
+        let torso = PuppetSpring.Connect(this.bodyNode, this.shoulderNode, this.pupperParams.torsoSpringK);
         this.links.push(torso);
-        this.links.push(PuppetSpring.Connect(shoulder, elbowR, this.pupperParams.armSpringK, 0.8));
-        this.links.push(PuppetSpring.Connect(shoulder, elbowL, this.pupperParams.armSpringK, 0.8));
-        this.links.push(PuppetSpring.Connect(elbowR, handR, this.pupperParams.foreArmSpringK, 0.8));
-        this.links.push(PuppetSpring.Connect(elbowL, handL, this.pupperParams.foreArmSpringK, 0.8));
+        this.links.push(PuppetSpring.Connect(this.shoulderNode, this.elbowRNode, this.pupperParams.armSpringK, 0.8));
+        this.links.push(PuppetSpring.Connect(this.shoulderNode, this.elbowLNode, this.pupperParams.armSpringK, 0.8));
+        this.links.push(PuppetSpring.Connect(this.elbowRNode, this.handRNode, this.pupperParams.foreArmSpringK, 0.8));
+        this.links.push(PuppetSpring.Connect(this.elbowLNode, this.handLNode, this.pupperParams.foreArmSpringK, 0.8));
         this.anchorFootR = new PuppetNode();
         this.anchorFootR.position.copyFromFloats(0.5, 5, 0).addInPlace(initialPosition);
-        this.links.push(PuppetRope.Connect(footR, this.anchorFootR));
+        this.links.push(PuppetRope.Connect(this.footRNode, this.anchorFootR));
         this.anchorFootL = new PuppetNode();
         this.anchorFootL.position.copyFromFloats(-0.5, 5, 0).addInPlace(initialPosition);
-        this.links.push(PuppetRope.Connect(footL, this.anchorFootL));
+        this.links.push(PuppetRope.Connect(this.footLNode, this.anchorFootL));
         this.anchorHead = new PuppetNode();
         this.anchorHead.position.copyFromFloats(0, 5, 0).addInPlace(initialPosition);
-        let headRope = PuppetRope.Connect(shoulder, this.anchorHead);
+        let headRope = PuppetRope.Connect(this.shoulderNode, this.anchorHead);
         headRope.l0 = 2;
         this.links.push(headRope);
         this.anchorHandR = new PuppetNode();
         this.anchorHandR.position.copyFrom(this.anchorHead.position);
         this.anchorHandR.position.addInPlace(this.pupperParams.handAnchorPosition);
-        let handRRope = PuppetRope.Connect(handR, this.anchorHandR);
+        let handRRope = PuppetRope.Connect(this.handRNode, this.anchorHandR);
         handRRope.l0 = 3;
         this.links.push(handRRope);
         this.anchorHandL = new PuppetNode();
         this.anchorHandL.position.copyFrom(this.pupperParams.handAnchorPosition);
         this.anchorHandL.position.x *= -1;
         this.anchorHandL.position.addInPlace(this.anchorHead.position);
-        let handLRope = PuppetRope.Connect(handL, this.anchorHandL);
+        let handLRope = PuppetRope.Connect(this.handLNode, this.anchorHandL);
         handLRope.l0 = 3;
         this.links.push(handLRope);
-        this.nodes = [body, shoulder, kneeR, kneeL, footR, footL, elbowR, elbowL, handR, handL];
+        this.nodes = [this.bodyNode, this.shoulderNode, this.kneeRNode, this.kneeLNode, this.footRNode, this.footLNode, this.elbowRNode, this.elbowLNode, this.handRNode, this.handLNode];
         this.bodyMesh = new BABYLON.Mesh("bodymesh");
         this.bodyMesh.position.copyFrom(initialPosition);
         this.bodyMesh.material = material;
@@ -1445,23 +1426,6 @@ class Puppet {
                 foreArm.dispose();
             }
         });
-        /*
-        setTimeout(() => {
-            this._moveLeg(0, new BABYLON.Vector3(0.5, 5, 1.5));
-        }, 3000);
-        setTimeout(() => {
-            this._moveLeg(1, new BABYLON.Vector3(- 0.5, 5, 3));
-        }, 6000);
-        setTimeout(() => {
-            this._moveLeg(0, new BABYLON.Vector3(0.5, 5, 4.5));
-        }, 9000);
-        setTimeout(() => {
-            this._moveLeg(1, new BABYLON.Vector3(- 0.5, 5, 6));
-        }, 12000);
-        setTimeout(() => {
-            this._moveLeg(0, new BABYLON.Vector3(0.5, 5, 6));
-        }, 15000);
-        */
     }
     update() {
         this.t += Main.Engine.getDeltaTime() / 1000;
@@ -1526,16 +1490,16 @@ class Puppet {
         for (let i = 0; i < this.links.length; i++) {
             //this.links[i].update();
         }
-        let bodyPos = this.nodes[0].position.clone();
-        let shoulderPos = this.nodes[1].position.clone();
-        let kneeRPos = this.nodes[2].position.clone();
-        let kneeLPos = this.nodes[3].position.clone();
-        let footRPos = this.nodes[4].position.clone();
-        let footLPos = this.nodes[5].position.clone();
-        let elbowRPos = this.nodes[6].position.clone();
-        let elbowLPos = this.nodes[7].position.clone();
-        let handRPos = this.nodes[8].position.clone();
-        let handLPos = this.nodes[9].position.clone();
+        let bodyPos = this.bodyNode.position.clone();
+        let shoulderPos = this.shoulderNode.position.clone();
+        let kneeRPos = this.kneeRNode.position.clone();
+        let footRPos = this.footRNode.position.clone();
+        let kneeLPos = this.kneeLNode.position.clone();
+        let footLPos = this.footLNode.position.clone();
+        let elbowRPos = this.elbowRNode.position.clone();
+        let handRPos = this.handRNode.position.clone();
+        let elbowLPos = this.elbowLNode.position.clone();
+        let handLPos = this.handLNode.position.clone();
         let bodyKneeDist = Math.sqrt(0.35 * 0.35 + 1 * 1);
         for (let i = 0; i < 3; i++) {
             VMath.SetABDistanceInPlace(shoulderPos, bodyPos, 1, true);
@@ -1961,5 +1925,52 @@ class PuppetParameters {
                 }
             }
         });
+    }
+}
+class GeneticAnimation {
+    initializeScene() {
+        for (let i = 0; i < 5; i++) {
+            let material = new BABYLON.StandardMaterial("preview-blue-material", Main.Scene);
+            material.diffuseColor.copyFromFloats(Math.random(), Math.random(), Math.random());
+            material.specularColor.copyFromFloats(0.1, 0.1, 0.1);
+            let puppet = new Puppet(new BABYLON.Vector3(i * 3, 0, 0), material);
+            Main.Scene.onBeforeRenderObservable.add(() => {
+                puppet.update();
+            });
+            let controler = new FlightPlanPuppetControler(puppet);
+            controler.flightPlan = [
+                new BABYLON.Vector2(i * 3, 20),
+                new BABYLON.Vector2(i * 3, 15),
+                new BABYLON.Vector2(i * 3, 10),
+                new BABYLON.Vector2(i * 3, 0),
+                new BABYLON.Vector2(i * 3, -20),
+                new BABYLON.Vector2(i * 3, -15),
+                new BABYLON.Vector2(i * 3, -10),
+                new BABYLON.Vector2(i * 3, 0),
+            ];
+            puppet.puppetControler = controler;
+            puppet.puppetControler.initialize();
+        }
+    }
+    initializeUI() {
+        for (let i = 0; i < GeneticAnimation.PUPPET_COUNT; i++) {
+            let index = i;
+            let button = ButtonFactory.MakeButton(0.1 + i * 0.8 / GeneticAnimation.PUPPET_COUNT, 0.9, index.toFixed(0), () => {
+                alert("Puppet " + index.toFixed(0) + " selected.");
+            });
+        }
+    }
+}
+GeneticAnimation.PUPPET_COUNT = 5;
+class ButtonFactory {
+    static MakeButton(left, top, text, callback) {
+        let button = document.createElement("button");
+        button.style.position = "fixed";
+        button.style.top = (top * 100).toFixed(1) + "%";
+        button.style.left = (left * 100).toFixed(1) + "%";
+        button.textContent = text;
+        button.addEventListener("pointerup", callback);
+        document.body.appendChild(button);
+        return button;
     }
 }

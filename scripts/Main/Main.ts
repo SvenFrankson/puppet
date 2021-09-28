@@ -202,30 +202,9 @@ class Main {
 		let camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 4, 20, BABYLON.Vector3.Zero(), Main.Scene);
 		camera.attachControl(Main.Canvas);
 		
-		for (let i = 0; i < 5; i++) {
-			
-			let material = new BABYLON.StandardMaterial("preview-blue-material", Main.Scene);
-			material.diffuseColor.copyFromFloats(Math.random(), Math.random(), Math.random());
-			material.specularColor.copyFromFloats(0.1, 0.1, 0.1);
-
-			let puppet = new Puppet(new BABYLON.Vector3(i *3, 0, 0), material);
-			Main.Scene.onBeforeRenderObservable.add(() => {
-				puppet.update();
-			})
-			let controler = new FlightPlanPuppetControler(puppet);
-			controler.flightPlan = [
-				new BABYLON.Vector2(i *3, 20),
-				new BABYLON.Vector2(i *3, 15),
-				new BABYLON.Vector2(i *3, 10),
-				new BABYLON.Vector2(i *3, 0),
-				new BABYLON.Vector2(i *3, - 20),
-				new BABYLON.Vector2(i *3, - 15),
-				new BABYLON.Vector2(i *3, - 10),
-				new BABYLON.Vector2(i *3, 0),
-			]
-			puppet.puppetControler = controler;
-			puppet.puppetControler.initialize();
-		}
+		let content = new GeneticAnimation();
+		content.initializeScene();
+		content.initializeUI();
 
 		Main.EnableGlowLayer();
 
