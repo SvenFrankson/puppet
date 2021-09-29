@@ -76,4 +76,44 @@ class PuppetParameters {
             }
         });
     }
+
+    public serialize(): any {
+        let data = {};
+        Object.keys(this).forEach((k) => {
+            let v = this[k];
+            if (v instanceof BABYLON.Vector3) {
+                data[k] = { x: v.x, y: v.y, z: v.z };
+            }
+            if (typeof(v) === "number") {
+                data[k] = v;
+            }
+        });
+        return data;
+    }
+
+    public deserialize(data: any): void {
+        Object.keys(this).forEach((k) => {
+            let v = this[k];
+            if (v instanceof BABYLON.Vector3) {
+                v.x = data[k].x;
+                v.y = data[k].y;
+                v.z = data[k].z;
+            }
+            if (typeof(v) === "number") {
+                this[k] = data[k];
+            }
+        });
+    }
+
+    public save(name: string): void {
+        let data = this.serialize();
+        localStorage.setItem(name, JSON.stringify(data));
+    }
+
+    public load(name: string): void {
+        let data = localStorage.getItem(name);
+        if (data) {
+            this.deserialize(JSON.parse(data));
+        }
+    }
 }
