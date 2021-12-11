@@ -198,16 +198,17 @@ class Main {
 					this.setPickedCell(cell);
 				}
 			}
-			let inverse = false;
+			let reverse = false;
 			if (this.pickedCell && pick.pickedPoint) {
-				inverse = this.pickedCell.barycenter3D.x > pick.pickedPoint.x;
+				reverse = this.pickedCell.barycenter3D.x > pick.pickedPoint.x;
 			}
+			this.selected.reverse = reverse;
 			if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
 				if (this.pickedCell) {
 					cellNetwork.morphCell(
 						0,
 						this.pickedCell,
-						inverse,
+						reverse,
 						() => {
 							cellNetwork.checkSurround(
 								() => {
@@ -221,9 +222,6 @@ class Main {
 												cellNetwork.checkSurround();
 											}
 										);
-									}
-									else {
-										alert("AI can't play.");
 									}
 								}
 							);

@@ -482,7 +482,7 @@ class CellNetwork {
             callback();
         }
     }
-    morphCell(player, cell, inverse = false, callback) {
+    morphCell(player, cell, reverse = false, callback) {
         if (this.lock > 0) {
             return;
         }
@@ -494,7 +494,7 @@ class CellNetwork {
             for (let i = 0; i < neighbors.length; i++) {
                 let n1 = neighbors.get(i);
                 let n2;
-                if (inverse) {
+                if (reverse) {
                     n2 = neighbors.get((i - 1 + neighbors.length) % neighbors.length);
                 }
                 else {
@@ -630,6 +630,73 @@ class CellNetwork {
 class CellSelector {
     constructor(network) {
         this.network = network;
+        this.reverse = false;
+        this._t = 0;
+        this._tmp = BABYLON.Vector2.Zero();
+        this._lastReverse = false;
+        this.updateShape = () => {
+            if (this.highlightShape) {
+                this.highlightShape.isVisible = false;
+            }
+            if (!this.selectedCell) {
+                return;
+            }
+            let neighbors = this.selectedCell.neighbors;
+            if (!this.reverse) {
+                this._t += this.network.main.engine.getDeltaTime() / 1000;
+            }
+            else {
+                this._t -= this.network.main.engine.getDeltaTime() / 1000;
+            }
+            let highLightData = new BABYLON.VertexData();
+            let positions = [];
+            let colors = [];
+            let indices = [];
+            let i = 0;
+            neighbors.forEach(c => {
+                let points = Math2D.FattenShrinkEdgeShape(c.points, -0.1);
+                points.push(points[0]);
+                let l = positions.length / 3;
+                positions.push(c.barycenter.x, 0, c.barycenter.y);
+                this._tmp.copyFrom(c.barycenter);
+                this._tmp.subtractInPlace(this.selectedCell.barycenter);
+                let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
+                let color = (Math.cos(a - Math.PI * 2 * this._t * 0.5) + 1) * 0.5;
+                color = 0.25 + color * 0.75;
+                colors.push(color, color, color, 1);
+                for (let i = 0; i < points.length; i++) {
+                    this._tmp.copyFrom(points[i]);
+                    this._tmp.subtractInPlace(this.selectedCell.barycenter);
+                    a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
+                    color = (Math.cos(a - Math.PI * 2 * this._t * 0.5) + 1) * 0.5;
+                    color = 0.25 + color * 0.75;
+                    positions.push(points[i].x, 0, points[i].y);
+                    colors.push(color, color, color, 1);
+                    if (i != points.length - 1) {
+                        indices.push(l, l + i, l + i + 1);
+                    }
+                    else {
+                        indices.push(l, l + i, l + 1);
+                    }
+                }
+                i++;
+            });
+            highLightData.positions = positions;
+            highLightData.colors = colors;
+            highLightData.indices = indices;
+            if (!this.highlightShape) {
+                this.highlightShape = new BABYLON.Mesh("highlight-shape");
+                let material = new BABYLON.StandardMaterial("highlight-shape-material", this.network.main.scene);
+                material.diffuseColor.copyFromFloats(1, 1, 1);
+                material.alpha = 1;
+                material.specularColor.copyFromFloats(0, 0, 0);
+                this.highlightShape.material = material;
+            }
+            highLightData.applyToMesh(this.highlightShape);
+            this.highlightShape.isVisible = true;
+            this.highlightShape.position.y = -0.01;
+        };
+        network.main.scene.onBeforeRenderObservable.add(this.updateShape);
     }
     update(cell) {
         if (this.lineMeshIn) {
@@ -638,12 +705,11 @@ class CellSelector {
         if (this.lineMeshOut) {
             this.lineMeshOut.dispose();
         }
-        if (this.highlightShape) {
-            this.highlightShape.dispose();
-        }
+        this.selectedCell = cell;
         if (!cell) {
             return;
         }
+        return;
         let neighborsCyclePoint = [];
         let neighbors = cell.neighbors;
         neighbors.forEach(c => {
@@ -663,40 +729,6 @@ class CellSelector {
         }
         this.lineMeshIn = BABYLON.MeshBuilder.CreateLines("shape-line", { points: line3DIn, colors: line3DColor, updatable: true });
         this.lineMeshOut = BABYLON.MeshBuilder.CreateLines("shape-line", { points: line3DOut, colors: line3DColor, updatable: true });
-        let highLightData = new BABYLON.VertexData();
-        let positions = [];
-        let colors = [];
-        let indices = [];
-        neighbors.forEach(c => {
-            let points = Math2D.FattenShrinkEdgeShape(c.points, -0.1);
-            points.push(points[0]);
-            let l = positions.length / 3;
-            positions.push(c.barycenter.x, 0, c.barycenter.y);
-            colors.push(Cell.PickColor.r, Cell.PickColor.g, Cell.PickColor.b, Cell.PickColor.a);
-            for (let i = 0; i < points.length; i++) {
-                positions.push(points[i].x, 0, points[i].y);
-                colors.push(Cell.PickColor.r, Cell.PickColor.g, Cell.PickColor.b, Cell.PickColor.a);
-                if (i != points.length - 1) {
-                    indices.push(l, l + i, l + i + 1);
-                }
-                else {
-                    indices.push(l, l + i, l + 1);
-                }
-            }
-        });
-        highLightData.positions = positions;
-        highLightData.colors = colors;
-        highLightData.indices = indices;
-        if (!this.highlightShape || this.highlightShape.isDisposed()) {
-            this.highlightShape = new BABYLON.Mesh("highlight-shape");
-            let material = new BABYLON.StandardMaterial("highlight-shape-material", this.network.main.scene);
-            material.diffuseColor.copyFromFloats(1, 1, 1);
-            material.alpha = 1;
-            material.specularColor.copyFromFloats(0, 0, 0);
-            this.highlightShape.material = material;
-        }
-        highLightData.applyToMesh(this.highlightShape);
-        this.highlightShape.position.y = -0.01;
     }
 }
 class CellTriangle {
@@ -913,22 +945,20 @@ class Main {
                     this.setPickedCell(cell);
                 }
             }
-            let inverse = false;
+            let reverse = false;
             if (this.pickedCell && pick.pickedPoint) {
-                inverse = this.pickedCell.barycenter3D.x > pick.pickedPoint.x;
+                reverse = this.pickedCell.barycenter3D.x > pick.pickedPoint.x;
             }
+            this.selected.reverse = reverse;
             if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
                 if (this.pickedCell) {
-                    cellNetwork.morphCell(0, this.pickedCell, inverse, () => {
+                    cellNetwork.morphCell(0, this.pickedCell, reverse, () => {
                         cellNetwork.checkSurround(() => {
                             let aiMove = ai.getMove();
                             if (aiMove) {
                                 cellNetwork.morphCell(1, aiMove, Math.random() > 0.5, () => {
                                     cellNetwork.checkSurround();
                                 });
-                            }
-                            else {
-                                alert("AI can't play.");
                             }
                         });
                     });

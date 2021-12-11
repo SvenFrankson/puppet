@@ -217,7 +217,7 @@ class CellNetwork {
     }
 
     public lock: number = 0;
-    public morphCell(player: number, cell: Cell, inverse: boolean = false, callback?: () => void): void {
+    public morphCell(player: number, cell: Cell, reverse: boolean = false, callback?: () => void): void {
         if (this.lock > 0) {
             return;
         }
@@ -229,7 +229,7 @@ class CellNetwork {
             for (let i = 0; i < neighbors.length; i++) {
                 let n1 = neighbors.get(i);
                 let n2: Cell;
-                if (inverse) {
+                if (reverse) {
                     n2 = neighbors.get((i - 1 + neighbors.length) % neighbors.length);
                 }
                 else {
