@@ -178,6 +178,8 @@ class Main {
 		cellNetwork.checkSurround();
 		//cellNetwork.debugDrawBase();
 
+		this.selected = new CellSelector(cellNetwork);
+
 		let ai = new AI(cellNetwork);
 
 		let pickPlane = BABYLON.MeshBuilder.CreateGround("pick-plane", { width: 50, height: 50 }, this.scene);
@@ -232,7 +234,7 @@ class Main {
 		})
 	}
 
-	public selected: CellSelector = new CellSelector();
+	public selected: CellSelector;
 	public pickedCell: Cell;
 	public setPickedCell(cell: Cell): void {
 		if (cell === this.pickedCell) {

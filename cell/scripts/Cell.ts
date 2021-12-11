@@ -20,7 +20,6 @@ class Cell {
     public barycenter: BABYLON.Vector2;
     public shape: BABYLON.Mesh;
     public shapeLine: BABYLON.LinesMesh;
-    public highlightShape: BABYLON.Mesh;
 
     public highlightStatus: number = 0;
 
@@ -48,9 +47,6 @@ class Cell {
         }
         if (this.shapeLine) {
             this.shapeLine.dispose();
-        }
-        if (this.highlightShape) {
-            this.highlightShape.dispose();
         }
     }
 
@@ -159,14 +155,6 @@ class Cell {
             material.specularColor.copyFromFloats(0, 0, 0);
             this.shape.material = material;
         }
-        if (this.highlightStatus > 0 && !this.highlightShape) {
-            this.highlightShape = new BABYLON.Mesh("highlight-shape");
-            let material = new BABYLON.StandardMaterial("highlight-shape-material", this.network.main.scene);
-            material.diffuseColor.copyFromFloats(1, 1, 1);
-            material.alpha = 1;
-            material.specularColor.copyFromFloats(0, 0, 0);
-            this.highlightShape.material = material;
-        }
         if (!this.isBorder() && !this.isHidden() && !this.isLocked()) {
             
             let dOut = 0.1;
@@ -226,37 +214,6 @@ class Cell {
                 this.shapeLine = BABYLON.MeshBuilder.CreateLines("shape-line", { points: line3D, colors: line3DColor, updatable: true });
             }
             BABYLON.MeshBuilder.CreateLines("", { points: line3D, colors: line3DColor, instance: this.shapeLine });
-
-            if (this.highlightStatus === 1) {
-                
-                let line = Math2D.FattenShrinkEdgeShape(points, - dOut);
-                line.push(line[0]);
-
-                let highLightData = new BABYLON.VertexData();
-                let positions: number[] = [center.x, 0, center.y];
-                let colors: number[] = [Cell.PickColor.r, Cell.PickColor.g, Cell.PickColor.b, Cell.PickColor.a];
-                let indices: number[] = [];
-                for (let i = 0; i < line.length; i++) {
-                    positions.push(line[i].x, 0, line[i].y);
-                    colors.push(Cell.PickColor.r, Cell.PickColor.g, Cell.PickColor.b, Cell.PickColor.a);
-                    if (i != line.length - 1) {
-                        indices.push(0, i, i + 1);
-                    }
-                    else {
-                        indices.push(0, i, 1);
-                    }
-                }
-                highLightData.positions = positions;
-                highLightData.colors = colors;
-                highLightData.indices = indices;
-
-                highLightData.applyToMesh(this.highlightShape)
-                this.highlightShape.position.y = -0.01;
-            }
-            else if (this.highlightShape) {
-                let data = new BABYLON.VertexData();
-                data.applyToMesh(this.highlightShape);
-            }
         }
     }
 
