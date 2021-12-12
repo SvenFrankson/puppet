@@ -3,12 +3,148 @@ interface ICellNetwork {
     cellTriangles: CellTriangle[];
 }
 
-class CellNetwork {
-
-    public radius: number = 1;
+class CellNetwork implements ICellNetwork {
 
     public cells: Cell[] = [];
     public cellTriangles: CellTriangle[] = [];
+
+    public clone(): CellNetwork {
+        let cloneNetwork = new CellNetwork();
+
+        for (let i = 0; i < this.cells.length; i++) {
+            let newCell = this.cells[i].clone();
+            cloneNetwork.cells[i] = newCell;
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            let newTriangle = this.cellTriangles[i].clone();
+            cloneNetwork.cellTriangles[i] = newTriangle;
+        }
+
+        for (let i = 0; i < this.cells.length; i++) {
+            let baseCell = this.cells[i];
+            let newCell = cloneNetwork.cells[i];
+
+            baseCell.neighbors.forEach((c, j) => {
+                newCell.neighbors.set(j, cloneNetwork.cells[c.index]);
+            })
+            baseCell.triangles.forEach((t, j) => {
+                newCell.triangles.set(j, cloneNetwork.cellTriangles[t.index]);
+            })
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            let baseTriangle = this.cellTriangles[i];
+            let newTriangle = cloneNetwork.cellTriangles[i];
+
+            baseTriangle.vertices.forEach((c, j) => {
+                newTriangle.vertices[j] = cloneNetwork.cells[c.index];
+            })
+            baseTriangle.neighbors.forEach((t, j) => {
+                newTriangle.neighbors.set(j, cloneNetwork.cellTriangles[t.index]);
+            })
+        }
+
+        return cloneNetwork;
+    }
+
+    public rotate(cell: Cell, reverse?: boolean): number[] {
+        let variances = [0, 0, 0];
+        let values: number[] = [];
+        let nCount = cell.neighbors.length;
+        let inc = reverse ? - 1 : 1;
+
+        cell.neighbors.forEach((n, i) => {
+            values[i] = n.value;
+        });
+        cell.neighbors.forEach((n, i) => {
+            n.value = values[(i + inc + nCount) % nCount];
+        });
+
+        cell.neighbors.forEach((n) => {
+            let surroundN = n.isSurrounded();
+            if (surroundN != - 1 && surroundN != n.value) {
+                variances[n.value]--;
+                variances[surroundN]++;
+                n.value = surroundN;
+            }
+            n.neighbors.forEach((nn) => {
+                let surroundNN = nn.isSurrounded();
+                if (surroundNN != - 1 && surroundN != nn.value) {
+                    variances[nn.value]--;
+                    variances[surroundNN]++;
+                    nn.value = surroundNN;
+                }
+            });
+        });
+
+        return variances;
+    }
+
+    public getVariance(cell: Cell, reverse?: boolean): number [] {
+        let variances = [0, 0, 0];
+        let values: number[] = [];
+        let nCount = cell.neighbors.length;
+        let inc = reverse ? - 1 : 1;
+
+        cell.neighbors.forEach((n, i) => {
+            values[i] = n.value;
+        });
+        cell.neighbors.forEach((n, i) => {
+            n.value = values[(i + inc + nCount) % nCount];
+        });
+
+        let updatedCells: UniqueList<Cell> = new UniqueList<Cell>();
+        cell.neighbors.forEach((n) => {
+            let surroundN = n.isSurrounded();
+            if (surroundN != - 1 && surroundN != n.value && !updatedCells.contains(n)) {
+                variances[n.value]--;
+                variances[surroundN]++;
+                updatedCells.push(n);
+            }
+            n.neighbors.forEach((nn) => {
+                let surroundNN = nn.isSurrounded();
+                if (surroundNN != - 1 && surroundN != nn.value && !updatedCells.contains(nn)) {
+                    variances[nn.value]--;
+                    variances[surroundNN]++;
+                    updatedCells.push(nn);
+                }
+            });
+        });
+
+        cell.neighbors.forEach((n, i) => {
+            n.value = values[i];
+        });
+
+        return variances;
+    }
+
+    public getScore(p: number): number {
+        return this.cells.filter(c => { return c.value === p; }).length;
+    }
+
+    public getBoardValueForPlayer(p: number): number {
+        let possibleGain = 0;
+        
+        let availableCells = this.cells.filter(c => { return c.canRotate(); });
+        availableCells = availableCells.filter(c => { return (c.value === p && !(c.isSurrounded() === p)) || c.value === 2; });
+        
+        availableCells.forEach(c => {
+            let variance = this.getVariance(c);
+            if (variance[p] > 0) {
+                possibleGain += variance[p];
+            }
+            let varianceReverse = this.getVariance(c, true);
+            if (varianceReverse[p] > 0) {
+                possibleGain += varianceReverse[p];
+            }
+        });
+
+        return possibleGain;
+    }
+}
+
+class CellNetworkDisplayed extends CellNetwork {
+
+    public radius: number = 1;
 
     private debugBase: BABYLON.Mesh;
     private _debugRedMaterial: BABYLON.StandardMaterial;
@@ -33,49 +169,7 @@ class CellNetwork {
     constructor(
         public main: Main
     ) {
-
-    }
-
-    public duplicateNetwork(): ICellNetwork {
-        let newCells: Cell[] = [];
-        let newTriangles: CellTriangle[] = [];
-
-        for (let i = 0; i < this.cells.length; i++) {
-            let newCell = this.cells[i].clone();
-            newCells[i] = newCell;
-        }
-        for (let i = 0; i < this.cellTriangles.length; i++) {
-            let newTriangle = this.cellTriangles[i].clone();
-            newTriangles[i] = newTriangle;
-        }
-
-        for (let i = 0; i < this.cells.length; i++) {
-            let baseCell = this.cells[i];
-            let newCell = newCells[i];
-
-            baseCell.neighbors.forEach((c, j) => {
-                newCell.neighbors.set(j, newCells[c.index]);
-            })
-            baseCell.triangles.forEach((t, j) => {
-                newCell.triangles.set(j, newTriangles[t.index]);
-            })
-        }
-        for (let i = 0; i < this.cellTriangles.length; i++) {
-            let baseTriangle = this.cellTriangles[i];
-            let newTriangle = newTriangles[i];
-
-            baseTriangle.vertices.forEach((c, j) => {
-                newTriangle.vertices[j] = newCells[c.index];
-            })
-            baseTriangle.neighbors.forEach((t, j) => {
-                newTriangle.neighbors.set(j, newTriangles[t.index]);
-            })
-        }
-
-        return {
-            cells: newCells,
-            cellTriangles: newTriangles
-        };
+        super();
     }
 
     public declutterRec(vertices: BABYLON.Vector2[], boxMin: BABYLON.Vector2, boxMax: BABYLON.Vector2, minD: number): void {
@@ -185,7 +279,6 @@ class CellNetwork {
             points = points.filter(p => { return isFinite(p.x) && isFinite(p.y); });
         }
 
-
         for (let i = 0; i < points.length; i++) {
             let p = points[i];
 
@@ -203,7 +296,7 @@ class CellNetwork {
 
         this.triangulate();
 
-        let clone = this.duplicateNetwork();
+        let clone = this.clone();
         this.cells = clone.cells;
         this.cellTriangles = clone.cellTriangles;
         
@@ -285,7 +378,6 @@ class CellNetwork {
             n1.morphTo(n2, () => {
                 n1.updateShape();
             });
-
         }
     }
 
@@ -424,9 +516,9 @@ class CellNetwork {
                     let pp = tri.barycenter3D.clone();
                     line.push(pp);
                 });
-                line = CellNetwork.Smooth(line);
-                line = CellNetwork.Smooth(line);
-                line = CellNetwork.Smooth(line);
+                line = CellNetworkDisplayed.Smooth(line);
+                line = CellNetworkDisplayed.Smooth(line);
+                line = CellNetworkDisplayed.Smooth(line);
                 line.push(line[0]);
                 for (let i = 0; i < line.length; i++) {
                     color.push(c);

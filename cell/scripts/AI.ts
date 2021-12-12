@@ -2,7 +2,7 @@ class AI {
 
     constructor(
         public player: number,
-        public cellNetwork: CellNetwork
+        public cellNetwork: CellNetworkDisplayed
     ) {
 
     }
@@ -49,9 +49,64 @@ class AI {
         return takenCell.length;
     }
 
+    public getMove2(): { cell: Cell, reverse: boolean } {
+        let bestGain = - Infinity;
+        let pickedCellIndex: number = - 1;
+        let pickedReverse: boolean = false;
+
+        let opponent: number = (this.player + 1) % 2;
+        let playerBoardValueZero = this.cellNetwork.getBoardValueForPlayer(this.player);
+        let opponentBoardValueZero = this.cellNetwork.getBoardValueForPlayer(opponent);
+
+        let cloneNetwork = this.cellNetwork.clone();
+        let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
+        availableCells = availableCells.filter(c => { return (c.value === this.player && !(c.isSurrounded() === this.player)) || c.value === 2; });
+        let availableCellIndexes = availableCells.map(c => { return c.index; });
+
+        for (let i = 0; i < availableCellIndexes.length; i++) {
+            let gain = 0;
+
+            cloneNetwork = this.cellNetwork.clone();
+            let cell = cloneNetwork.cells[availableCellIndexes[i]];
+            let variance = cloneNetwork.rotate(cell);
+            gain += variance[this.player];
+            gain += cloneNetwork.getBoardValueForPlayer(this.player) - playerBoardValueZero;
+            gain -= cloneNetwork.getBoardValueForPlayer(opponent) - opponentBoardValueZero;
+
+            if (gain > bestGain) {
+                bestGain = gain;
+                pickedCellIndex = cell.index;
+                pickedReverse = false;
+            }
+
+            gain = 0;
+            cloneNetwork = this.cellNetwork.clone();
+            cell = cloneNetwork.cells[availableCellIndexes[i]];
+            variance = cloneNetwork.rotate(cell, true);
+            gain += variance[this.player];
+            gain += cloneNetwork.getBoardValueForPlayer(this.player) - playerBoardValueZero;
+            gain -= cloneNetwork.getBoardValueForPlayer(opponent) - opponentBoardValueZero;
+
+            if (gain > bestGain) {
+                bestGain = gain;
+                pickedCellIndex = cell.index;
+                pickedReverse = true;
+            }
+        }
+
+        let pickedCell = undefined;
+        if (pickedCellIndex != - 1) {
+            pickedCell = this.cellNetwork.cells[pickedCellIndex];
+        }
+
+        return {
+            cell: pickedCell,
+            reverse: pickedReverse
+        }
+    }
 
     public getMove(): { cell: Cell, reverse: boolean } {
-        let cloneNetwork = this.cellNetwork.duplicateNetwork();
+        let cloneNetwork = this.cellNetwork.clone();
         console.log(cloneNetwork);
         let bestGain = - Infinity;
         let pickedCellIndex: number = - 1;

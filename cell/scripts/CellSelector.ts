@@ -6,7 +6,7 @@ class CellSelector {
     public lineMeshIn: BABYLON.LinesMesh;
     public highlightShape: BABYLON.Mesh;
 
-    constructor(public network: CellNetwork) {
+    constructor(public network: CellNetworkDisplayed) {
         network.main.scene.onBeforeRenderObservable.add(this.updateShape);
     }
 

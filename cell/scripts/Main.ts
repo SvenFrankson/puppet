@@ -197,7 +197,7 @@ class Main {
 		this.scene.clearColor = BABYLON.Color4.FromHexString("#3a2e47FF");
 		//this.scene.clearColor = BABYLON.Color4.FromHexString("#D0FA00FF");
 
-		let cellNetwork = new CellNetwork(this);
+		let cellNetwork = new CellNetworkDisplayed(this);
 		cellNetwork.generate(20, 300);
 		cellNetwork.checkSurround();
 		//cellNetwork.debugDrawBase();
@@ -215,8 +215,9 @@ class Main {
 		let C = new BABYLON.Vector3(2, 0, 3.5);
 		let D = new BABYLON.Vector3(6.25, 0, 0);
 
+		/*
 		let move = () => {
-			let aiTestMove = testAI.getMove();
+			let aiTestMove = testAI.getMove2();
 			if (aiTestMove.cell) {
 				cellNetwork.morphCell(
 					0,
@@ -226,7 +227,7 @@ class Main {
 						cellNetwork.checkSurround(
 							() => {
 								
-								let aiMove = ai.getMove();
+								let aiMove = ai.getMove2();
 								if (aiMove.cell) {
 									cellNetwork.morphCell(
 										1,
@@ -245,6 +246,7 @@ class Main {
 		}
 		setTimeout(move, 3000);
 		return;
+		*/
 
 		this.scene.onPointerObservable.add((eventData: BABYLON.PointerInfo) => {
 			let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
@@ -269,7 +271,7 @@ class Main {
 						() => {
 							cellNetwork.checkSurround(
 								() => {
-									let aiMove = ai.getMove();
+									let aiMove = ai.getMove2();
 									if (aiMove.cell) {
 										cellNetwork.morphCell(
 											1,

@@ -30,7 +30,7 @@ class Cell {
     constructor(
         public baseVertexPosition: BABYLON.Vector2,
         public index: number,
-        public network: CellNetwork
+        public network: CellNetworkDisplayed
     ) {
         this.value = Math.floor(Math.random() * 3);
     }
