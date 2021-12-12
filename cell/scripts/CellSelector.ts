@@ -84,8 +84,8 @@ class CellSelector {
             this._tmp.copyFrom(c.barycenter);
             this._tmp.subtractInPlace(this.selectedCell.barycenter);
             let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-            let color = (Math.cos(a - Math.PI * 2 * this._t * 0.5) + 1) * 0.5;
-            color = 0.25 + color * 0.75;
+            let color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
+            color = 0.3 + color * color * 1.5;
 
             colors.push(color, color, color, 1);
             
@@ -93,8 +93,8 @@ class CellSelector {
                 this._tmp.copyFrom(points[i]);
                 this._tmp.subtractInPlace(this.selectedCell.barycenter);
                 a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-                color = (Math.cos(a - Math.PI * 2 * this._t * 0.5) + 1) * 0.5;
-                color = 0.25 + color * 0.75;
+                color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
+                color = 0.3 + color * color * 1.5;
                 positions.push(points[i].x, 0, points[i].y);
                 colors.push(color, color, color, 1);
                 if (i != points.length - 1) {
