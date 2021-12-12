@@ -79,10 +79,17 @@ class CellNetwork {
     }
 
     public declutterRec(vertices: BABYLON.Vector2[], boxMin: BABYLON.Vector2, boxMax: BABYLON.Vector2, minD: number): void {
-        if (vertices.length > 16) {
+        for (let i = 0; i < vertices.length; i++) {
+            boxMin.x = Math.min(boxMin.x, vertices[i].x);
+            boxMin.y = Math.min(boxMin.y, vertices[i].y);
+            boxMax.x = Math.max(boxMax.x, vertices[i].x);
+            boxMax.y = Math.max(boxMax.y, vertices[i].y);
+        }
+        if (vertices.length > 32) {
             if (boxMax.x - boxMin.x > boxMax.y - boxMin.y) {
                 // Split vertical
-                let xSplit = (boxMax.x + boxMin.x) * 0.5;
+                let r = Math.random() * 0.5 + 0.25;
+                let xSplit = boxMax.x * r + boxMin.x * (1 - r);
                 let leftVertices: BABYLON.Vector2[] = [];
                 let rightVertices: BABYLON.Vector2[] = [];
                 vertices.forEach(v => {
@@ -98,7 +105,8 @@ class CellNetwork {
             }
             else {
                 // Split horizontal
-                let ySplit = (boxMax.y + boxMin.y) * 0.5;
+                let r = Math.random() * 0.5 + 0.25;
+                let ySplit = boxMax.y * r + boxMin.y * (1 - r);
                 let bottomVertices: BABYLON.Vector2[] = [];
                 let topVertices: BABYLON.Vector2[] = [];
                 vertices.forEach(v => {
@@ -114,19 +122,41 @@ class CellNetwork {
             }
         }
         else {
-            let squaredMinD: number = minD * minD;
+            /*
+            // Force based version.
+            let C = 100;
+            let forces: BABYLON.Vector2[] = [];
             for (let i = 0; i < vertices.length; i++) {
+                let v0 = vertices[i];
+                forces[i] = BABYLON.Vector2.Zero();
                 for (let j = 0; j < vertices.length; j++) {
                     if (i != j) {
-                        let v0 = vertices[i];
                         let v1 = vertices[j];
-                        let distSquared = BABYLON.Vector2.DistanceSquared(v0, v1);
-                        if (distSquared < squaredMinD) {
-                            let d = Math.floor(distSquared);
-                            let n = v1.subtract(v0).normalize();
-                            n.scaleInPlace((minD - d) * 0.5);
-                            v1.addInPlace(n);
-                            v0.subtractInPlace(n);
+                        let n = v1.subtract(v0).normalize();
+                        let d = BABYLON.Vector2.Distance(v0, v1);
+                        let f = n.scaleInPlace(C / (d * d));
+                        forces[i].addInPlace(f);
+                    }
+                }
+            }
+            for (let i = 0; i < vertices.length; i++) {
+                let v = vertices[i];
+                let f = forces[i];
+                v.addInPlace(f);
+            }
+            */
+            
+            // Merge based version
+            for (let i = 0; i < vertices.length; i++) {
+                let v0 = vertices[i];
+                for (let j = 0; j < vertices.length; j++) {
+                    if (i != j) {
+                        let v1 = vertices[j];
+                        let dd = BABYLON.Vector2.DistanceSquared(v0, v1);
+                        if (dd < 8) {
+                            v1.x = Infinity;
+                            v1.y = Infinity;
+                            vertices.splice(j, 1);
                         }
                     }
                 }
@@ -142,14 +172,25 @@ class CellNetwork {
         let points: BABYLON.Vector2[] = [];
         for (let i = 0; i < n; i++) {
             let p: BABYLON.Vector2 = BABYLON.Vector2.Zero();
-            let v = new Cell(p, i, this);
             
             p.copyFromFloats(
                 - this.radius * 2 + 2 * this.radius * 2 * Math.random(),
                 - this.radius * 2 + 2 * this.radius * 2 * Math.random()
             );
             points.push(p);
+        }
 
+        for (let i = 0; i < 10; i++) {
+            this.declutterRec(points, new BABYLON.Vector2(- this.radius * (2 + Math.random()), - this.radius * (2 + Math.random())), new BABYLON.Vector2(this.radius * (2 + Math.random()), this.radius * (2 + Math.random())), 1.5);
+            points = points.filter(p => { return isFinite(p.x) && isFinite(p.y); });
+        }
+
+
+        for (let i = 0; i < points.length; i++) {
+            let p = points[i];
+
+            let v = new Cell(p, i, this);
+    
             if (Math.abs(p.x) > this.radius) {
                 v.forceLock = true;
             }
@@ -157,8 +198,6 @@ class CellNetwork {
                 v.forceLock = true;
             }
 
-            this.declutterRec(points, new BABYLON.Vector2(- this.radius * (2 + Math.random()), - this.radius * (2 + Math.random())), new BABYLON.Vector2(this.radius * (2 + Math.random()), this.radius * (2 + Math.random())), 1.5);
-            this.declutterRec(points, new BABYLON.Vector2(- this.radius * (2 + Math.random()), - this.radius * (2 + Math.random())), new BABYLON.Vector2(this.radius * (2 + Math.random()), this.radius * (2 + Math.random())), 1.5);
             this.cells.push(v);
         }
 
@@ -169,6 +208,9 @@ class CellNetwork {
         this.cellTriangles = clone.cellTriangles;
         
         this.cells.forEach(v => {
+            if (v.isLocked()) {
+                v.value = - 1;
+            }
             v.updateShape();
         })
     }

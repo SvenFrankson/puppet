@@ -1,6 +1,7 @@
 class AI {
 
     constructor(
+        public player: number,
         public cellNetwork: CellNetwork
     ) {
 
@@ -31,11 +32,11 @@ class AI {
 
         let takenCell: UniqueList<Cell> = new UniqueList<Cell>();
         cell.neighbors.forEach(c => {
-            if (c.value != 1 && c.isSurrounded() === 1) {
+            if (c.value != this.player && c.isSurrounded() === this.player) {
                 takenCell.push(c);
             }
             c.neighbors.forEach(n => {
-                if (n.value != 1 && n.isSurrounded() === 1) {
+                if (n.value != this.player && n.isSurrounded() === this.player) {
                     takenCell.push(n);
                 }
             })
@@ -58,17 +59,16 @@ class AI {
 
         let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
         console.log("Available cells = " + availableCells.length);
-        availableCells = availableCells.filter(c => { return c.value != 0; });
+        availableCells = availableCells.filter(c => { return c.value === this.player || c.value === 2; });
 
         console.log("Available cells = " + availableCells.length);
 
         for (let i = 0; i < availableCells.length; i++) {
-            let r = Math.random() > 0.5;
             let cell = availableCells[i];
 
             // Check base rotation.
             let gain = this.cellRotationGain(cell, false);
-            if (gain > bestGain || gain === bestGain && r) {
+            if (gain > bestGain) {
                 bestGain = gain;
                 pickedCellIndex = cell.index;
                 pickedReverse = false;
@@ -76,13 +76,19 @@ class AI {
 
             // Check reverse rotation.
             gain = this.cellRotationGain(cell, true);
-            if (gain > bestGain || gain === bestGain && r) {
+            if (gain > bestGain) {
                 bestGain = gain;
                 pickedCellIndex = cell.index;
                 pickedReverse = true;
             }
         }
         console.log("BestGain = " + bestGain);
+
+        if (bestGain === 0) {
+            let rand = Math.floor(Math.random() * availableCells.length);
+            let randomCell = availableCells[rand];
+            pickedCellIndex = randomCell.index;
+        }
 
         console.log("PickedCellIndex = " + pickedCellIndex);
 

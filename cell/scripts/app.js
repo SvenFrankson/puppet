@@ -1,5 +1,6 @@
 class AI {
-    constructor(cellNetwork) {
+    constructor(player, cellNetwork) {
+        this.player = player;
         this.cellNetwork = cellNetwork;
     }
     countValue(cells, v) {
@@ -25,11 +26,11 @@ class AI {
         });
         let takenCell = new UniqueList();
         cell.neighbors.forEach(c => {
-            if (c.value != 1 && c.isSurrounded() === 1) {
+            if (c.value != this.player && c.isSurrounded() === this.player) {
                 takenCell.push(c);
             }
             c.neighbors.forEach(n => {
-                if (n.value != 1 && n.isSurrounded() === 1) {
+                if (n.value != this.player && n.isSurrounded() === this.player) {
                     takenCell.push(n);
                 }
             });
@@ -47,27 +48,31 @@ class AI {
         let pickedReverse = false;
         let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
         console.log("Available cells = " + availableCells.length);
-        availableCells = availableCells.filter(c => { return c.value != 0; });
+        availableCells = availableCells.filter(c => { return c.value === this.player || c.value === 2; });
         console.log("Available cells = " + availableCells.length);
         for (let i = 0; i < availableCells.length; i++) {
-            let r = Math.random() > 0.5;
             let cell = availableCells[i];
             // Check base rotation.
             let gain = this.cellRotationGain(cell, false);
-            if (gain > bestGain || gain === bestGain && r) {
+            if (gain > bestGain) {
                 bestGain = gain;
                 pickedCellIndex = cell.index;
                 pickedReverse = false;
             }
             // Check reverse rotation.
             gain = this.cellRotationGain(cell, true);
-            if (gain > bestGain || gain === bestGain && r) {
+            if (gain > bestGain) {
                 bestGain = gain;
                 pickedCellIndex = cell.index;
                 pickedReverse = true;
             }
         }
         console.log("BestGain = " + bestGain);
+        if (bestGain === 0) {
+            let rand = Math.floor(Math.random() * availableCells.length);
+            let randomCell = availableCells[rand];
+            pickedCellIndex = randomCell.index;
+        }
         console.log("PickedCellIndex = " + pickedCellIndex);
         let pickedCell = undefined;
         if (pickedCellIndex != -1) {
@@ -439,10 +444,17 @@ class CellNetwork {
         };
     }
     declutterRec(vertices, boxMin, boxMax, minD) {
-        if (vertices.length > 16) {
+        for (let i = 0; i < vertices.length; i++) {
+            boxMin.x = Math.min(boxMin.x, vertices[i].x);
+            boxMin.y = Math.min(boxMin.y, vertices[i].y);
+            boxMax.x = Math.max(boxMax.x, vertices[i].x);
+            boxMax.y = Math.max(boxMax.y, vertices[i].y);
+        }
+        if (vertices.length > 32) {
             if (boxMax.x - boxMin.x > boxMax.y - boxMin.y) {
                 // Split vertical
-                let xSplit = (boxMax.x + boxMin.x) * 0.5;
+                let r = Math.random() * 0.5 + 0.25;
+                let xSplit = boxMax.x * r + boxMin.x * (1 - r);
                 let leftVertices = [];
                 let rightVertices = [];
                 vertices.forEach(v => {
@@ -458,7 +470,8 @@ class CellNetwork {
             }
             else {
                 // Split horizontal
-                let ySplit = (boxMax.y + boxMin.y) * 0.5;
+                let r = Math.random() * 0.5 + 0.25;
+                let ySplit = boxMax.y * r + boxMin.y * (1 - r);
                 let bottomVertices = [];
                 let topVertices = [];
                 vertices.forEach(v => {
@@ -474,19 +487,40 @@ class CellNetwork {
             }
         }
         else {
-            let squaredMinD = minD * minD;
+            /*
+            // Force based version.
+            let C = 100;
+            let forces: BABYLON.Vector2[] = [];
             for (let i = 0; i < vertices.length; i++) {
+                let v0 = vertices[i];
+                forces[i] = BABYLON.Vector2.Zero();
                 for (let j = 0; j < vertices.length; j++) {
                     if (i != j) {
-                        let v0 = vertices[i];
                         let v1 = vertices[j];
-                        let distSquared = BABYLON.Vector2.DistanceSquared(v0, v1);
-                        if (distSquared < squaredMinD) {
-                            let d = Math.floor(distSquared);
-                            let n = v1.subtract(v0).normalize();
-                            n.scaleInPlace((minD - d) * 0.5);
-                            v1.addInPlace(n);
-                            v0.subtractInPlace(n);
+                        let n = v1.subtract(v0).normalize();
+                        let d = BABYLON.Vector2.Distance(v0, v1);
+                        let f = n.scaleInPlace(C / (d * d));
+                        forces[i].addInPlace(f);
+                    }
+                }
+            }
+            for (let i = 0; i < vertices.length; i++) {
+                let v = vertices[i];
+                let f = forces[i];
+                v.addInPlace(f);
+            }
+            */
+            // Merge based version
+            for (let i = 0; i < vertices.length; i++) {
+                let v0 = vertices[i];
+                for (let j = 0; j < vertices.length; j++) {
+                    if (i != j) {
+                        let v1 = vertices[j];
+                        let dd = BABYLON.Vector2.DistanceSquared(v0, v1);
+                        if (dd < 8) {
+                            v1.x = Infinity;
+                            v1.y = Infinity;
+                            vertices.splice(j, 1);
                         }
                     }
                 }
@@ -501,17 +535,22 @@ class CellNetwork {
         let points = [];
         for (let i = 0; i < n; i++) {
             let p = BABYLON.Vector2.Zero();
-            let v = new Cell(p, i, this);
             p.copyFromFloats(-this.radius * 2 + 2 * this.radius * 2 * Math.random(), -this.radius * 2 + 2 * this.radius * 2 * Math.random());
             points.push(p);
+        }
+        for (let i = 0; i < 10; i++) {
+            this.declutterRec(points, new BABYLON.Vector2(-this.radius * (2 + Math.random()), -this.radius * (2 + Math.random())), new BABYLON.Vector2(this.radius * (2 + Math.random()), this.radius * (2 + Math.random())), 1.5);
+            points = points.filter(p => { return isFinite(p.x) && isFinite(p.y); });
+        }
+        for (let i = 0; i < points.length; i++) {
+            let p = points[i];
+            let v = new Cell(p, i, this);
             if (Math.abs(p.x) > this.radius) {
                 v.forceLock = true;
             }
             if (Math.abs(p.y) > this.radius) {
                 v.forceLock = true;
             }
-            this.declutterRec(points, new BABYLON.Vector2(-this.radius * (2 + Math.random()), -this.radius * (2 + Math.random())), new BABYLON.Vector2(this.radius * (2 + Math.random()), this.radius * (2 + Math.random())), 1.5);
-            this.declutterRec(points, new BABYLON.Vector2(-this.radius * (2 + Math.random()), -this.radius * (2 + Math.random())), new BABYLON.Vector2(this.radius * (2 + Math.random()), this.radius * (2 + Math.random())), 1.5);
             this.cells.push(v);
         }
         this.triangulate();
@@ -519,6 +558,9 @@ class CellNetwork {
         this.cells = clone.cells;
         this.cellTriangles = clone.cellTriangles;
         this.cells.forEach(v => {
+            if (v.isLocked()) {
+                v.value = -1;
+            }
             v.updateShape();
         });
     }
@@ -1034,17 +1076,35 @@ class Main {
         this.scene.clearColor = BABYLON.Color4.FromHexString("#3a2e47FF");
         //this.scene.clearColor = BABYLON.Color4.FromHexString("#D0FA00FF");
         let cellNetwork = new CellNetwork(this);
-        cellNetwork.generate(20, 350);
+        cellNetwork.generate(20, 300);
         cellNetwork.checkSurround();
         //cellNetwork.debugDrawBase();
         this.selected = new CellSelector(cellNetwork);
-        let ai = new AI(cellNetwork);
+        let ai = new AI(1, cellNetwork);
+        let testAI = new AI(0, cellNetwork);
         let pickPlane = BABYLON.MeshBuilder.CreateGround("pick-plane", { width: 50, height: 50 }, this.scene);
         pickPlane.isVisible = false;
         let A = new BABYLON.Vector3(2, 0, 1);
         let B = new BABYLON.Vector3(6, 0, 3);
         let C = new BABYLON.Vector3(2, 0, 3.5);
         let D = new BABYLON.Vector3(6.25, 0, 0);
+        let move = () => {
+            let aiTestMove = testAI.getMove();
+            if (aiTestMove.cell) {
+                cellNetwork.morphCell(0, aiTestMove.cell, aiTestMove.reverse, () => {
+                    cellNetwork.checkSurround(() => {
+                        let aiMove = ai.getMove();
+                        if (aiMove.cell) {
+                            cellNetwork.morphCell(1, aiMove.cell, aiMove.reverse, () => {
+                                cellNetwork.checkSurround(move);
+                            });
+                        }
+                    });
+                });
+            }
+        };
+        setTimeout(move, 5000);
+        return;
         this.scene.onPointerObservable.add((eventData) => {
             let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
             if (pick && pick.pickedPoint) {

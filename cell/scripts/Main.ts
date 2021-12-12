@@ -174,13 +174,14 @@ class Main {
 		//this.scene.clearColor = BABYLON.Color4.FromHexString("#D0FA00FF");
 
 		let cellNetwork = new CellNetwork(this);
-		cellNetwork.generate(20, 350);
+		cellNetwork.generate(20, 300);
 		cellNetwork.checkSurround();
 		//cellNetwork.debugDrawBase();
 
 		this.selected = new CellSelector(cellNetwork);
 
-		let ai = new AI(cellNetwork);
+		let ai = new AI(1, cellNetwork);
+		let testAI = new AI(0, cellNetwork);
 
 		let pickPlane = BABYLON.MeshBuilder.CreateGround("pick-plane", { width: 50, height: 50 }, this.scene);
 		pickPlane.isVisible = false;
@@ -189,6 +190,38 @@ class Main {
 		let B = new BABYLON.Vector3(6, 0, 3);
 		let C = new BABYLON.Vector3(2, 0, 3.5);
 		let D = new BABYLON.Vector3(6.25, 0, 0);
+
+		let move = () => {
+			
+			let aiTestMove = testAI.getMove();
+			if (aiTestMove.cell) {
+				cellNetwork.morphCell(
+					0,
+					aiTestMove.cell,
+					aiTestMove.reverse,
+					() => {
+						cellNetwork.checkSurround(
+							() => {
+								
+								let aiMove = ai.getMove();
+								if (aiMove.cell) {
+									cellNetwork.morphCell(
+										1,
+										aiMove.cell,
+										aiMove.reverse,
+										() => {
+											cellNetwork.checkSurround(move);
+										}
+									);
+								}
+							}
+						);
+					}
+				);
+			}
+		}
+		setTimeout(move, 5000);
+		return;
 
 		this.scene.onPointerObservable.add((eventData: BABYLON.PointerInfo) => {
 			let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
