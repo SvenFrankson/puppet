@@ -87,8 +87,13 @@ class Main {
     public async initializeScene(): Promise<void> {
 		this.scene = new BABYLON.Scene(this.engine);
 
-		let camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, 0, 30, BABYLON.Vector3.Zero(), this.scene);
-		camera.attachControl(this.canvas);
+		let camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 0), this.scene);
+		camera.rotation.x = Math.PI / 2;
+		camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+		camera.orthoTop = 35;
+		camera.orthoRight = 35;
+		camera.orthoLeft = - 35;
+		camera.orthoBottom = - 35;
 
 		this.light = new BABYLON.HemisphericLight("AmbientLight", new BABYLON.Vector3(1, 3, 2), this.scene);
 
@@ -191,8 +196,8 @@ class Main {
 		let C = new BABYLON.Vector3(2, 0, 3.5);
 		let D = new BABYLON.Vector3(6.25, 0, 0);
 
+		/*
 		let move = () => {
-			
 			let aiTestMove = testAI.getMove();
 			if (aiTestMove.cell) {
 				cellNetwork.morphCell(
@@ -222,6 +227,7 @@ class Main {
 		}
 		setTimeout(move, 5000);
 		return;
+		*/
 
 		this.scene.onPointerObservable.add((eventData: BABYLON.PointerInfo) => {
 			let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
@@ -233,7 +239,8 @@ class Main {
 			}
 			let reverse = false;
 			if (this.pickedCell && pick.pickedPoint) {
-				reverse = this.pickedCell.barycenter3D.x > pick.pickedPoint.x;
+				reverse = this.pickedCell.barycenter3D.x < pick.pickedPoint.x;
+				console.log(pick.pickedPoint.x);
 			}
 			this.selected.reverse = reverse;
 			if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
