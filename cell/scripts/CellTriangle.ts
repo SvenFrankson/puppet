@@ -12,8 +12,18 @@ class CellTriangle {
     public vertices: Cell[] = [];
     public neighbors: UniqueList<CellTriangle> = new UniqueList<CellTriangle>();
 
-    public static AddTriangle(v1: Cell, v2: Cell, v3: Cell): CellTriangle {
-        let tri = new CellTriangle();
+    constructor(public index: number) {
+
+    }
+
+    public clone(): CellTriangle {
+        let cloneTriangle = new CellTriangle(this.index);
+        cloneTriangle.barycenter = this.barycenter.clone();
+        return cloneTriangle;
+    }
+
+    public static AddTriangle(index: number, v1: Cell, v2: Cell, v3: Cell): CellTriangle {
+        let tri = new CellTriangle(index);
         tri.vertices = [v1, v2, v3];
         tri.barycenter = v1.baseVertexPosition.add(v2.baseVertexPosition).addInPlace(v3.baseVertexPosition).scaleInPlace(1 / 3);
 

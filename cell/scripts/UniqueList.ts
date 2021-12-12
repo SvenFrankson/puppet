@@ -10,6 +10,10 @@ class UniqueList<T> {
         return this._elements[i];
     }
 
+    public set(i: number, e: T): void {
+        this._elements[i] = e;
+    }
+
     public getLast(): T {
         return this.get(this.length - 1);
     }
@@ -39,7 +43,7 @@ class UniqueList<T> {
         this._elements = this._elements.sort(sortFunction);
     }
 
-    public forEach(callbackfn: (a: T) => void): void {
+    public forEach(callbackfn: (a: T, index?: number) => void): void {
         this._elements.forEach(callbackfn);
     }
 }

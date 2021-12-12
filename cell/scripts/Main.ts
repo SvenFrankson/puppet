@@ -213,11 +213,11 @@ class Main {
 							cellNetwork.checkSurround(
 								() => {
 									let aiMove = ai.getMove();
-									if (aiMove) {
+									if (aiMove.cell) {
 										cellNetwork.morphCell(
 											1,
-											aiMove,
-											Math.random() > 0.5,
+											aiMove.cell,
+											aiMove.reverse,
 											() => {
 												cellNetwork.checkSurround();
 											}

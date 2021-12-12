@@ -29,9 +29,23 @@ class Cell {
 
     constructor(
         public baseVertexPosition: BABYLON.Vector2,
+        public index: number,
         public network: CellNetwork
     ) {
         this.value = Math.floor(Math.random() * 3);
+    }
+
+    public clone(): Cell {
+        let cloneCell = new Cell(this.baseVertexPosition.clone(), this.index, this.network);
+        if (this.barycenter) {
+            cloneCell.barycenter = this.barycenter.clone();
+        }
+        cloneCell.points = this.points.map(p => { return p.clone(); });
+        cloneCell.radius = this.radius;
+        cloneCell.forceLock = this.forceLock;
+        cloneCell.value = this.value;
+
+        return cloneCell;
     }
 
     public reset(): void {

@@ -2,16 +2,87 @@ class AI {
     constructor(cellNetwork) {
         this.cellNetwork = cellNetwork;
     }
+    countValue(cells, v) {
+        let count = 0;
+        for (let i = 0; i < cells.length; i++) {
+            if (cells[i].value === v) {
+                count++;
+            }
+        }
+        return count;
+    }
+    cellRotationGain(cell, reverse = false) {
+        let values = [];
+        cell.neighbors.forEach((c, i) => {
+            values[i] = c.value;
+        });
+        let m = -1;
+        if (reverse) {
+            m = 1;
+        }
+        cell.neighbors.forEach((c, i) => {
+            c.value = values[(i + m + values.length) % values.length];
+        });
+        let takenCell = new UniqueList();
+        cell.neighbors.forEach(c => {
+            if (c.value != 1 && c.isSurrounded() === 1) {
+                takenCell.push(c);
+            }
+            c.neighbors.forEach(n => {
+                if (n.value != 1 && n.isSurrounded() === 1) {
+                    takenCell.push(n);
+                }
+            });
+        });
+        cell.neighbors.forEach((c, i) => {
+            c.value = values[i];
+        });
+        return takenCell.length;
+    }
     getMove() {
-        let availableCells = this.cellNetwork.cells.filter(c => { return c.value != 0; });
-        availableCells = availableCells.filter(c => { return c.canRotate(); });
-        let n = Math.floor(Math.random() * availableCells.length);
-        return availableCells[n];
+        let cloneNetwork = this.cellNetwork.duplicateNetwork();
+        console.log(cloneNetwork);
+        let bestGain = -Infinity;
+        let pickedCellIndex = -1;
+        let pickedReverse = false;
+        let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
+        console.log("Available cells = " + availableCells.length);
+        availableCells = availableCells.filter(c => { return c.value != 0; });
+        console.log("Available cells = " + availableCells.length);
+        for (let i = 0; i < availableCells.length; i++) {
+            let r = Math.random() > 0.5;
+            let cell = availableCells[i];
+            // Check base rotation.
+            let gain = this.cellRotationGain(cell, false);
+            if (gain > bestGain || gain === bestGain && r) {
+                bestGain = gain;
+                pickedCellIndex = cell.index;
+                pickedReverse = false;
+            }
+            // Check reverse rotation.
+            gain = this.cellRotationGain(cell, true);
+            if (gain > bestGain || gain === bestGain && r) {
+                bestGain = gain;
+                pickedCellIndex = cell.index;
+                pickedReverse = true;
+            }
+        }
+        console.log("BestGain = " + bestGain);
+        console.log("PickedCellIndex = " + pickedCellIndex);
+        let pickedCell = undefined;
+        if (pickedCellIndex != -1) {
+            pickedCell = this.cellNetwork.cells[pickedCellIndex];
+        }
+        return {
+            cell: pickedCell,
+            reverse: pickedReverse
+        };
     }
 }
 class Cell {
-    constructor(baseVertexPosition, network) {
+    constructor(baseVertexPosition, index, network) {
         this.baseVertexPosition = baseVertexPosition;
+        this.index = index;
         this.network = network;
         this.neighbors = new UniqueList();
         this.triangles = new UniqueList();
@@ -22,6 +93,17 @@ class Cell {
         this.isDisposed = false;
         this._barycenter3D = BABYLON.Vector3.Zero();
         this.value = Math.floor(Math.random() * 3);
+    }
+    clone() {
+        let cloneCell = new Cell(this.baseVertexPosition.clone(), this.index, this.network);
+        if (this.barycenter) {
+            cloneCell.barycenter = this.barycenter.clone();
+        }
+        cloneCell.points = this.points.map(p => { return p.clone(); });
+        cloneCell.radius = this.radius;
+        cloneCell.forceLock = this.forceLock;
+        cloneCell.value = this.value;
+        return cloneCell;
     }
     reset() {
         this.neighbors = new UniqueList();
@@ -296,13 +378,12 @@ Cell.Color = new BABYLON.Color4(0, 0, 0, 1);
 Cell.PickColor = BABYLON.Color4.FromHexString("#FCFCFCFF");
 Cell.PickNeighborColor = BABYLON.Color4.FromHexString("#004d1eff");
 Cell.LockedColor = BABYLON.Color4.FromHexString("#A0A0A0FF");
-/// 
 class CellNetwork {
     constructor(main) {
         this.main = main;
         this.radius = 1;
         this.cells = [];
-        this._baseTriangles = [];
+        this.cellTriangles = [];
         this.lock = 0;
     }
     get debugRedMaterial() {
@@ -320,6 +401,42 @@ class CellNetwork {
             this._debugGreenMaterial.specularColor.copyFromFloats(0, 0, 0);
         }
         return this._debugGreenMaterial;
+    }
+    duplicateNetwork() {
+        let newCells = [];
+        let newTriangles = [];
+        for (let i = 0; i < this.cells.length; i++) {
+            let newCell = this.cells[i].clone();
+            newCells[i] = newCell;
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            let newTriangle = this.cellTriangles[i].clone();
+            newTriangles[i] = newTriangle;
+        }
+        for (let i = 0; i < this.cells.length; i++) {
+            let baseCell = this.cells[i];
+            let newCell = newCells[i];
+            baseCell.neighbors.forEach((c, j) => {
+                newCell.neighbors.set(j, newCells[c.index]);
+            });
+            baseCell.triangles.forEach((t, j) => {
+                newCell.triangles.set(j, newTriangles[t.index]);
+            });
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            let baseTriangle = this.cellTriangles[i];
+            let newTriangle = newTriangles[i];
+            baseTriangle.vertices.forEach((c, j) => {
+                newTriangle.vertices[j] = newCells[c.index];
+            });
+            baseTriangle.neighbors.forEach((t, j) => {
+                newTriangle.neighbors.set(j, newTriangles[t.index]);
+            });
+        }
+        return {
+            cells: newCells,
+            cellTriangles: newTriangles
+        };
     }
     declutterRec(vertices, boxMin, boxMax, minD) {
         if (vertices.length > 16) {
@@ -384,7 +501,7 @@ class CellNetwork {
         let points = [];
         for (let i = 0; i < n; i++) {
             let p = BABYLON.Vector2.Zero();
-            let v = new Cell(p, this);
+            let v = new Cell(p, i, this);
             p.copyFromFloats(-this.radius * 2 + 2 * this.radius * 2 * Math.random(), -this.radius * 2 + 2 * this.radius * 2 * Math.random());
             points.push(p);
             if (Math.abs(p.x) > this.radius) {
@@ -398,6 +515,9 @@ class CellNetwork {
             this.cells.push(v);
         }
         this.triangulate();
+        let clone = this.duplicateNetwork();
+        this.cells = clone.cells;
+        this.cellTriangles = clone.cellTriangles;
         this.cells.forEach(v => {
             v.updateShape();
         });
@@ -406,7 +526,7 @@ class CellNetwork {
         this.cells.forEach(v => {
             v.reset();
         });
-        this._baseTriangles = [];
+        this.cellTriangles = [];
         let coords = [];
         for (let i = 0; i < this.cells.length; i++) {
             let v = this.cells[i];
@@ -421,7 +541,7 @@ class CellNetwork {
             let v0 = this.cells[i0];
             let v1 = this.cells[i1];
             let v2 = this.cells[i2];
-            this._baseTriangles.push(CellTriangle.AddTriangle(v0, v1, v2));
+            this.cellTriangles.push(CellTriangle.AddTriangle(i, v0, v1, v2));
         }
         this.cells.forEach(v => {
             if (!v.isBorder()) {
@@ -522,24 +642,6 @@ class CellNetwork {
             checkDone();
         }
         return;
-        setTimeout(() => {
-            let i = this.cells.indexOf(cell);
-            let p = cell.baseVertexPosition.clone();
-            let r = cell.radius;
-            if (i != -1) {
-                cell.dispose();
-                this.cells.splice(i, 1);
-            }
-            let newP = p;
-            newP.x += (0.5 + Math.random());
-            newP.y += (0.5 + Math.random());
-            let newCell = new Cell(newP, this);
-            this.cells.push(newCell);
-            this.triangulate();
-            this.cells.forEach(v => {
-                v.updateShape();
-            });
-        }, 1500);
     }
     static Smooth(points, s = 6) {
         let newpoints = [];
@@ -732,7 +834,8 @@ class CellSelector {
     }
 }
 class CellTriangle {
-    constructor() {
+    constructor(index) {
+        this.index = index;
         this._barycenter3D = BABYLON.Vector3.Zero();
         this.vertices = [];
         this.neighbors = new UniqueList();
@@ -743,8 +846,13 @@ class CellTriangle {
         this._barycenter3D.z = this.barycenter.y;
         return this._barycenter3D;
     }
-    static AddTriangle(v1, v2, v3) {
-        let tri = new CellTriangle();
+    clone() {
+        let cloneTriangle = new CellTriangle(this.index);
+        cloneTriangle.barycenter = this.barycenter.clone();
+        return cloneTriangle;
+    }
+    static AddTriangle(index, v1, v2, v3) {
+        let tri = new CellTriangle(index);
         tri.vertices = [v1, v2, v3];
         tri.barycenter = v1.baseVertexPosition.add(v2.baseVertexPosition).addInPlace(v3.baseVertexPosition).scaleInPlace(1 / 3);
         v1.triangles.push(tri);
@@ -955,8 +1063,8 @@ class Main {
                     cellNetwork.morphCell(0, this.pickedCell, reverse, () => {
                         cellNetwork.checkSurround(() => {
                             let aiMove = ai.getMove();
-                            if (aiMove) {
-                                cellNetwork.morphCell(1, aiMove, Math.random() > 0.5, () => {
+                            if (aiMove.cell) {
+                                cellNetwork.morphCell(1, aiMove.cell, aiMove.reverse, () => {
                                     cellNetwork.checkSurround();
                                 });
                             }
@@ -1420,6 +1528,9 @@ class UniqueList {
     }
     get(i) {
         return this._elements[i];
+    }
+    set(i, e) {
+        this._elements[i] = e;
     }
     getLast() {
         return this.get(this.length - 1);

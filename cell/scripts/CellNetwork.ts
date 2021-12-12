@@ -1,11 +1,14 @@
-/// 
+interface ICellNetwork {
+    cells: Cell[];
+    cellTriangles: CellTriangle[];
+}
 
 class CellNetwork {
 
     public radius: number = 1;
 
     public cells: Cell[] = [];
-    private _baseTriangles: CellTriangle[] = [];
+    public cellTriangles: CellTriangle[] = [];
 
     private debugBase: BABYLON.Mesh;
     private _debugRedMaterial: BABYLON.StandardMaterial;
@@ -31,6 +34,48 @@ class CellNetwork {
         public main: Main
     ) {
 
+    }
+
+    public duplicateNetwork(): ICellNetwork {
+        let newCells: Cell[] = [];
+        let newTriangles: CellTriangle[] = [];
+
+        for (let i = 0; i < this.cells.length; i++) {
+            let newCell = this.cells[i].clone();
+            newCells[i] = newCell;
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            let newTriangle = this.cellTriangles[i].clone();
+            newTriangles[i] = newTriangle;
+        }
+
+        for (let i = 0; i < this.cells.length; i++) {
+            let baseCell = this.cells[i];
+            let newCell = newCells[i];
+
+            baseCell.neighbors.forEach((c, j) => {
+                newCell.neighbors.set(j, newCells[c.index]);
+            })
+            baseCell.triangles.forEach((t, j) => {
+                newCell.triangles.set(j, newTriangles[t.index]);
+            })
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            let baseTriangle = this.cellTriangles[i];
+            let newTriangle = newTriangles[i];
+
+            baseTriangle.vertices.forEach((c, j) => {
+                newTriangle.vertices[j] = newCells[c.index];
+            })
+            baseTriangle.neighbors.forEach((t, j) => {
+                newTriangle.neighbors.set(j, newTriangles[t.index]);
+            })
+        }
+
+        return {
+            cells: newCells,
+            cellTriangles: newTriangles
+        };
     }
 
     public declutterRec(vertices: BABYLON.Vector2[], boxMin: BABYLON.Vector2, boxMax: BABYLON.Vector2, minD: number): void {
@@ -97,7 +142,7 @@ class CellNetwork {
         let points: BABYLON.Vector2[] = [];
         for (let i = 0; i < n; i++) {
             let p: BABYLON.Vector2 = BABYLON.Vector2.Zero();
-            let v = new Cell(p, this);
+            let v = new Cell(p, i, this);
             
             p.copyFromFloats(
                 - this.radius * 2 + 2 * this.radius * 2 * Math.random(),
@@ -118,6 +163,10 @@ class CellNetwork {
         }
 
         this.triangulate();
+
+        let clone = this.duplicateNetwork();
+        this.cells = clone.cells;
+        this.cellTriangles = clone.cellTriangles;
         
         this.cells.forEach(v => {
             v.updateShape();
@@ -129,7 +178,7 @@ class CellNetwork {
         this.cells.forEach(v => {
             v.reset();
         });
-        this._baseTriangles = [];
+        this.cellTriangles = [];
 
         let coords: number[] = [];
         for (let i = 0; i < this.cells.length; i++) {
@@ -147,7 +196,7 @@ class CellNetwork {
             let v1 = this.cells[i1];
             let v2 = this.cells[i2];
             
-            this._baseTriangles.push(CellTriangle.AddTriangle(v0, v1, v2));
+            this.cellTriangles.push(CellTriangle.AddTriangle(i, v0, v1, v2));
         }
 
         this.cells.forEach(v => {
@@ -257,29 +306,6 @@ class CellNetwork {
             checkDone();
         }
         return;
-        setTimeout(
-            () => {
-                let i = this.cells.indexOf(cell);
-                let p = cell.baseVertexPosition.clone();
-                let r = cell.radius;
-                if (i != - 1) {
-                    cell.dispose();
-                    this.cells.splice(i, 1);
-                }
-                let newP = p;
-                newP.x += (0.5 + Math.random());
-                newP.y += (0.5 + Math.random());
-                let newCell = new Cell(newP, this);
-                this.cells.push(newCell);
-
-                this.triangulate();
-        
-                this.cells.forEach(v => {
-                    v.updateShape();
-                })
-            },
-            1500
-        )
     }
 
     public static Smooth(points: BABYLON.Vector3[], s: number = 6): BABYLON.Vector3[] {
