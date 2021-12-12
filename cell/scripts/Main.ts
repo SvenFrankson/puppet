@@ -6,6 +6,7 @@ var COS30 = Math.cos(Math.PI / 6);
 class Main {
 
     public canvas: HTMLCanvasElement;
+	public camera: BABYLON.FreeCamera;
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
 	public light: BABYLON.Light;
@@ -84,16 +85,34 @@ class Main {
 		);
 	}
 
+	public resize(): void {
+		let ratio = this.canvas.clientWidth / this.canvas.clientHeight;
+		if (ratio >= 1) {
+			this.camera.orthoTop = 35;
+			this.camera.orthoRight = 35 * ratio;
+			this.camera.orthoLeft = - 35 * ratio;
+			this.camera.orthoBottom = - 35;
+		}
+		else {
+			this.camera.orthoTop = 35 / ratio;
+			this.camera.orthoRight = 35;
+			this.camera.orthoLeft = - 35;
+			this.camera.orthoBottom = - 35 / ratio;
+		}
+	}
+
     public async initializeScene(): Promise<void> {
 		this.scene = new BABYLON.Scene(this.engine);
 
-		let camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 0), this.scene);
-		camera.rotation.x = Math.PI / 2;
-		camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-		camera.orthoTop = 35;
-		camera.orthoRight = 35;
-		camera.orthoLeft = - 35;
-		camera.orthoBottom = - 35;
+
+		this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 0), this.scene);
+		this.camera.rotation.x = Math.PI / 2;
+		this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+		this.resize();
+
+		window.onresize = () => {
+			this.resize();
+		}
 
 		this.light = new BABYLON.HemisphericLight("AmbientLight", new BABYLON.Vector3(1, 3, 2), this.scene);
 

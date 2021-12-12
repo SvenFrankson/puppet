@@ -805,15 +805,15 @@ class CellSelector {
                 this._tmp.copyFrom(c.barycenter);
                 this._tmp.subtractInPlace(this.selectedCell.barycenter);
                 let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-                let color = (Math.cos(a - Math.PI * 2 * this._t * 0.5) + 1) * 0.5;
-                color = 0.25 + color * 0.75;
+                let color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
+                color = 0.3 + color * color * 1.5;
                 colors.push(color, color, color, 1);
                 for (let i = 0; i < points.length; i++) {
                     this._tmp.copyFrom(points[i]);
                     this._tmp.subtractInPlace(this.selectedCell.barycenter);
                     a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-                    color = (Math.cos(a - Math.PI * 2 * this._t * 0.5) + 1) * 0.5;
-                    color = 0.25 + color * 0.75;
+                    color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
+                    color = 0.3 + color * color * 1.5;
                     positions.push(points[i].x, 0, points[i].y);
                     colors.push(color, color, color, 1);
                     if (i != points.length - 1) {
@@ -992,15 +992,30 @@ class Main {
             });
         });
     }
+    resize() {
+        let ratio = this.canvas.clientWidth / this.canvas.clientHeight;
+        if (ratio >= 1) {
+            this.camera.orthoTop = 35;
+            this.camera.orthoRight = 35 * ratio;
+            this.camera.orthoLeft = -35 * ratio;
+            this.camera.orthoBottom = -35;
+        }
+        else {
+            this.camera.orthoTop = 35 / ratio;
+            this.camera.orthoRight = 35;
+            this.camera.orthoLeft = -35;
+            this.camera.orthoBottom = -35 / ratio;
+        }
+    }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
-        let camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 0), this.scene);
-        camera.rotation.x = Math.PI / 2;
-        camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-        camera.orthoTop = 35;
-        camera.orthoRight = 35;
-        camera.orthoLeft = -35;
-        camera.orthoBottom = -35;
+        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 0), this.scene);
+        this.camera.rotation.x = Math.PI / 2;
+        this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+        this.resize();
+        window.onresize = () => {
+            this.resize();
+        };
         this.light = new BABYLON.HemisphericLight("AmbientLight", new BABYLON.Vector3(1, 3, 2), this.scene);
         BABYLON.Effect.ShadersStore["EdgeFragmentShader"] = `
 			#ifdef GL_ES
