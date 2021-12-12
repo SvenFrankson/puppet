@@ -60,6 +60,10 @@ class AI {
         let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
         console.log("Available cells = " + availableCells.length);
         availableCells = availableCells.filter(c => { return c.value === this.player || c.value === 2; });
+        let noUselessMove = availableCells.filter(c => { return !(c.value === this.player && c.isSurrounded() === this.player); });
+        if (noUselessMove.length != 0) {
+            availableCells = noUselessMove;
+        }
 
         console.log("Available cells = " + availableCells.length);
 

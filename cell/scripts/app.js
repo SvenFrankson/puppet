@@ -49,6 +49,10 @@ class AI {
         let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
         console.log("Available cells = " + availableCells.length);
         availableCells = availableCells.filter(c => { return c.value === this.player || c.value === 2; });
+        let noUselessMove = availableCells.filter(c => { return !(c.value === this.player && c.isSurrounded() === this.player); });
+        if (noUselessMove.length != 0) {
+            availableCells = noUselessMove;
+        }
         console.log("Available cells = " + availableCells.length);
         for (let i = 0; i < availableCells.length; i++) {
             let cell = availableCells[i];
@@ -1108,38 +1112,23 @@ class Main {
         let B = new BABYLON.Vector3(6, 0, 3);
         let C = new BABYLON.Vector3(2, 0, 3.5);
         let D = new BABYLON.Vector3(6.25, 0, 0);
-        /*
         let move = () => {
             let aiTestMove = testAI.getMove();
             if (aiTestMove.cell) {
-                cellNetwork.morphCell(
-                    0,
-                    aiTestMove.cell,
-                    aiTestMove.reverse,
-                    () => {
-                        cellNetwork.checkSurround(
-                            () => {
-                                
-                                let aiMove = ai.getMove();
-                                if (aiMove.cell) {
-                                    cellNetwork.morphCell(
-                                        1,
-                                        aiMove.cell,
-                                        aiMove.reverse,
-                                        () => {
-                                            cellNetwork.checkSurround(move);
-                                        }
-                                    );
-                                }
-                            }
-                        );
-                    }
-                );
+                cellNetwork.morphCell(0, aiTestMove.cell, aiTestMove.reverse, () => {
+                    cellNetwork.checkSurround(() => {
+                        let aiMove = ai.getMove();
+                        if (aiMove.cell) {
+                            cellNetwork.morphCell(1, aiMove.cell, aiMove.reverse, () => {
+                                cellNetwork.checkSurround(move);
+                            });
+                        }
+                    });
+                });
             }
-        }
-        setTimeout(move, 5000);
+        };
+        setTimeout(move, 3000);
         return;
-        */
         this.scene.onPointerObservable.add((eventData) => {
             let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
             if (pick && pick.pickedPoint) {

@@ -215,7 +215,6 @@ class Main {
 		let C = new BABYLON.Vector3(2, 0, 3.5);
 		let D = new BABYLON.Vector3(6.25, 0, 0);
 
-		/*
 		let move = () => {
 			let aiTestMove = testAI.getMove();
 			if (aiTestMove.cell) {
@@ -244,9 +243,8 @@ class Main {
 				);
 			}
 		}
-		setTimeout(move, 5000);
+		setTimeout(move, 3000);
 		return;
-		*/
 
 		this.scene.onPointerObservable.add((eventData: BABYLON.PointerInfo) => {
 			let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
