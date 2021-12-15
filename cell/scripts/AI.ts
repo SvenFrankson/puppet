@@ -49,60 +49,132 @@ class AI {
         return takenCell.length;
     }
 
-    public getMove2(): { cell: Cell, reverse: boolean } {
+    public getMove2(player: number, depth: number = 0): { cell: Cell, reverse: boolean } {
         let bestGain = - Infinity;
-        let pickedCellIndex: number = - 1;
-        let pickedReverse: boolean = false;
 
-        let opponent: number = (this.player + 1) % 2;
-        let playerBoardValueZero = this.cellNetwork.getBoardValueForPlayer(this.player);
-        let opponentBoardValueZero = this.cellNetwork.getBoardValueForPlayer(opponent);
+        let opponent: number = (player + 1) % 2;
 
         let cloneNetwork = this.cellNetwork.clone();
+        let scoreZero = this.cellNetwork.getScore(player);
         let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
-        availableCells = availableCells.filter(c => { return (c.value === this.player && !(c.isSurrounded() === this.player)) || c.value === 2; });
+        availableCells = availableCells.filter(c => { return (c.value === player && !(c.isSurrounded() === player)) });
         let availableCellIndexes = availableCells.map(c => { return c.index; });
+
+        let potentialMoves: { cell: Cell, reverse: boolean }[] = [];
 
         for (let i = 0; i < availableCellIndexes.length; i++) {
             let gain = 0;
 
-            cloneNetwork = this.cellNetwork.clone();
+            this.cellNetwork.copyValues(cloneNetwork);
             let cell = cloneNetwork.cells[availableCellIndexes[i]];
-            let variance = cloneNetwork.rotate(cell);
-            gain += variance[this.player];
-            gain += cloneNetwork.getBoardValueForPlayer(this.player) - playerBoardValueZero;
-            gain -= cloneNetwork.getBoardValueForPlayer(opponent) - opponentBoardValueZero;
+            cloneNetwork.rotate(cell);
+            if (depth === 0) {
+                gain = cloneNetwork.getScore(player) - scoreZero;
+            }
+            if (depth === 1) {
+                let opponentMove = this.getMove2(opponent, 0);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
+            if (depth === 2) {
+                let opponentMove = this.getMove2(opponent, 1);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                }
+                
+                let myNextMove = this.getMove2(player, 0);
+                if (myNextMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[myNextMove.cell.index], myNextMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
 
             if (gain > bestGain) {
                 bestGain = gain;
-                pickedCellIndex = cell.index;
-                pickedReverse = false;
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell) {
+                    potentialMoves = [
+                        {
+                            cell: pickedCell,
+                            reverse: false
+                        }
+                    ]
+                }
+            }
+            else if (gain === bestGain) {
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell && !potentialMoves.find(m => { return m.cell.index === cell.index; })) {
+                    potentialMoves.push(
+                        {
+                            cell: pickedCell,
+                            reverse: false
+                        }
+                    );
+                }
             }
 
             gain = 0;
-            cloneNetwork = this.cellNetwork.clone();
+            this.cellNetwork.copyValues(cloneNetwork);
             cell = cloneNetwork.cells[availableCellIndexes[i]];
-            variance = cloneNetwork.rotate(cell, true);
-            gain += variance[this.player];
-            gain += cloneNetwork.getBoardValueForPlayer(this.player) - playerBoardValueZero;
-            gain -= cloneNetwork.getBoardValueForPlayer(opponent) - opponentBoardValueZero;
+            cloneNetwork.rotate(cell, true);
+            if (depth === 0) {
+                gain = cloneNetwork.getScore(player) - scoreZero;
+            }
+            if (depth === 1) {
+                let opponentMove = this.getMove2(opponent, 0);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
+            if (depth === 2) {
+                let opponentMove = this.getMove2(opponent, 1);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                }
+                
+                let myNextMove = this.getMove2(player, 0);
+                if (myNextMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[myNextMove.cell.index], myNextMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
 
             if (gain > bestGain) {
                 bestGain = gain;
-                pickedCellIndex = cell.index;
-                pickedReverse = true;
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell) {
+                    potentialMoves = [
+                        {
+                            cell: pickedCell,
+                            reverse: true
+                        }
+                    ]
+                }
+            }
+            else if (gain === bestGain) {
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell && !potentialMoves.find(m => { return m.cell.index === cell.index; })) {
+                    potentialMoves.push(
+                        {
+                            cell: pickedCell,
+                            reverse: true
+                        }
+                    );
+                }
             }
         }
 
-        let pickedCell = undefined;
-        if (pickedCellIndex != - 1) {
-            pickedCell = this.cellNetwork.cells[pickedCellIndex];
+        if (potentialMoves.length > 0) {
+            let m = potentialMoves[Math.floor(Math.random() * potentialMoves.length)];
+            return m;
         }
-
         return {
-            cell: pickedCell,
-            reverse: pickedReverse
-        }
+            cell: undefined,
+            reverse: false
+        };
     }
 
     public getMove(): { cell: Cell, reverse: boolean } {

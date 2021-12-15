@@ -14,7 +14,7 @@ class Cell {
     public neighbors: UniqueList<Cell> = new UniqueList<Cell>();
     public triangles: UniqueList<CellTriangle> = new UniqueList<CellTriangle>();
 
-    public value: number = 0;
+    public value: number = 2;
     public points: BABYLON.Vector2[];
     public radius: number = 1;
     public barycenter: BABYLON.Vector2;
@@ -32,7 +32,7 @@ class Cell {
         public index: number,
         public network: CellNetworkDisplayed
     ) {
-        this.value = Math.floor(Math.random() * 3);
+        
     }
 
     public clone(): Cell {
@@ -164,29 +164,28 @@ class Cell {
     public updateShape(points: BABYLON.Vector2[] = this.points, c?: BABYLON.Color4): void {
         if (!this.shape) {
             this.shape = new BABYLON.Mesh("shape");
+            /*
             let material = new BABYLON.StandardMaterial("shape-material", this.network.main.scene);
             material.diffuseColor.copyFromFloats(1, 1, 1);
             material.specularColor.copyFromFloats(0, 0, 0);
             this.shape.material = material;
+            */
+           let material = new ToonMaterial("shape-material", false, this.network.main.scene);
+           this.shape.material = material;
         }
         if (!this.isBorder() && !this.isHidden() && !this.isLocked()) {
             
             let dOut = 0.1;
-            let dIn = 0.3;
-            if (this.isLocked()) {
-                dOut = 0.1;
-                dIn = 0.15;
-            }
+            let dIn = 0.8;
+
             let lineOut = Math2D.FattenShrinkEdgeShape(points, - dOut);
             let lineIn = Math2D.FattenShrinkEdgeShape(points, - dIn);
-            //line = CellNetwork.Smooth(line, 5);
-            //line = CellNetwork.Smooth(line, 3);
-            //line = CellNetwork.Smooth(line, 1);
-            lineOut.push(lineOut[0]);
-            lineIn.push(lineIn[0]);
-
-            let line3D: BABYLON.Vector3[] = [];
-            let line3DColor: BABYLON.Color4[] = [];
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 7);
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 5);
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 3);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 7);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 5);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 3);
 
             if (!c) {
                 if (this.isLocked()) {
@@ -205,29 +204,46 @@ class Cell {
 
             let data = new BABYLON.VertexData();
             let positions: number[] = [center.x, 0, center.y];
+            let normals: number[] = [0, 1, 0];
             let indices: number[] = [];
-            let colors: number[] = [c.r * 1.3, c.g * 1.3, c.b * 1.3, 1];
+            let colors: number[] = [c.r, c.g, c.b, 1];
+
+            let l = lineIn.length;
+
             for (let i = 0; i < lineIn.length; i++) {
-                line3D.push(new BABYLON.Vector3(lineOut[i].x, 0, lineOut[i].y));
-                line3DColor.push(new BABYLON.Color4(c.r * 1.3, c.g * 1.3, c.b * 1.3, 1));
+
                 positions.push(lineIn[i].x, 0, lineIn[i].y);
+                normals.push(0, 1, 0);
                 colors.push(c.r, c.g, c.b, 1);
                 if (i != lineIn.length - 1) {
-                    indices.push(0, i, i + 1);
+                    indices.push(0, i + 1, i + 2);
                 }
                 else {
-                    indices.push(0, i, 1);
+                    indices.push(0, i + 1, 1);
                 }
             }
+
+            for (let i = 0; i < lineOut.length; i++) {
+                positions.push(lineOut[i].x, 0, lineOut[i].y);
+                let n = (lineOut[i].x - center.x) * (lineOut[i].x - center.x) + (lineOut[i].y - center.y) * (lineOut[i].y - center.y);
+                n = Math.sqrt(n);
+                normals.push((lineOut[i].x - center.x) / n, 0, (lineOut[i].y - center.y) / n);
+                colors.push(c.r, c.g, c.b, 1);
+                if (i != lineOut.length - 1) {
+                    indices.push(i + l + 1, i + 2, i + 1);
+                    indices.push(i + 2, i + l + 1, i + l + 2);
+                }
+                else {
+                    indices.push(i + l + 1, 1, i + 1);
+                    indices.push(1, i + l + 1, l + 1);
+                }
+            }
+
             data.positions = positions;
+            data.normals = normals;
             data.indices = indices;
             data.colors = colors;
             data.applyToMesh(this.shape);
-
-            if (!this.shapeLine) {
-                this.shapeLine = BABYLON.MeshBuilder.CreateLines("shape-line", { points: line3D, colors: line3DColor, updatable: true });
-            }
-            BABYLON.MeshBuilder.CreateLines("", { points: line3D, colors: line3DColor, instance: this.shapeLine });
         }
     }
 
@@ -341,3 +357,41 @@ class Cell {
         morphValueStep();
     }
 }
+
+Cell.Colors = [
+    new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1),
+    new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1),
+    new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1)
+]
+/*
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#73d2deff"),
+    BABYLON.Color4.FromHexString("#fbb13cff"),
+    BABYLON.Color4.FromHexString("#d81159ff")
+]
+
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#e53d00ff"),
+    BABYLON.Color4.FromHexString("#FFE900ff"),
+    BABYLON.Color4.FromHexString("#21A0A0ff")
+]
+*/
+
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#B9FF00FF"),
+    BABYLON.Color4.FromHexString("#FF00B9FF"),
+    BABYLON.Color4.FromHexString("#00B9FFFF")
+]
+/*
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#00FF00FF"),
+    BABYLON.Color4.FromHexString("#FF0000FF"),
+    BABYLON.Color4.FromHexString("#0000FFFF")
+]
+*/
+
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#0ABB07FF"),
+    BABYLON.Color4.FromHexString("#FF1900FF"),
+    BABYLON.Color4.FromHexString("#FFC800FF")
+]

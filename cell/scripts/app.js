@@ -40,50 +40,116 @@ class AI {
         });
         return takenCell.length;
     }
-    getMove2() {
+    getMove2(player, depth = 0) {
         let bestGain = -Infinity;
-        let pickedCellIndex = -1;
-        let pickedReverse = false;
-        let opponent = (this.player + 1) % 2;
-        let playerBoardValueZero = this.cellNetwork.getBoardValueForPlayer(this.player);
-        let opponentBoardValueZero = this.cellNetwork.getBoardValueForPlayer(opponent);
+        let opponent = (player + 1) % 2;
         let cloneNetwork = this.cellNetwork.clone();
+        let scoreZero = this.cellNetwork.getScore(player);
         let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
-        availableCells = availableCells.filter(c => { return (c.value === this.player && !(c.isSurrounded() === this.player)) || c.value === 2; });
+        availableCells = availableCells.filter(c => { return (c.value === player && !(c.isSurrounded() === player)); });
         let availableCellIndexes = availableCells.map(c => { return c.index; });
+        let potentialMoves = [];
         for (let i = 0; i < availableCellIndexes.length; i++) {
             let gain = 0;
-            cloneNetwork = this.cellNetwork.clone();
+            this.cellNetwork.copyValues(cloneNetwork);
             let cell = cloneNetwork.cells[availableCellIndexes[i]];
-            let variance = cloneNetwork.rotate(cell);
-            gain += variance[this.player];
-            gain += cloneNetwork.getBoardValueForPlayer(this.player) - playerBoardValueZero;
-            gain -= cloneNetwork.getBoardValueForPlayer(opponent) - opponentBoardValueZero;
+            cloneNetwork.rotate(cell);
+            if (depth === 0) {
+                gain = cloneNetwork.getScore(player) - scoreZero;
+            }
+            if (depth === 1) {
+                let opponentMove = this.getMove2(opponent, 0);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
+            if (depth === 2) {
+                let opponentMove = this.getMove2(opponent, 1);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                }
+                let myNextMove = this.getMove2(player, 0);
+                if (myNextMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[myNextMove.cell.index], myNextMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
             if (gain > bestGain) {
                 bestGain = gain;
-                pickedCellIndex = cell.index;
-                pickedReverse = false;
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell) {
+                    potentialMoves = [
+                        {
+                            cell: pickedCell,
+                            reverse: false
+                        }
+                    ];
+                }
+            }
+            else if (gain === bestGain) {
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell && !potentialMoves.find(m => { return m.cell.index === cell.index; })) {
+                    potentialMoves.push({
+                        cell: pickedCell,
+                        reverse: false
+                    });
+                }
             }
             gain = 0;
-            cloneNetwork = this.cellNetwork.clone();
+            this.cellNetwork.copyValues(cloneNetwork);
             cell = cloneNetwork.cells[availableCellIndexes[i]];
-            variance = cloneNetwork.rotate(cell, true);
-            gain += variance[this.player];
-            gain += cloneNetwork.getBoardValueForPlayer(this.player) - playerBoardValueZero;
-            gain -= cloneNetwork.getBoardValueForPlayer(opponent) - opponentBoardValueZero;
+            cloneNetwork.rotate(cell, true);
+            if (depth === 0) {
+                gain = cloneNetwork.getScore(player) - scoreZero;
+            }
+            if (depth === 1) {
+                let opponentMove = this.getMove2(opponent, 0);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
+            if (depth === 2) {
+                let opponentMove = this.getMove2(opponent, 1);
+                if (opponentMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[opponentMove.cell.index], opponentMove.reverse);
+                }
+                let myNextMove = this.getMove2(player, 0);
+                if (myNextMove.cell) {
+                    cloneNetwork.rotate(cloneNetwork.cells[myNextMove.cell.index], myNextMove.reverse);
+                    gain = cloneNetwork.getScore(player) - scoreZero;
+                }
+            }
             if (gain > bestGain) {
                 bestGain = gain;
-                pickedCellIndex = cell.index;
-                pickedReverse = true;
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell) {
+                    potentialMoves = [
+                        {
+                            cell: pickedCell,
+                            reverse: true
+                        }
+                    ];
+                }
+            }
+            else if (gain === bestGain) {
+                let pickedCell = this.cellNetwork.cells[cell.index];
+                if (pickedCell && !potentialMoves.find(m => { return m.cell.index === cell.index; })) {
+                    potentialMoves.push({
+                        cell: pickedCell,
+                        reverse: true
+                    });
+                }
             }
         }
-        let pickedCell = undefined;
-        if (pickedCellIndex != -1) {
-            pickedCell = this.cellNetwork.cells[pickedCellIndex];
+        if (potentialMoves.length > 0) {
+            let m = potentialMoves[Math.floor(Math.random() * potentialMoves.length)];
+            return m;
         }
         return {
-            cell: pickedCell,
-            reverse: pickedReverse
+            cell: undefined,
+            reverse: false
         };
     }
     getMove() {
@@ -141,13 +207,12 @@ class Cell {
         this.network = network;
         this.neighbors = new UniqueList();
         this.triangles = new UniqueList();
-        this.value = 0;
+        this.value = 2;
         this.radius = 1;
         this.highlightStatus = 0;
         this.forceLock = false;
         this.isDisposed = false;
         this._barycenter3D = BABYLON.Vector3.Zero();
-        this.value = Math.floor(Math.random() * 3);
     }
     clone() {
         let cloneCell = new Cell(this.baseVertexPosition.clone(), this.index, this.network);
@@ -263,27 +328,26 @@ class Cell {
     updateShape(points = this.points, c) {
         if (!this.shape) {
             this.shape = new BABYLON.Mesh("shape");
+            /*
             let material = new BABYLON.StandardMaterial("shape-material", this.network.main.scene);
             material.diffuseColor.copyFromFloats(1, 1, 1);
             material.specularColor.copyFromFloats(0, 0, 0);
             this.shape.material = material;
+            */
+            let material = new ToonMaterial("shape-material", false, this.network.main.scene);
+            this.shape.material = material;
         }
         if (!this.isBorder() && !this.isHidden() && !this.isLocked()) {
             let dOut = 0.1;
-            let dIn = 0.3;
-            if (this.isLocked()) {
-                dOut = 0.1;
-                dIn = 0.15;
-            }
+            let dIn = 0.8;
             let lineOut = Math2D.FattenShrinkEdgeShape(points, -dOut);
             let lineIn = Math2D.FattenShrinkEdgeShape(points, -dIn);
-            //line = CellNetwork.Smooth(line, 5);
-            //line = CellNetwork.Smooth(line, 3);
-            //line = CellNetwork.Smooth(line, 1);
-            lineOut.push(lineOut[0]);
-            lineIn.push(lineIn[0]);
-            let line3D = [];
-            let line3DColor = [];
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 7);
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 5);
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 3);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 7);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 5);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 3);
             if (!c) {
                 if (this.isLocked()) {
                     c = Cell.LockedColor;
@@ -299,28 +363,41 @@ class Cell {
             center.scaleInPlace(1 / points.length);
             let data = new BABYLON.VertexData();
             let positions = [center.x, 0, center.y];
+            let normals = [0, 1, 0];
             let indices = [];
-            let colors = [c.r * 1.3, c.g * 1.3, c.b * 1.3, 1];
+            let colors = [c.r, c.g, c.b, 1];
+            let l = lineIn.length;
             for (let i = 0; i < lineIn.length; i++) {
-                line3D.push(new BABYLON.Vector3(lineOut[i].x, 0, lineOut[i].y));
-                line3DColor.push(new BABYLON.Color4(c.r * 1.3, c.g * 1.3, c.b * 1.3, 1));
                 positions.push(lineIn[i].x, 0, lineIn[i].y);
+                normals.push(0, 1, 0);
                 colors.push(c.r, c.g, c.b, 1);
                 if (i != lineIn.length - 1) {
-                    indices.push(0, i, i + 1);
+                    indices.push(0, i + 1, i + 2);
                 }
                 else {
-                    indices.push(0, i, 1);
+                    indices.push(0, i + 1, 1);
+                }
+            }
+            for (let i = 0; i < lineOut.length; i++) {
+                positions.push(lineOut[i].x, 0, lineOut[i].y);
+                let n = (lineOut[i].x - center.x) * (lineOut[i].x - center.x) + (lineOut[i].y - center.y) * (lineOut[i].y - center.y);
+                n = Math.sqrt(n);
+                normals.push((lineOut[i].x - center.x) / n, 0, (lineOut[i].y - center.y) / n);
+                colors.push(c.r, c.g, c.b, 1);
+                if (i != lineOut.length - 1) {
+                    indices.push(i + l + 1, i + 2, i + 1);
+                    indices.push(i + 2, i + l + 1, i + l + 2);
+                }
+                else {
+                    indices.push(i + l + 1, 1, i + 1);
+                    indices.push(1, i + l + 1, l + 1);
                 }
             }
             data.positions = positions;
+            data.normals = normals;
             data.indices = indices;
             data.colors = colors;
             data.applyToMesh(this.shape);
-            if (!this.shapeLine) {
-                this.shapeLine = BABYLON.MeshBuilder.CreateLines("shape-line", { points: line3D, colors: line3DColor, updatable: true });
-            }
-            BABYLON.MeshBuilder.CreateLines("", { points: line3D, colors: line3DColor, instance: this.shapeLine });
         }
     }
     static addPointsToLength(points, newLength) {
@@ -433,6 +510,41 @@ Cell.Color = new BABYLON.Color4(0, 0, 0, 1);
 Cell.PickColor = BABYLON.Color4.FromHexString("#FCFCFCFF");
 Cell.PickNeighborColor = BABYLON.Color4.FromHexString("#004d1eff");
 Cell.LockedColor = BABYLON.Color4.FromHexString("#A0A0A0FF");
+Cell.Colors = [
+    new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1),
+    new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1),
+    new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1)
+];
+/*
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#73d2deff"),
+    BABYLON.Color4.FromHexString("#fbb13cff"),
+    BABYLON.Color4.FromHexString("#d81159ff")
+]
+
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#e53d00ff"),
+    BABYLON.Color4.FromHexString("#FFE900ff"),
+    BABYLON.Color4.FromHexString("#21A0A0ff")
+]
+*/
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#B9FF00FF"),
+    BABYLON.Color4.FromHexString("#FF00B9FF"),
+    BABYLON.Color4.FromHexString("#00B9FFFF")
+];
+/*
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#00FF00FF"),
+    BABYLON.Color4.FromHexString("#FF0000FF"),
+    BABYLON.Color4.FromHexString("#0000FFFF")
+]
+*/
+Cell.Colors = [
+    BABYLON.Color4.FromHexString("#0ABB07FF"),
+    BABYLON.Color4.FromHexString("#FF1900FF"),
+    BABYLON.Color4.FromHexString("#FFC800FF")
+];
 class CellNetwork {
     constructor() {
         this.cells = [];
@@ -470,11 +582,16 @@ class CellNetwork {
         }
         return cloneNetwork;
     }
+    copyValues(target) {
+        for (let i = 0; i < this.cells.length; i++) {
+            target.cells[i].value = this.cells[i].value;
+        }
+    }
     rotate(cell, reverse) {
         let variances = [0, 0, 0];
         let values = [];
         let nCount = cell.neighbors.length;
-        let inc = reverse ? -1 : 1;
+        let inc = reverse ? 1 : -1;
         cell.neighbors.forEach((n, i) => {
             values[i] = n.value;
         });
@@ -513,14 +630,14 @@ class CellNetwork {
         let updatedCells = new UniqueList();
         cell.neighbors.forEach((n) => {
             let surroundN = n.isSurrounded();
-            if (surroundN != -1 && surroundN != n.value && !updatedCells.contains(n)) {
+            if (surroundN != -1 && surroundN != 2 && surroundN != n.value && !updatedCells.contains(n)) {
                 variances[n.value]--;
                 variances[surroundN]++;
                 updatedCells.push(n);
             }
             n.neighbors.forEach((nn) => {
                 let surroundNN = nn.isSurrounded();
-                if (surroundNN != -1 && surroundN != nn.value && !updatedCells.contains(nn)) {
+                if (surroundNN != -1 && surroundNN != 2 && surroundN != nn.value && !updatedCells.contains(nn)) {
                     variances[nn.value]--;
                     variances[surroundNN]++;
                     updatedCells.push(nn);
@@ -533,7 +650,7 @@ class CellNetwork {
         return variances;
     }
     getScore(p) {
-        return this.cells.filter(c => { return c.value === p; }).length;
+        return this.cells.filter(c => { return c.value === p; }).length - this.cells.filter(c => { return c.value === (p + 1) % 2; }).length;
     }
     getBoardValueForPlayer(p) {
         let possibleGain = 0;
@@ -686,6 +803,17 @@ class CellNetworkDisplayed extends CellNetwork {
             this.cells.push(v);
         }
         this.triangulate();
+        let unassignedCells = this.cells.filter(c => { return !c.isLocked(); });
+        let l = unassignedCells.length;
+        let c = Math.floor(l / 3);
+        for (let i = 0; i < c; i++) {
+            let r = Math.floor(Math.random() * unassignedCells.length);
+            unassignedCells.splice(r, 1)[0].value = 0;
+        }
+        for (let i = 0; i < c; i++) {
+            let r = Math.floor(Math.random() * unassignedCells.length);
+            unassignedCells.splice(r, 1)[0].value = 1;
+        }
         let clone = this.clone();
         this.cells = clone.cells;
         this.cellTriangles = clone.cellTriangles;
@@ -763,7 +891,7 @@ class CellNetworkDisplayed extends CellNetwork {
         for (let i = 0; i < this.cells.length; i++) {
             let c = this.cells[i];
             let surround = c.isSurrounded();
-            if (surround != -1 && c.value != surround) {
+            if (surround != -1 && surround != 2 && c.value != surround) {
                 this.lock++;
                 c.morphValueTo(surround, () => {
                     this.lock--;
@@ -773,6 +901,10 @@ class CellNetworkDisplayed extends CellNetwork {
             }
         }
         if (callback) {
+            let p0BoardValue = this.getScore(0);
+            document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
+            let p1BoardValue = this.getScore(1);
+            document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
             callback();
         }
     }
@@ -875,32 +1007,6 @@ class CellNetworkDisplayed extends CellNetwork {
         debugBaseEdges.position.y = 0.55;
         debugBaseEdges.parent = this.debugBase;
         */
-        let cellLines = [];
-        let cellColors = [];
-        for (let i = 0; i < this.cells.length; i++) {
-            let v = this.cells[i];
-            if (!v.isBorder()) {
-                let c = new BABYLON.Color4(0, 1, 1, 1);
-                let line = [];
-                let color = [];
-                this.cells[i].triangles.forEach(tri => {
-                    let pp = tri.barycenter3D.clone();
-                    line.push(pp);
-                });
-                line = CellNetworkDisplayed.Smooth(line);
-                line = CellNetworkDisplayed.Smooth(line);
-                line = CellNetworkDisplayed.Smooth(line);
-                line.push(line[0]);
-                for (let i = 0; i < line.length; i++) {
-                    color.push(c);
-                }
-                cellLines.push(line);
-                cellColors.push(color);
-            }
-        }
-        let debugCells = BABYLON.MeshBuilder.CreateLineSystem("debug-cells", { lines: cellLines, colors: cellColors }, this.main.scene);
-        debugCells.position.y = 0.55;
-        debugCells.parent = this.debugBase;
     }
 }
 class CellSelector {
@@ -908,13 +1014,15 @@ class CellSelector {
         this.network = network;
         this.reverse = false;
         this._t = 0;
+        this._dOut = 0;
         this._tmp = BABYLON.Vector2.Zero();
         this._lastReverse = false;
         this.updateShape = () => {
             if (this.highlightShape) {
                 this.highlightShape.isVisible = false;
             }
-            if (!this.selectedCell) {
+            if (!this.selectedCell || this.network.lock) {
+                this._dOut = -0.1;
                 return;
             }
             let neighbors = this.selectedCell.neighbors;
@@ -928,34 +1036,63 @@ class CellSelector {
             let positions = [];
             let colors = [];
             let indices = [];
-            let i = 0;
-            neighbors.forEach(c => {
-                let points = Math2D.FattenShrinkEdgeShape(c.points, -0.1);
-                points.push(points[0]);
-                let l = positions.length / 3;
-                positions.push(c.barycenter.x, 0, c.barycenter.y);
-                this._tmp.copyFrom(c.barycenter);
-                this._tmp.subtractInPlace(this.selectedCell.barycenter);
-                let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-                let color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
-                color = 0.3 + color * color * 1.5;
-                colors.push(color, color, color, 1);
-                for (let i = 0; i < points.length; i++) {
-                    this._tmp.copyFrom(points[i]);
+            this._dOut = Math.min(this._dOut + 0.01, 0.05);
+            let dIn = -0.1;
+            [...neighbors.array(), this.selectedCell].forEach(c => {
+                let lineOut = Math2D.FattenShrinkEdgeShape(c.points, this._dOut);
+                let lineIn = Math2D.FattenShrinkEdgeShape(c.points, dIn);
+                lineOut = CellNetworkDisplayed.Smooth(lineOut, 7);
+                lineOut = CellNetworkDisplayed.Smooth(lineOut, 5);
+                lineOut = CellNetworkDisplayed.Smooth(lineOut, 3);
+                lineIn = CellNetworkDisplayed.Smooth(lineIn, 7);
+                lineIn = CellNetworkDisplayed.Smooth(lineIn, 5);
+                lineIn = CellNetworkDisplayed.Smooth(lineIn, 3);
+                let l = lineIn.length;
+                let offset = positions.length / 3;
+                for (let i = 0; i < lineIn.length; i++) {
+                    this._tmp.copyFrom(lineIn[i]);
                     this._tmp.subtractInPlace(this.selectedCell.barycenter);
-                    a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-                    color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
-                    color = 0.3 + color * color * 1.5;
-                    positions.push(points[i].x, 0, points[i].y);
-                    colors.push(color, color, color, 1);
-                    if (i != points.length - 1) {
-                        indices.push(l, l + i, l + i + 1);
+                    let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
+                    let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
+                    color = 0.2 + color * color;
+                    if (color > 0.3) {
+                        color = 0.75;
                     }
                     else {
-                        indices.push(l, l + i, l + 1);
+                        color = 0;
+                    }
+                    if (c === this.selectedCell) {
+                        color = 0;
+                    }
+                    positions.push(lineIn[i].x, 0, lineIn[i].y);
+                    colors.push(color, color, color, 1);
+                }
+                for (let i = 0; i < lineOut.length; i++) {
+                    this._tmp.copyFrom(lineOut[i]);
+                    this._tmp.subtractInPlace(this.selectedCell.barycenter);
+                    let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
+                    let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
+                    color = 0.2 + color * color;
+                    if (color > 0.3) {
+                        color = 0.75;
+                    }
+                    else {
+                        color = 0;
+                    }
+                    if (c === this.selectedCell) {
+                        color = 0;
+                    }
+                    positions.push(lineOut[i].x, 0, lineOut[i].y);
+                    colors.push(color, color, color, 1);
+                    if (i != lineOut.length - 1) {
+                        indices.push(offset + i + l, offset + i + 1, offset + i);
+                        indices.push(offset + i + 1, offset + i + l, offset + i + l + 1);
+                    }
+                    else {
+                        indices.push(offset + i + l, offset, offset + i);
+                        indices.push(offset, offset + i + l, offset + l);
                     }
                 }
-                i++;
             });
             highLightData.positions = positions;
             highLightData.colors = colors;
@@ -1127,16 +1264,16 @@ class Main {
     resize() {
         let ratio = this.canvas.clientWidth / this.canvas.clientHeight;
         if (ratio >= 1) {
-            this.camera.orthoTop = 35;
-            this.camera.orthoRight = 35 * ratio;
-            this.camera.orthoLeft = -35 * ratio;
-            this.camera.orthoBottom = -35;
+            this.camera.orthoTop = 40;
+            this.camera.orthoRight = 40 * ratio;
+            this.camera.orthoLeft = -40 * ratio;
+            this.camera.orthoBottom = -40;
         }
         else {
-            this.camera.orthoTop = 35 / ratio;
-            this.camera.orthoRight = 35;
-            this.camera.orthoLeft = -35;
-            this.camera.orthoBottom = -35 / ratio;
+            this.camera.orthoTop = 40 / ratio;
+            this.camera.orthoRight = 40;
+            this.camera.orthoLeft = -40;
+            this.camera.orthoBottom = -40 / ratio;
         }
     }
     async initializeScene() {
@@ -1148,134 +1285,75 @@ class Main {
         window.onresize = () => {
             this.resize();
         };
-        this.light = new BABYLON.HemisphericLight("AmbientLight", new BABYLON.Vector3(1, 3, 2), this.scene);
-        BABYLON.Effect.ShadersStore["EdgeFragmentShader"] = `
-			#ifdef GL_ES
-			precision highp float;
-			#endif
-			varying vec2 vUV;
-			uniform sampler2D textureSampler;
-			uniform sampler2D depthSampler;
-			uniform float 		width;
-			uniform float 		height;
-			void make_kernel_color(inout vec4 n[9], sampler2D tex, vec2 coord)
-			{
-				float w = 1.0 / width;
-				float h = 1.0 / height;
-				n[0] = texture2D(tex, coord + vec2( -w, -h));
-				n[1] = texture2D(tex, coord + vec2(0.0, -h));
-				n[2] = texture2D(tex, coord + vec2(  w, -h));
-				n[3] = texture2D(tex, coord + vec2( -w, 0.0));
-				n[4] = texture2D(tex, coord);
-				n[5] = texture2D(tex, coord + vec2(  w, 0.0));
-				n[6] = texture2D(tex, coord + vec2( -w, h));
-				n[7] = texture2D(tex, coord + vec2(0.0, h));
-				n[8] = texture2D(tex, coord + vec2(  w, h));
-			}
-			void make_kernel_depth(inout float n[9], sampler2D tex, vec2 coord)
-			{
-				float w = 1.0 / width;
-				float h = 1.0 / height;
-				n[0] = texture2D(tex, coord + vec2( -w, -h)).r;
-				n[1] = texture2D(tex, coord + vec2(0.0, -h)).r;
-				n[2] = texture2D(tex, coord + vec2(  w, -h)).r;
-				n[3] = texture2D(tex, coord + vec2( -w, 0.0)).r;
-				n[4] = texture2D(tex, coord).r;
-				n[5] = texture2D(tex, coord + vec2(  w, 0.0)).r;
-				n[6] = texture2D(tex, coord + vec2( -w, h)).r;
-				n[7] = texture2D(tex, coord + vec2(0.0, h)).r;
-				n[8] = texture2D(tex, coord + vec2(  w, h)).r;
-			}
-			void main(void) 
-			{
-				vec4 d = texture2D(depthSampler, vUV);
-				float depth = d.r * (2000.0 - 0.2) + 0.2;
-				
-				float nD[9];
-				make_kernel_depth( nD, depthSampler, vUV );
-				float sobel_depth_edge_h = nD[2] + (2.0*nD[5]) + nD[8] - (nD[0] + (2.0*nD[3]) + nD[6]);
-				float sobel_depth_edge_v = nD[0] + (2.0*nD[1]) + nD[2] - (nD[6] + (2.0*nD[7]) + nD[8]);
-				float sobel_depth = sqrt((sobel_depth_edge_h * sobel_depth_edge_h) + (sobel_depth_edge_v * sobel_depth_edge_v));
-				float thresholdDepth = 0.002;
-
-				vec4 n[9];
-				make_kernel_color( n, textureSampler, vUV );
-				vec4 sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
-				vec4 sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
-				vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
-				float threshold = 0.2;
-				
-				gl_FragColor = vec4(n[4]) * 0.5;
-				gl_FragColor.a = 1.0;
-				if (sobel_depth < thresholdDepth || depth > 1000.) {
-					if (max(sobel.r, max(sobel.g, sobel.b)) < threshold) {
-						gl_FragColor = n[4];
-					}
-				}
-			}
-        `;
         BABYLON.Engine.ShadersRepository = "./shaders/";
-        /*
-        let depthMap = this.scene.enableDepthRenderer(camera).getDepthMap();
-        
-        let postProcess = new BABYLON.PostProcess("Edge", "Edge", ["width", "height"], ["depthSampler"], 1, camera);
-        postProcess.onApply = (effect) => {
-            effect.setTexture("depthSampler", depthMap);
-            effect.setFloat("width", this.engine.getRenderWidth());
-            effect.setFloat("height", this.engine.getRenderHeight());
-        };
-        */
-        this.scene.clearColor = BABYLON.Color4.FromHexString("#3a2e47FF");
-        //this.scene.clearColor = BABYLON.Color4.FromHexString("#D0FA00FF");
-        let cellNetwork = new CellNetworkDisplayed(this);
-        cellNetwork.generate(20, 300);
-        cellNetwork.checkSurround();
-        //cellNetwork.debugDrawBase();
-        this.selected = new CellSelector(cellNetwork);
-        let ai = new AI(1, cellNetwork);
-        let testAI = new AI(0, cellNetwork);
+        this.scene.clearColor = BABYLON.Color4.FromHexString("#046865FF");
+        this.scene.clearColor = new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1);
+        this.scene.clearColor = BABYLON.Color4.FromHexString("#FFFFFFFF");
+        this.scene.clearColor = BABYLON.Color4.FromHexString("#00000000");
+        this.cellNetwork = new CellNetworkDisplayed(this);
+        this.cellNetwork.generate(25, 400);
+        this.cellNetwork.checkSurround(() => {
+            let p0BoardValue = this.cellNetwork.getScore(0);
+            document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
+            let p1BoardValue = this.cellNetwork.getScore(1);
+            document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
+        });
+        //this.cellNetwork.debugDrawBase();
+        this.selected = new CellSelector(this.cellNetwork);
+        let ai = new AI(1, this.cellNetwork);
+        let testAI = new AI(0, this.cellNetwork);
         let pickPlane = BABYLON.MeshBuilder.CreateGround("pick-plane", { width: 50, height: 50 }, this.scene);
         pickPlane.isVisible = false;
         let A = new BABYLON.Vector3(2, 0, 1);
         let B = new BABYLON.Vector3(6, 0, 3);
         let C = new BABYLON.Vector3(2, 0, 3.5);
         let D = new BABYLON.Vector3(6.25, 0, 0);
+        let aiDepth = 1;
         /*
         let move = () => {
-            let aiTestMove = testAI.getMove2();
-            if (aiTestMove.cell) {
-                cellNetwork.morphCell(
-                    0,
-                    aiTestMove.cell,
-                    aiTestMove.reverse,
-                    () => {
-                        cellNetwork.checkSurround(
-                            () => {
-                                
-                                let aiMove = ai.getMove2();
-                                if (aiMove.cell) {
-                                    cellNetwork.morphCell(
-                                        1,
-                                        aiMove.cell,
-                                        aiMove.reverse,
-                                        () => {
-                                            cellNetwork.checkSurround(move);
+            //this.scene.clearColor = Cell.Colors[0].scale(0.5);
+            //this.scene.clearColor.a = 1;
+            setTimeout(() => {
+                let aiTestMove = testAI.getMove2(0, 1);
+                if (aiTestMove.cell) {
+                    cellNetwork.morphCell(
+                        0,
+                        aiTestMove.cell,
+                        aiTestMove.reverse,
+                        () => {
+                            cellNetwork.checkSurround(
+                                () => {
+                                    //this.scene.clearColor = Cell.Colors[1].scale(0.5);
+                                    //this.scene.clearColor.a = 1;
+                                    setTimeout(() => {
+                                        let aiMove = ai.getMove2(1, 1);
+                                        if (aiMove.cell) {
+                                            cellNetwork.morphCell(
+                                                1,
+                                                aiMove.cell,
+                                                aiMove.reverse,
+                                                () => {
+                                                    cellNetwork.checkSurround(move);
+                                                }
+                                            );
                                         }
-                                    );
+                                    }, 200)
                                 }
-                            }
-                        );
-                    }
-                );
-            }
+                            );
+                        }
+                    );
+                }
+            }, 200);
+            
         }
         setTimeout(move, 3000);
         return;
         */
+        let playSolo = false;
         this.scene.onPointerObservable.add((eventData) => {
             let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
             if (pick && pick.pickedPoint) {
-                let cell = cellNetwork.worldPosToCell(pick.pickedPoint);
+                let cell = this.cellNetwork.worldPosToCell(pick.pickedPoint);
                 if (cell.canRotate()) {
                     this.setPickedCell(cell);
                 }
@@ -1283,17 +1361,24 @@ class Main {
             let reverse = false;
             if (this.pickedCell && pick.pickedPoint) {
                 reverse = this.pickedCell.barycenter3D.x < pick.pickedPoint.x;
-                console.log(pick.pickedPoint.x);
             }
             this.selected.reverse = reverse;
             if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
                 if (this.pickedCell) {
-                    cellNetwork.morphCell(0, this.pickedCell, reverse, () => {
-                        cellNetwork.checkSurround(() => {
-                            let aiMove = ai.getMove2();
+                    this.cellNetwork.morphCell(0, this.pickedCell, reverse, () => {
+                        this.cellNetwork.checkSurround(() => {
+                            if (playSolo) {
+                                return;
+                            }
+                            let aiMove = ai.getMove2(1, aiDepth);
                             if (aiMove.cell) {
-                                cellNetwork.morphCell(1, aiMove.cell, aiMove.reverse, () => {
-                                    cellNetwork.checkSurround();
+                                this.cellNetwork.morphCell(1, aiMove.cell, aiMove.reverse, () => {
+                                    this.cellNetwork.checkSurround(() => {
+                                        let p0BoardValue = this.cellNetwork.getScore(0);
+                                        document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
+                                        let p1BoardValue = this.cellNetwork.getScore(1);
+                                        document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
+                                    });
                                 });
                             }
                         });
@@ -1305,6 +1390,9 @@ class Main {
     setPickedCell(cell) {
         if (cell === this.pickedCell) {
             return;
+        }
+        if (cell && cell.value != 0) {
+            return this.setPickedCell(undefined);
         }
         if (this.pickedCell) {
             if (!this.pickedCell.isDisposed) {
@@ -1364,6 +1452,36 @@ window.addEventListener("load", async () => {
     let main = new Main("render-canvas");
     await main.initialize();
     main.animate();
+    document.getElementById("cell-network-info").style.display = "none";
+    document.getElementById("meshes-info").style.display = "none";
+    document.getElementById("debug-info").style.display = "none";
+    let debugColorP0 = document.getElementById("debug-p0-color");
+    debugColorP0.addEventListener("input", (e) => {
+        Cell.Colors[0] = BABYLON.Color4.FromHexString(e.currentTarget.value + "FF");
+        console.log("Color 0 = " + Cell.Colors[0].toHexString());
+        main.cellNetwork.cells.forEach(c => {
+            c.updateShape();
+        });
+    });
+    debugColorP0.value = Cell.Colors[0].toHexString().substring(0, 7);
+    let debugColorP1 = document.getElementById("debug-p1-color");
+    debugColorP1.addEventListener("input", (e) => {
+        Cell.Colors[1] = BABYLON.Color4.FromHexString(e.currentTarget.value + "FF");
+        console.log("Color 1 = " + Cell.Colors[1].toHexString());
+        main.cellNetwork.cells.forEach(c => {
+            c.updateShape();
+        });
+    });
+    debugColorP1.value = Cell.Colors[1].toHexString().substring(0, 7);
+    let debugColorP2 = document.getElementById("debug-p2-color");
+    debugColorP2.addEventListener("input", (e) => {
+        Cell.Colors[2] = BABYLON.Color4.FromHexString(e.currentTarget.value + "FF");
+        console.log("Color 2 = " + Cell.Colors[2].toHexString());
+        main.cellNetwork.cells.forEach(c => {
+            c.updateShape();
+        });
+    });
+    debugColorP2.value = Cell.Colors[2].toHexString().substring(0, 7);
 });
 class Math2D {
     static AreEqualsCircular(a1, a2, epsilon = Math.PI / 60) {
@@ -1786,6 +1904,9 @@ class UniqueList {
     forEach(callbackfn) {
         this._elements.forEach(callbackfn);
     }
+    array() {
+        return this._elements;
+    }
 }
 class VMath {
     // Method adapted from gre's work (https://github.com/gre/bezier-easing). Thanks !
@@ -1945,6 +2066,54 @@ class VMath {
             a.addInPlace(n);
             b.subtractInPlace(n);
         }
+    }
+}
+class TerrainToonMaterial extends BABYLON.ShaderMaterial {
+    constructor(name, color, scene) {
+        super(name, scene, {
+            vertex: "terrainToon",
+            fragment: "terrainToon",
+        }, {
+            attributes: ["position", "normal", "uv", "color"],
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"]
+        });
+        this.setVector3("lightInvDirW", (new BABYLON.Vector3(0.5 + Math.random(), 2.5 + Math.random(), 1.5 + Math.random())).normalize());
+        this.setColor3("colGrass", BABYLON.Color3.FromHexString("#47a632"));
+        this.setColor3("colDirt", BABYLON.Color3.FromHexString("#a86f32"));
+        this.setColor3("colRock", BABYLON.Color3.FromHexString("#8c8c89"));
+        this.setColor3("colSand", BABYLON.Color3.FromHexString("#dbc67b"));
+    }
+}
+class TerrainTileToonMaterial extends BABYLON.ShaderMaterial {
+    constructor(name, scene) {
+        super(name, scene, {
+            vertex: "terrainTileToon",
+            fragment: "terrainTileToon",
+        }, {
+            attributes: ["position", "normal", "uv"],
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"]
+        });
+        this.setVector3("lightInvDirW", (new BABYLON.Vector3(0.5, 2.5, 1.5)).normalize());
+    }
+    get diffuseTexture() {
+        return this._diffuseTexture;
+    }
+    set diffuseTexture(tex) {
+        this._diffuseTexture = tex;
+        this.setTexture("diffuseTexture", this._diffuseTexture);
+    }
+}
+class ToonMaterial extends BABYLON.ShaderMaterial {
+    constructor(name, transparent, scene) {
+        super(name, scene, {
+            vertex: "toon",
+            fragment: "toon",
+        }, {
+            attributes: ["position", "normal", "uv", "color"],
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
+            needAlphaBlending: true
+        });
+        this.setTexture("pencil_texture", new BABYLON.Texture("assets/pencil.png", this.getScene()));
     }
 }
 class ButtonFactory {

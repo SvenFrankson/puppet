@@ -50,6 +50,7 @@ class CellSelector {
     }
 
     private _t: number = 0;
+    private _dOut: number = 0;
     private _tmp: BABYLON.Vector2 = BABYLON.Vector2.Zero();
     private _lastReverse: boolean = false;
 
@@ -57,7 +58,8 @@ class CellSelector {
         if (this.highlightShape) {
             this.highlightShape.isVisible = false;
         }
-        if (!this.selectedCell) {
+        if (!this.selectedCell || this.network.lock) {
+            this._dOut = - 0.1;
             return;
         }
         let neighbors = this.selectedCell.neighbors;
@@ -73,38 +75,72 @@ class CellSelector {
         let positions: number[] = [];
         let colors: number[] = [];
         let indices: number[] = [];
-        let i = 0;
+        
+        this._dOut = Math.min(this._dOut + 0.01, 0.05);
+        let dIn = - 0.1;
 
-        neighbors.forEach(c => {
-            let points = Math2D.FattenShrinkEdgeShape(c.points, - 0.1);
-            points.push(points[0]);
-            let l = positions.length / 3;
-            positions.push(c.barycenter.x, 0, c.barycenter.y);
+        [...neighbors.array(), this.selectedCell].forEach(c => {
 
-            this._tmp.copyFrom(c.barycenter);
-            this._tmp.subtractInPlace(this.selectedCell.barycenter);
-            let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-            let color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
-            color = 0.3 + color * color * 1.5;
+            let lineOut = Math2D.FattenShrinkEdgeShape(c.points, this._dOut);
+            let lineIn = Math2D.FattenShrinkEdgeShape(c.points, dIn);
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 7);
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 5);
+            lineOut = CellNetworkDisplayed.Smooth(lineOut, 3);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 7);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 5);
+            lineIn = CellNetworkDisplayed.Smooth(lineIn, 3);
 
-            colors.push(color, color, color, 1);
-            
-            for (let i = 0; i < points.length; i++) {
-                this._tmp.copyFrom(points[i]);
+
+            let l = lineIn.length;
+
+            let offset = positions.length / 3;
+            for (let i = 0; i < lineIn.length; i++) {
+                this._tmp.copyFrom(lineIn[i]);
                 this._tmp.subtractInPlace(this.selectedCell.barycenter);
-                a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
-                color = (Math.cos(a - Math.PI * 2 * this._t * 0.6) + 1) * 0.5;
-                color = 0.3 + color * color * 1.5;
-                positions.push(points[i].x, 0, points[i].y);
-                colors.push(color, color, color, 1);
-                if (i != points.length - 1) {
-                    indices.push(l, l + i, l + i + 1);
+                let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
+                let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
+                color = 0.2 + color * color;
+                if (color > 0.3) {
+                    color = 0.75;
                 }
                 else {
-                    indices.push(l, l + i, l + 1);
+                    color = 0;
+                }
+                if (c === this.selectedCell) {
+                    color = 0;
+                }
+
+                positions.push(lineIn[i].x, 0, lineIn[i].y);
+                colors.push(color, color, color, 1);
+            }
+
+            for (let i = 0; i < lineOut.length; i++) {
+                this._tmp.copyFrom(lineOut[i]);
+                this._tmp.subtractInPlace(this.selectedCell.barycenter);
+                let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
+                let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
+                color = 0.2 + color * color;
+                if (color > 0.3) {
+                    color = 0.75;
+                }
+                else {
+                    color = 0;
+                }
+                if (c === this.selectedCell) {
+                    color = 0;
+                }
+
+                positions.push(lineOut[i].x, 0, lineOut[i].y);
+                colors.push(color, color, color, 1);
+                if (i != lineOut.length - 1) {
+                    indices.push(offset + i + l, offset + i + 1, offset + i);
+                    indices.push(offset + i + 1, offset + i + l, offset + i + l + 1);
+                }
+                else {
+                    indices.push(offset + i + l, offset, offset + i);
+                    indices.push(offset, offset + i + l, offset + l);
                 }
             }
-            i++;
         });
         highLightData.positions = positions;
         highLightData.colors = colors;

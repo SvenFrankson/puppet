@@ -46,4 +46,8 @@ class UniqueList<T> {
     public forEach(callbackfn: (a: T, index?: number) => void): void {
         this._elements.forEach(callbackfn);
     }
+
+    public array(): T[] {
+        return this._elements;
+    }
 }

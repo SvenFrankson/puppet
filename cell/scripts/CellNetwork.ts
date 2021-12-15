@@ -46,11 +46,17 @@ class CellNetwork implements ICellNetwork {
         return cloneNetwork;
     }
 
+    public copyValues(target: CellNetwork): void {
+        for (let i = 0; i < this.cells.length; i++) {
+            target.cells[i].value = this.cells[i].value;
+        }
+    }
+
     public rotate(cell: Cell, reverse?: boolean): number[] {
         let variances = [0, 0, 0];
         let values: number[] = [];
         let nCount = cell.neighbors.length;
-        let inc = reverse ? - 1 : 1;
+        let inc = reverse ? 1 : - 1;
 
         cell.neighbors.forEach((n, i) => {
             values[i] = n.value;
@@ -95,14 +101,14 @@ class CellNetwork implements ICellNetwork {
         let updatedCells: UniqueList<Cell> = new UniqueList<Cell>();
         cell.neighbors.forEach((n) => {
             let surroundN = n.isSurrounded();
-            if (surroundN != - 1 && surroundN != n.value && !updatedCells.contains(n)) {
+            if (surroundN != - 1 && surroundN != 2 && surroundN != n.value && !updatedCells.contains(n)) {
                 variances[n.value]--;
                 variances[surroundN]++;
                 updatedCells.push(n);
             }
             n.neighbors.forEach((nn) => {
                 let surroundNN = nn.isSurrounded();
-                if (surroundNN != - 1 && surroundN != nn.value && !updatedCells.contains(nn)) {
+                if (surroundNN != - 1 && surroundNN != 2 && surroundN != nn.value && !updatedCells.contains(nn)) {
                     variances[nn.value]--;
                     variances[surroundNN]++;
                     updatedCells.push(nn);
@@ -118,7 +124,7 @@ class CellNetwork implements ICellNetwork {
     }
 
     public getScore(p: number): number {
-        return this.cells.filter(c => { return c.value === p; }).length;
+        return this.cells.filter(c => { return c.value === p; }).length - this.cells.filter(c => { return c.value === (p + 1) % 2; }).length;
     }
 
     public getBoardValueForPlayer(p: number): number {
@@ -296,6 +302,18 @@ class CellNetworkDisplayed extends CellNetwork {
 
         this.triangulate();
 
+        let unassignedCells = this.cells.filter(c => { return !c.isLocked(); });
+        let l = unassignedCells.length;
+        let c = Math.floor(l / 3);
+        for (let i = 0; i < c; i++) {
+            let r = Math.floor(Math.random() * unassignedCells.length);
+            unassignedCells.splice(r, 1)[0].value = 0;
+        }
+        for (let i = 0; i < c; i++) {
+            let r = Math.floor(Math.random() * unassignedCells.length);
+            unassignedCells.splice(r, 1)[0].value = 1;
+        }
+
         let clone = this.clone();
         this.cells = clone.cells;
         this.cellTriangles = clone.cellTriangles;
@@ -385,7 +403,7 @@ class CellNetworkDisplayed extends CellNetwork {
         for (let i = 0; i < this.cells.length; i++) {
             let c = this.cells[i];
             let surround = c.isSurrounded();
-            if (surround != -1 && c.value != surround) {
+            if (surround != -1 && surround != 2 && c.value != surround) {
                 this.lock++;
                 c.morphValueTo(surround, () => {
                     this.lock--;
@@ -395,6 +413,10 @@ class CellNetworkDisplayed extends CellNetwork {
             }
         }
         if (callback) {
+            let p0BoardValue = this.getScore(0);
+            document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
+            let p1BoardValue = this.getScore(1);
+            document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
             callback();
         }
     }
@@ -442,8 +464,8 @@ class CellNetworkDisplayed extends CellNetwork {
         return;
     }
 
-    public static Smooth(points: BABYLON.Vector3[], s: number = 6): BABYLON.Vector3[] {
-        let newpoints: BABYLON.Vector3[] = [];
+    public static Smooth(points: BABYLON.Vector2[], s: number = 6): BABYLON.Vector2[] {
+        let newpoints: BABYLON.Vector2[] = [];
         for (let i = 0; i < points.length; i++) {
             let next = points[(i + 1) % points.length];
             newpoints.push(points[i], points[i].add(next).scaleInPlace(0.5));
@@ -502,33 +524,5 @@ class CellNetworkDisplayed extends CellNetwork {
         debugBaseEdges.position.y = 0.55;
         debugBaseEdges.parent = this.debugBase;
         */
-        
-
-        let cellLines: BABYLON.Vector3[][] = [];
-        let cellColors: BABYLON.Color4[][] = [];
-        for (let i = 0; i < this.cells.length; i++) {
-            let v = this.cells[i];
-            if (!v.isBorder()) {
-                let c = new BABYLON.Color4(0, 1, 1, 1);
-                let line: BABYLON.Vector3[] = [];
-                let color: BABYLON.Color4[] = [];
-                this.cells[i].triangles.forEach(tri => {
-                    let pp = tri.barycenter3D.clone();
-                    line.push(pp);
-                });
-                line = CellNetworkDisplayed.Smooth(line);
-                line = CellNetworkDisplayed.Smooth(line);
-                line = CellNetworkDisplayed.Smooth(line);
-                line.push(line[0]);
-                for (let i = 0; i < line.length; i++) {
-                    color.push(c);
-                }
-                cellLines.push(line);
-                cellColors.push(color);
-            }
-        }
-        let debugCells = BABYLON.MeshBuilder.CreateLineSystem("debug-cells", { lines: cellLines, colors: cellColors }, this.main.scene);
-        debugCells.position.y = 0.55;
-        debugCells.parent = this.debugBase;
     }
 }
