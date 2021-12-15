@@ -120,9 +120,11 @@ class Main {
 		this.scene.clearColor = BABYLON.Color4.FromHexString("#00000000");
 
 		this.cellNetwork = new CellNetworkDisplayed(this);
+		let scoreDisplay = new Score(3, this.cellNetwork);
 		this.cellNetwork.generate(25, 400);
 		this.cellNetwork.checkSurround(
 			() => {
+				scoreDisplay.update();
 				let p0BoardValue = this.cellNetwork.getScore(0);
 				document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
 				let p1BoardValue = this.cellNetwork.getScore(1);
@@ -145,6 +147,7 @@ class Main {
 		let D = new BABYLON.Vector3(6.25, 0, 0);
 
 		let aiDepth = 1;
+
 
 		/*
 		let move = () => {
@@ -210,6 +213,7 @@ class Main {
 						() => {
 							this.cellNetwork.checkSurround(
 								() => {
+									scoreDisplay.update();
 									if (playSolo) {
 										return;
 									}
@@ -222,6 +226,7 @@ class Main {
 											() => {
 												this.cellNetwork.checkSurround(
 													() => {
+														scoreDisplay.update();
 														let p0BoardValue = this.cellNetwork.getScore(0);
 														document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
 														let p1BoardValue = this.cellNetwork.getScore(1);
