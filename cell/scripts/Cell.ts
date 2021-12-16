@@ -392,6 +392,6 @@ Cell.Colors = [
 
 Cell.Colors = [
     BABYLON.Color4.FromHexString("#0ABB07FF"),
-    BABYLON.Color4.FromHexString("#FF1900FF"),
-    BABYLON.Color4.FromHexString("#FFC800FF")
+    BABYLON.Color4.FromHexString("#FFC800FF"),
+    BABYLON.Color4.FromHexString("#FF1900FF")
 ]

@@ -52,7 +52,7 @@ class AI {
     public getMove2(player: number, depth: number = 0): { cell: Cell, reverse: boolean } {
         let bestGain = - Infinity;
 
-        let opponent: number = (player + 1) % 2;
+        let opponent: number = player === 0 ? 2 : 0;
 
         let cloneNetwork = this.cellNetwork.clone();
         let scoreZero = this.cellNetwork.getScore(player);

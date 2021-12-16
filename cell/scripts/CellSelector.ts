@@ -99,8 +99,8 @@ class CellSelector {
                 this._tmp.subtractInPlace(this.selectedCell.barycenter);
                 let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
                 let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
-                color = 0.2 + color * color;
-                if (color > 0.3) {
+                color = color * color;
+                if (color > 0.1) {
                     color = 0.75;
                 }
                 else {
@@ -119,8 +119,8 @@ class CellSelector {
                 this._tmp.subtractInPlace(this.selectedCell.barycenter);
                 let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
                 let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
-                color = 0.2 + color * color;
-                if (color > 0.3) {
+                color = color * color;
+                if (color > 0.1) {
                     color = 0.75;
                 }
                 else {

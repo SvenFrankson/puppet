@@ -1,3 +1,8 @@
+@font-face {
+  font-family: "Schoolwork";
+  src: url("../assets/fonts/Schoolwork-Regular.ttf") format("truetype");
+}
+
 html,
 body {
   overflow: hidden;
@@ -76,4 +81,12 @@ body {
   color: red;
   text-align: right;
   font-family: monospace;
+}
+
+.score-info {
+  position: fixed;
+  z-index: 1;
+  color: black;
+  font-size: 50px;
+  font-family: "Schoolwork";
 }

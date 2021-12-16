@@ -101,14 +101,14 @@ class CellNetwork implements ICellNetwork {
         let updatedCells: UniqueList<Cell> = new UniqueList<Cell>();
         cell.neighbors.forEach((n) => {
             let surroundN = n.isSurrounded();
-            if (surroundN != - 1 && surroundN != 2 && surroundN != n.value && !updatedCells.contains(n)) {
+            if (surroundN != - 1 && surroundN != 1 && surroundN != n.value && !updatedCells.contains(n)) {
                 variances[n.value]--;
                 variances[surroundN]++;
                 updatedCells.push(n);
             }
             n.neighbors.forEach((nn) => {
                 let surroundNN = nn.isSurrounded();
-                if (surroundNN != - 1 && surroundNN != 2 && surroundN != nn.value && !updatedCells.contains(nn)) {
+                if (surroundNN != - 1 && surroundNN != 1 && surroundN != nn.value && !updatedCells.contains(nn)) {
                     variances[nn.value]--;
                     variances[surroundNN]++;
                     updatedCells.push(nn);
@@ -403,7 +403,7 @@ class CellNetworkDisplayed extends CellNetwork {
         for (let i = 0; i < this.cells.length; i++) {
             let c = this.cells[i];
             let surround = c.isSurrounded();
-            if (surround != -1 && surround != 2 && c.value != surround) {
+            if (surround != -1 && surround != 1 && c.value != surround) {
                 this.lock++;
                 c.morphValueTo(surround, () => {
                     this.lock--;
@@ -413,10 +413,6 @@ class CellNetworkDisplayed extends CellNetwork {
             }
         }
         if (callback) {
-            let p0BoardValue = this.getScore(0);
-            document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
-            let p1BoardValue = this.getScore(1);
-            document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
             callback();
         }
     }

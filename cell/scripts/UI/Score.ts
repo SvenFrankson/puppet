@@ -1,9 +1,19 @@
 class Score {
 
     public playerScoreMesh: BABYLON.Mesh[] = [];
+    public playerScoreText: HTMLDivElement[] = [];
 
     constructor(public playerCount: number = 2, public network: CellNetworkDisplayed) {
-
+        for (let i = 0; i < this.playerCount; i++) {
+            this.playerScoreText[i] = document.getElementById("score-p" + i) as HTMLDivElement;
+        }
+        this.playerScoreText[0].style.right = (this.network.main.xToRight(- 49) * 100).toFixed(0) + "%";
+        this.playerScoreText[0].style.bottom = (this.network.main.yToBottom(- 30) * 100).toFixed(0) + "%";
+        this.playerScoreText[0].style.color = Cell.Colors[0].toHexString().substring(0, 7);
+        
+        this.playerScoreText[2].style.right = (this.network.main.xToRight(- 49) * 100).toFixed(0) + "%";
+        this.playerScoreText[2].style.top = (this.network.main.yToTop(30) * 100).toFixed(0) + "%";
+        this.playerScoreText[2].style.color = Cell.Colors[2].toHexString().substring(0, 7);
     }
 
     public update(): void {
@@ -11,6 +21,7 @@ class Score {
         let scores: number[] = [];
         for (let i = 0; i < this.playerCount; i++) {
             scores[i] = this.network.cells.filter(c => { return c.value === i; }).length;
+            this.playerScoreText[i].innerText = scores[i].toFixed(0);
         }
         let scoreTotal = scores.reduce((s1, s2) => { return s1 + s2; });
         console.log(scores);

@@ -99,14 +99,39 @@ class Main {
 		}
 	}
 
+	public xToLeft(x: number): number {
+		return (x - this.camera.orthoLeft) / this.sceneWidth;
+	}
+
+	public xToRight(x: number): number {
+		return - (x - this.camera.orthoRight) / this.sceneWidth;
+	}
+
+	public yToTop(y: number): number {
+		return - (y - this.camera.orthoTop) / this.sceneHeight;
+	}
+
+	public yToBottom(y: number): number {
+		return (y - this.camera.orthoBottom) / this.sceneHeight;
+	}
+
+	public get sceneWidth(): number {
+		return this.camera.orthoRight - this.camera.orthoLeft;
+	}
+
+	public get sceneHeight(): number {
+		return this.camera.orthoTop - this.camera.orthoBottom;
+	}
+
     public async initializeScene(): Promise<void> {
 		this.scene = new BABYLON.Scene(this.engine);
-
 
 		this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 0), this.scene);
 		this.camera.rotation.x = Math.PI / 2;
 		this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 		this.resize();
+
+		let light = new BABYLON.DirectionalLight("light", BABYLON.Vector3.Down(), this.scene);
 
 		window.onresize = () => {
 			this.resize();
@@ -125,10 +150,6 @@ class Main {
 		this.cellNetwork.checkSurround(
 			() => {
 				scoreDisplay.update();
-				let p0BoardValue = this.cellNetwork.getScore(0);
-				document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
-				let p1BoardValue = this.cellNetwork.getScore(1);
-				document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
 			}
 		);
 		//this.cellNetwork.debugDrawBase();
@@ -217,20 +238,16 @@ class Main {
 									if (playSolo) {
 										return;
 									}
-									let aiMove = ai.getMove2(1, aiDepth);
+									let aiMove = ai.getMove2(2, aiDepth);
 									if (aiMove.cell) {
 										this.cellNetwork.morphCell(
-											1,
+											2,
 											aiMove.cell,
 											aiMove.reverse,
 											() => {
 												this.cellNetwork.checkSurround(
 													() => {
 														scoreDisplay.update();
-														let p0BoardValue = this.cellNetwork.getScore(0);
-														document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
-														let p1BoardValue = this.cellNetwork.getScore(1);
-														document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
 													}
 												);
 											}

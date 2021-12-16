@@ -42,7 +42,7 @@ class AI {
     }
     getMove2(player, depth = 0) {
         let bestGain = -Infinity;
-        let opponent = (player + 1) % 2;
+        let opponent = player === 0 ? 2 : 0;
         let cloneNetwork = this.cellNetwork.clone();
         let scoreZero = this.cellNetwork.getScore(player);
         let availableCells = cloneNetwork.cells.filter(c => { return c.canRotate(); });
@@ -542,8 +542,8 @@ Cell.Colors = [
 */
 Cell.Colors = [
     BABYLON.Color4.FromHexString("#0ABB07FF"),
-    BABYLON.Color4.FromHexString("#FF1900FF"),
-    BABYLON.Color4.FromHexString("#FFC800FF")
+    BABYLON.Color4.FromHexString("#FFC800FF"),
+    BABYLON.Color4.FromHexString("#FF1900FF")
 ];
 class CellNetwork {
     constructor() {
@@ -630,14 +630,14 @@ class CellNetwork {
         let updatedCells = new UniqueList();
         cell.neighbors.forEach((n) => {
             let surroundN = n.isSurrounded();
-            if (surroundN != -1 && surroundN != 2 && surroundN != n.value && !updatedCells.contains(n)) {
+            if (surroundN != -1 && surroundN != 1 && surroundN != n.value && !updatedCells.contains(n)) {
                 variances[n.value]--;
                 variances[surroundN]++;
                 updatedCells.push(n);
             }
             n.neighbors.forEach((nn) => {
                 let surroundNN = nn.isSurrounded();
-                if (surroundNN != -1 && surroundNN != 2 && surroundN != nn.value && !updatedCells.contains(nn)) {
+                if (surroundNN != -1 && surroundNN != 1 && surroundN != nn.value && !updatedCells.contains(nn)) {
                     variances[nn.value]--;
                     variances[surroundNN]++;
                     updatedCells.push(nn);
@@ -891,7 +891,7 @@ class CellNetworkDisplayed extends CellNetwork {
         for (let i = 0; i < this.cells.length; i++) {
             let c = this.cells[i];
             let surround = c.isSurrounded();
-            if (surround != -1 && surround != 2 && c.value != surround) {
+            if (surround != -1 && surround != 1 && c.value != surround) {
                 this.lock++;
                 c.morphValueTo(surround, () => {
                     this.lock--;
@@ -901,10 +901,6 @@ class CellNetworkDisplayed extends CellNetwork {
             }
         }
         if (callback) {
-            let p0BoardValue = this.getScore(0);
-            document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
-            let p1BoardValue = this.getScore(1);
-            document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
             callback();
         }
     }
@@ -1054,8 +1050,8 @@ class CellSelector {
                     this._tmp.subtractInPlace(this.selectedCell.barycenter);
                     let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
                     let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
-                    color = 0.2 + color * color;
-                    if (color > 0.3) {
+                    color = color * color;
+                    if (color > 0.1) {
                         color = 0.75;
                     }
                     else {
@@ -1072,8 +1068,8 @@ class CellSelector {
                     this._tmp.subtractInPlace(this.selectedCell.barycenter);
                     let a = Math2D.AngleFromTo(Math2D.AxisX, this._tmp);
                     let color = (Math.cos(a - Math.PI * 2 * this._t * 0.4) + 1) * 0.5;
-                    color = 0.2 + color * color;
-                    if (color > 0.3) {
+                    color = color * color;
+                    if (color > 0.1) {
                         color = 0.75;
                     }
                     else {
@@ -1276,12 +1272,31 @@ class Main {
             this.camera.orthoBottom = -40 / ratio;
         }
     }
+    xToLeft(x) {
+        return (x - this.camera.orthoLeft) / this.sceneWidth;
+    }
+    xToRight(x) {
+        return -(x - this.camera.orthoRight) / this.sceneWidth;
+    }
+    yToTop(y) {
+        return -(y - this.camera.orthoTop) / this.sceneHeight;
+    }
+    yToBottom(y) {
+        return (y - this.camera.orthoBottom) / this.sceneHeight;
+    }
+    get sceneWidth() {
+        return this.camera.orthoRight - this.camera.orthoLeft;
+    }
+    get sceneHeight() {
+        return this.camera.orthoTop - this.camera.orthoBottom;
+    }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 10, 0), this.scene);
         this.camera.rotation.x = Math.PI / 2;
         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         this.resize();
+        let light = new BABYLON.DirectionalLight("light", BABYLON.Vector3.Down(), this.scene);
         window.onresize = () => {
             this.resize();
         };
@@ -1295,10 +1310,6 @@ class Main {
         this.cellNetwork.generate(25, 400);
         this.cellNetwork.checkSurround(() => {
             scoreDisplay.update();
-            let p0BoardValue = this.cellNetwork.getScore(0);
-            document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
-            let p1BoardValue = this.cellNetwork.getScore(1);
-            document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
         });
         //this.cellNetwork.debugDrawBase();
         this.selected = new CellSelector(this.cellNetwork);
@@ -1373,15 +1384,11 @@ class Main {
                             if (playSolo) {
                                 return;
                             }
-                            let aiMove = ai.getMove2(1, aiDepth);
+                            let aiMove = ai.getMove2(2, aiDepth);
                             if (aiMove.cell) {
-                                this.cellNetwork.morphCell(1, aiMove.cell, aiMove.reverse, () => {
+                                this.cellNetwork.morphCell(2, aiMove.cell, aiMove.reverse, () => {
                                     this.cellNetwork.checkSurround(() => {
                                         scoreDisplay.update();
-                                        let p0BoardValue = this.cellNetwork.getScore(0);
-                                        document.getElementById("p0-score").innerText = "P0 Score " + p0BoardValue;
-                                        let p1BoardValue = this.cellNetwork.getScore(1);
-                                        document.getElementById("p1-score").innerText = "P1 Score " + p1BoardValue;
                                     });
                                 });
                             }
@@ -2125,11 +2132,22 @@ class Score {
         this.playerCount = playerCount;
         this.network = network;
         this.playerScoreMesh = [];
+        this.playerScoreText = [];
+        for (let i = 0; i < this.playerCount; i++) {
+            this.playerScoreText[i] = document.getElementById("score-p" + i);
+        }
+        this.playerScoreText[0].style.right = (this.network.main.xToRight(-49) * 100).toFixed(0) + "%";
+        this.playerScoreText[0].style.bottom = (this.network.main.yToBottom(-30) * 100).toFixed(0) + "%";
+        this.playerScoreText[0].style.color = Cell.Colors[0].toHexString().substring(0, 7);
+        this.playerScoreText[2].style.right = (this.network.main.xToRight(-49) * 100).toFixed(0) + "%";
+        this.playerScoreText[2].style.top = (this.network.main.yToTop(30) * 100).toFixed(0) + "%";
+        this.playerScoreText[2].style.color = Cell.Colors[2].toHexString().substring(0, 7);
     }
     update() {
         let scores = [];
         for (let i = 0; i < this.playerCount; i++) {
             scores[i] = this.network.cells.filter(c => { return c.value === i; }).length;
+            this.playerScoreText[i].innerText = scores[i].toFixed(0);
         }
         let scoreTotal = scores.reduce((s1, s2) => { return s1 + s2; });
         console.log(scores);
