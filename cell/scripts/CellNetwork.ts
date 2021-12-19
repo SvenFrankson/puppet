@@ -322,7 +322,7 @@ class CellNetworkDisplayed extends CellNetwork {
             if (v.isLocked()) {
                 v.value = - 1;
             }
-            v.updateShape();
+            v.morphFromZero();
         })
     }
 

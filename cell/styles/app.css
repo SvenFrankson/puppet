@@ -83,6 +83,31 @@ body {
   font-family: monospace;
 }
 
+h1 {
+  font-weight: 100;
+  border: 2px solid #FF1900;
+  text-align: center;
+  margin-left: 30%;
+  margin-right: 30%;
+}
+
+#main-menu {
+  position: fixed;
+  z-index: 1;
+  color: black;
+  font-size: 50px;
+  font-family: "Schoolwork";
+}
+
+.level-group {
+  margin-left: 5%;
+}
+
+.level {
+  margin-left: 10%;
+  text-decoration: underline 2px #004CFF;
+}
+
 .score-info {
   position: fixed;
   z-index: 1;

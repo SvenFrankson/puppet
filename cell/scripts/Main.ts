@@ -10,77 +10,17 @@ class Main {
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
 	public cellNetwork: CellNetworkDisplayed;
+	public mainMenuContainer: HTMLDivElement;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
+		this.mainMenuContainer = document.getElementById("main-menu") as HTMLDivElement;
         this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
 	}
 	
 	public async initialize(): Promise<void> {
 		await this.initializeScene();
-	}
-
-	public async loadMesh(modelName: string): Promise<BABYLON.Mesh> {
-		return new Promise<BABYLON.Mesh> (
-			resolve => {
-				BABYLON.SceneLoader.ImportMesh(
-					"",
-					"./assets/models/" + modelName + ".babylon",
-					"",
-					this.scene,
-					(meshes) => {
-						let mesh = meshes[0];
-						if (mesh instanceof BABYLON.Mesh) {
-							mesh.position.copyFromFloats(0, - 10, 0);
-							let mat = mesh.material;
-							if (mat instanceof BABYLON.StandardMaterial) {
-								mat.specularColor.copyFromFloats(0, 0, 0);
-							}
-							else if (mat instanceof BABYLON.MultiMaterial) {
-								mat.subMaterials.forEach(sm => {
-									if (sm instanceof BABYLON.StandardMaterial) {
-										sm.specularColor.copyFromFloats(0, 0, 0);
-									}
-								})
-							}
-							resolve(mesh);
-						}
-					}
-				)
-			}
-		);
-	}
-
-	public async loadMeshes(modelName: string, hide: boolean = true): Promise<BABYLON.Mesh[]> {
-		return new Promise<BABYLON.Mesh[]> (
-			resolve => {
-				BABYLON.SceneLoader.ImportMesh(
-					"",
-					"./assets/models/" + modelName + ".babylon",
-					"",
-					this.scene,
-					(meshes) => {
-						if (hide) {
-							meshes.forEach(m => {
-								m.position.copyFromFloats(0, - 10, 0);
-								let mat = m.material;
-								if (mat instanceof BABYLON.StandardMaterial) {
-									mat.specularColor.copyFromFloats(0, 0, 0);
-								}
-								else if (mat instanceof BABYLON.MultiMaterial) {
-									mat.subMaterials.forEach(sm => {
-										if (sm instanceof BABYLON.StandardMaterial) {
-											sm.specularColor.copyFromFloats(0, 0, 0);
-										}
-									})
-								}
-							});
-						}
-						resolve(meshes as BABYLON.Mesh[]);
-					}
-				)
-			}
-		);
+		this.initializeMainMenu();
 	}
 
 	public resize(): void {
@@ -97,6 +37,23 @@ class Main {
 			this.camera.orthoLeft = - 40;
 			this.camera.orthoBottom = - 40 / ratio;
 		}
+		this.centerMainMenu();
+	}
+
+	public centerMainMenu(): void {
+		let w = Math.max(this.canvas.clientWidth * 0.5, 600);
+		let left = (this.canvas.clientWidth - w) * 0.5;
+
+		this.mainMenuContainer.style.width = w.toFixed(0) + "px";
+		this.mainMenuContainer.style.left = left.toFixed(0) + "px";
+	}
+
+	public showMainMenu(): void {
+		this.mainMenuContainer.style.display = "block";
+	}
+
+	public hideMainMenu(): void {
+		this.mainMenuContainer.style.display = "none";
 	}
 
 	public xToLeft(x: number): number {
@@ -131,7 +88,7 @@ class Main {
 		this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 		this.resize();
 
-		let light = new BABYLON.DirectionalLight("light", BABYLON.Vector3.Down(), this.scene);
+		new BABYLON.DirectionalLight("light", BABYLON.Vector3.Down(), this.scene);
 
 		window.onresize = () => {
 			this.resize();
@@ -139,77 +96,16 @@ class Main {
 
 		BABYLON.Engine.ShadersRepository = "./shaders/";
         
-		this.scene.clearColor = BABYLON.Color4.FromHexString("#046865FF");
-		this.scene.clearColor = new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1);
-		this.scene.clearColor = BABYLON.Color4.FromHexString("#FFFFFFFF");
 		this.scene.clearColor = BABYLON.Color4.FromHexString("#00000000");
 
 		this.cellNetwork = new CellNetworkDisplayed(this);
-		let scoreDisplay = new Score(3, this.cellNetwork);
-		this.cellNetwork.generate(25, 400);
-		this.cellNetwork.checkSurround(
-			() => {
-				scoreDisplay.update();
-			}
-		);
-		//this.cellNetwork.debugDrawBase();
-
 		this.selected = new CellSelector(this.cellNetwork);
-
-		let ai = new AI(1, this.cellNetwork);
-		let testAI = new AI(0, this.cellNetwork);
 
 		let pickPlane = BABYLON.MeshBuilder.CreateGround("pick-plane", { width: 50, height: 50 }, this.scene);
 		pickPlane.isVisible = false;
 
-		let A = new BABYLON.Vector3(2, 0, 1);
-		let B = new BABYLON.Vector3(6, 0, 3);
-		let C = new BABYLON.Vector3(2, 0, 3.5);
-		let D = new BABYLON.Vector3(6.25, 0, 0);
-
-		let aiDepth = 1;
-
-
 		/*
-		let move = () => {
-			//this.scene.clearColor = Cell.Colors[0].scale(0.5);
-			//this.scene.clearColor.a = 1;
-			setTimeout(() => {
-				let aiTestMove = testAI.getMove2(0, 1);
-				if (aiTestMove.cell) {
-					cellNetwork.morphCell(
-						0,
-						aiTestMove.cell,
-						aiTestMove.reverse,
-						() => {
-							cellNetwork.checkSurround(
-								() => {
-									//this.scene.clearColor = Cell.Colors[1].scale(0.5);
-									//this.scene.clearColor.a = 1;
-									setTimeout(() => {
-										let aiMove = ai.getMove2(1, 1);
-										if (aiMove.cell) {
-											cellNetwork.morphCell(
-												1,
-												aiMove.cell,
-												aiMove.reverse,
-												() => {
-													cellNetwork.checkSurround(move);
-												}
-											);
-										}
-									}, 200)
-								}
-							);
-						}
-					);
-				}
-			}, 200);
-			
-		}
-		setTimeout(move, 3000);
-		return;
-		*/
+		let aiDepth = 1;
 
 		let playSolo = false;
 		this.scene.onPointerObservable.add((eventData: BABYLON.PointerInfo) => {
@@ -260,6 +156,64 @@ class Main {
 				}
 			}
 		})
+		*/
+	}
+
+	public initializeMainMenu(): void {
+		document.getElementById("level-random-ai-vs-ai").addEventListener("pointerup", () => {
+			this.generateRandomLevel();
+		})
+	}
+
+	public generateLevel(): void {
+		this.hideMainMenu();
+	}
+
+	public generateRandomLevel(): void {
+		this.generateLevel();
+		let scoreDisplay = new Score(3, this.cellNetwork);
+		this.cellNetwork.generate(25, 400);
+		this.cellNetwork.checkSurround(
+			() => {
+				scoreDisplay.update();
+			}
+		);
+
+		let ai = new AI(1, this.cellNetwork);
+		let testAI = new AI(0, this.cellNetwork);
+		let move = () => {
+			setTimeout(() => {
+				let aiTestMove = testAI.getMove2(0, 1);
+				if (aiTestMove.cell) {
+					this.cellNetwork.morphCell(
+						0,
+						aiTestMove.cell,
+						aiTestMove.reverse,
+						() => {
+							this.cellNetwork.checkSurround(
+								() => {
+									setTimeout(() => {
+										let aiMove = ai.getMove2(2, 1);
+										if (aiMove.cell) {
+											this.cellNetwork.morphCell(
+												2,
+												aiMove.cell,
+												aiMove.reverse,
+												() => {
+													this.cellNetwork.checkSurround(move);
+												}
+											);
+										}
+									}, 200)
+								}
+							);
+						}
+					);
+				}
+			}, 200);
+			
+		}
+		setTimeout(move, 3000);
 	}
 
 	public selected: CellSelector;
@@ -335,7 +289,7 @@ window.addEventListener("load", async () => {
 
 	document.getElementById("cell-network-info").style.display = "none";
 	document.getElementById("meshes-info").style.display = "none";
-	document.getElementById("debug-info").style.display = "none";
+	//document.getElementById("debug-info").style.display = "none";
 
 	let debugColorP0 = document.getElementById("debug-p0-color") as HTMLInputElement;
 	debugColorP0.addEventListener("input", (e) => {

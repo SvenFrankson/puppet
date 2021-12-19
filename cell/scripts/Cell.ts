@@ -356,6 +356,72 @@ class Cell {
         }
         morphValueStep();
     }
+
+    public morphFromZero(callback?: () => void): void {
+        let n = 0;
+        let duration = 40;
+        let morphValueStep = () => {
+            n++;
+            let tmpPoints = this.points.map(p => { return p.clone()});
+            let center = BABYLON.Vector2.Zero();
+            for (let i = 0; i < tmpPoints.length; i++) {
+                center.addInPlace(tmpPoints[i]);
+            }
+            center.scaleInPlace(1 / tmpPoints.length);
+            
+            //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
+            let st = VMath.easeOutQuart(n / duration);
+            st = 0.1 + 0.9 * st;
+            center.scaleInPlace(1 - st);
+            for (let i = 0; i < tmpPoints.length; i++) {
+                tmpPoints[i].scaleInPlace(st).addInPlace(center);
+            }
+
+            this.updateShape(tmpPoints);
+            if (n < duration) {
+                requestAnimationFrame(morphValueStep);
+            }
+            else {
+                if (callback) {
+                    callback();
+                }
+            }
+        }
+        morphValueStep();
+    }
+
+    public morphToZero(callback?: () => void): void {
+        let n = 0;
+        let duration = 40;
+        let morphValueStep = () => {
+            n++;
+            let tmpPoints = this.points.map(p => { return p.clone()});
+            let center = BABYLON.Vector2.Zero();
+            for (let i = 0; i < tmpPoints.length; i++) {
+                center.addInPlace(tmpPoints[i]);
+            }
+            center.scaleInPlace(1 / tmpPoints.length);
+            
+            //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
+            let st = 1 - VMath.easeOutQuart(n / duration);
+            st = 0.1 + 0.9 * st;
+            center.scaleInPlace(1 - st);
+            for (let i = 0; i < tmpPoints.length; i++) {
+                tmpPoints[i].scaleInPlace(st).addInPlace(center);
+            }
+
+            this.updateShape(tmpPoints);
+            if (n < duration) {
+                requestAnimationFrame(morphValueStep);
+            }
+            else {
+                if (callback) {
+                    callback();
+                }
+            }
+        }
+        morphValueStep();
+    }
 }
 
 Cell.Colors = [

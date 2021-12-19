@@ -499,6 +499,66 @@ class Cell {
         };
         morphValueStep();
     }
+    morphFromZero(callback) {
+        let n = 0;
+        let duration = 40;
+        let morphValueStep = () => {
+            n++;
+            let tmpPoints = this.points.map(p => { return p.clone(); });
+            let center = BABYLON.Vector2.Zero();
+            for (let i = 0; i < tmpPoints.length; i++) {
+                center.addInPlace(tmpPoints[i]);
+            }
+            center.scaleInPlace(1 / tmpPoints.length);
+            //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
+            let st = VMath.easeOutQuart(n / duration);
+            st = 0.1 + 0.9 * st;
+            center.scaleInPlace(1 - st);
+            for (let i = 0; i < tmpPoints.length; i++) {
+                tmpPoints[i].scaleInPlace(st).addInPlace(center);
+            }
+            this.updateShape(tmpPoints);
+            if (n < duration) {
+                requestAnimationFrame(morphValueStep);
+            }
+            else {
+                if (callback) {
+                    callback();
+                }
+            }
+        };
+        morphValueStep();
+    }
+    morphToZero(callback) {
+        let n = 0;
+        let duration = 40;
+        let morphValueStep = () => {
+            n++;
+            let tmpPoints = this.points.map(p => { return p.clone(); });
+            let center = BABYLON.Vector2.Zero();
+            for (let i = 0; i < tmpPoints.length; i++) {
+                center.addInPlace(tmpPoints[i]);
+            }
+            center.scaleInPlace(1 / tmpPoints.length);
+            //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
+            let st = 1 - VMath.easeOutQuart(n / duration);
+            st = 0.1 + 0.9 * st;
+            center.scaleInPlace(1 - st);
+            for (let i = 0; i < tmpPoints.length; i++) {
+                tmpPoints[i].scaleInPlace(st).addInPlace(center);
+            }
+            this.updateShape(tmpPoints);
+            if (n < duration) {
+                requestAnimationFrame(morphValueStep);
+            }
+            else {
+                if (callback) {
+                    callback();
+                }
+            }
+        };
+        morphValueStep();
+    }
 }
 Cell.Colors = [
     BABYLON.Color4.FromHexString("#8AC33CFF"),
@@ -821,7 +881,7 @@ class CellNetworkDisplayed extends CellNetwork {
             if (v.isLocked()) {
                 v.value = -1;
             }
-            v.updateShape();
+            v.morphFromZero();
         });
     }
     triangulate() {
@@ -1207,55 +1267,12 @@ var COS30 = Math.cos(Math.PI / 6);
 class Main {
     constructor(canvasElement) {
         this.canvas = document.getElementById(canvasElement);
+        this.mainMenuContainer = document.getElementById("main-menu");
         this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
     }
     async initialize() {
         await this.initializeScene();
-    }
-    async loadMesh(modelName) {
-        return new Promise(resolve => {
-            BABYLON.SceneLoader.ImportMesh("", "./assets/models/" + modelName + ".babylon", "", this.scene, (meshes) => {
-                let mesh = meshes[0];
-                if (mesh instanceof BABYLON.Mesh) {
-                    mesh.position.copyFromFloats(0, -10, 0);
-                    let mat = mesh.material;
-                    if (mat instanceof BABYLON.StandardMaterial) {
-                        mat.specularColor.copyFromFloats(0, 0, 0);
-                    }
-                    else if (mat instanceof BABYLON.MultiMaterial) {
-                        mat.subMaterials.forEach(sm => {
-                            if (sm instanceof BABYLON.StandardMaterial) {
-                                sm.specularColor.copyFromFloats(0, 0, 0);
-                            }
-                        });
-                    }
-                    resolve(mesh);
-                }
-            });
-        });
-    }
-    async loadMeshes(modelName, hide = true) {
-        return new Promise(resolve => {
-            BABYLON.SceneLoader.ImportMesh("", "./assets/models/" + modelName + ".babylon", "", this.scene, (meshes) => {
-                if (hide) {
-                    meshes.forEach(m => {
-                        m.position.copyFromFloats(0, -10, 0);
-                        let mat = m.material;
-                        if (mat instanceof BABYLON.StandardMaterial) {
-                            mat.specularColor.copyFromFloats(0, 0, 0);
-                        }
-                        else if (mat instanceof BABYLON.MultiMaterial) {
-                            mat.subMaterials.forEach(sm => {
-                                if (sm instanceof BABYLON.StandardMaterial) {
-                                    sm.specularColor.copyFromFloats(0, 0, 0);
-                                }
-                            });
-                        }
-                    });
-                }
-                resolve(meshes);
-            });
-        });
+        this.initializeMainMenu();
     }
     resize() {
         let ratio = this.canvas.clientWidth / this.canvas.clientHeight;
@@ -1271,6 +1288,19 @@ class Main {
             this.camera.orthoLeft = -40;
             this.camera.orthoBottom = -40 / ratio;
         }
+        this.centerMainMenu();
+    }
+    centerMainMenu() {
+        let w = Math.max(this.canvas.clientWidth * 0.5, 600);
+        let left = (this.canvas.clientWidth - w) * 0.5;
+        this.mainMenuContainer.style.width = w.toFixed(0) + "px";
+        this.mainMenuContainer.style.left = left.toFixed(0) + "px";
+    }
+    showMainMenu() {
+        this.mainMenuContainer.style.display = "block";
+    }
+    hideMainMenu() {
+        this.mainMenuContainer.style.display = "none";
     }
     xToLeft(x) {
         return (x - this.camera.orthoLeft) / this.sceneWidth;
@@ -1296,74 +1326,21 @@ class Main {
         this.camera.rotation.x = Math.PI / 2;
         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         this.resize();
-        let light = new BABYLON.DirectionalLight("light", BABYLON.Vector3.Down(), this.scene);
+        new BABYLON.DirectionalLight("light", BABYLON.Vector3.Down(), this.scene);
         window.onresize = () => {
             this.resize();
         };
         BABYLON.Engine.ShadersRepository = "./shaders/";
-        this.scene.clearColor = BABYLON.Color4.FromHexString("#046865FF");
-        this.scene.clearColor = new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1);
-        this.scene.clearColor = BABYLON.Color4.FromHexString("#FFFFFFFF");
         this.scene.clearColor = BABYLON.Color4.FromHexString("#00000000");
         this.cellNetwork = new CellNetworkDisplayed(this);
-        let scoreDisplay = new Score(3, this.cellNetwork);
-        this.cellNetwork.generate(25, 400);
-        this.cellNetwork.checkSurround(() => {
-            scoreDisplay.update();
-        });
-        //this.cellNetwork.debugDrawBase();
         this.selected = new CellSelector(this.cellNetwork);
-        let ai = new AI(1, this.cellNetwork);
-        let testAI = new AI(0, this.cellNetwork);
         let pickPlane = BABYLON.MeshBuilder.CreateGround("pick-plane", { width: 50, height: 50 }, this.scene);
         pickPlane.isVisible = false;
-        let A = new BABYLON.Vector3(2, 0, 1);
-        let B = new BABYLON.Vector3(6, 0, 3);
-        let C = new BABYLON.Vector3(2, 0, 3.5);
-        let D = new BABYLON.Vector3(6.25, 0, 0);
-        let aiDepth = 1;
         /*
-        let move = () => {
-            //this.scene.clearColor = Cell.Colors[0].scale(0.5);
-            //this.scene.clearColor.a = 1;
-            setTimeout(() => {
-                let aiTestMove = testAI.getMove2(0, 1);
-                if (aiTestMove.cell) {
-                    cellNetwork.morphCell(
-                        0,
-                        aiTestMove.cell,
-                        aiTestMove.reverse,
-                        () => {
-                            cellNetwork.checkSurround(
-                                () => {
-                                    //this.scene.clearColor = Cell.Colors[1].scale(0.5);
-                                    //this.scene.clearColor.a = 1;
-                                    setTimeout(() => {
-                                        let aiMove = ai.getMove2(1, 1);
-                                        if (aiMove.cell) {
-                                            cellNetwork.morphCell(
-                                                1,
-                                                aiMove.cell,
-                                                aiMove.reverse,
-                                                () => {
-                                                    cellNetwork.checkSurround(move);
-                                                }
-                                            );
-                                        }
-                                    }, 200)
-                                }
-                            );
-                        }
-                    );
-                }
-            }, 200);
-            
-        }
-        setTimeout(move, 3000);
-        return;
-        */
+        let aiDepth = 1;
+
         let playSolo = false;
-        this.scene.onPointerObservable.add((eventData) => {
+        this.scene.onPointerObservable.add((eventData: BABYLON.PointerInfo) => {
             let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, (m) => { return m === pickPlane; });
             if (pick && pick.pickedPoint) {
                 let cell = this.cellNetwork.worldPosToCell(pick.pickedPoint);
@@ -1378,25 +1355,78 @@ class Main {
             this.selected.reverse = reverse;
             if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
                 if (this.pickedCell) {
-                    this.cellNetwork.morphCell(0, this.pickedCell, reverse, () => {
+                    this.cellNetwork.morphCell(
+                        0,
+                        this.pickedCell,
+                        reverse,
+                        () => {
+                            this.cellNetwork.checkSurround(
+                                () => {
+                                    scoreDisplay.update();
+                                    if (playSolo) {
+                                        return;
+                                    }
+                                    let aiMove = ai.getMove2(2, aiDepth);
+                                    if (aiMove.cell) {
+                                        this.cellNetwork.morphCell(
+                                            2,
+                                            aiMove.cell,
+                                            aiMove.reverse,
+                                            () => {
+                                                this.cellNetwork.checkSurround(
+                                                    () => {
+                                                        scoreDisplay.update();
+                                                    }
+                                                );
+                                            }
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                }
+            }
+        })
+        */
+    }
+    initializeMainMenu() {
+        document.getElementById("level-random-ai-vs-ai").addEventListener("pointerup", () => {
+            this.generateRandomLevel();
+        });
+    }
+    generateLevel() {
+        this.hideMainMenu();
+    }
+    generateRandomLevel() {
+        this.generateLevel();
+        let scoreDisplay = new Score(3, this.cellNetwork);
+        this.cellNetwork.generate(25, 400);
+        this.cellNetwork.checkSurround(() => {
+            scoreDisplay.update();
+        });
+        let ai = new AI(1, this.cellNetwork);
+        let testAI = new AI(0, this.cellNetwork);
+        let move = () => {
+            setTimeout(() => {
+                let aiTestMove = testAI.getMove2(0, 1);
+                if (aiTestMove.cell) {
+                    this.cellNetwork.morphCell(0, aiTestMove.cell, aiTestMove.reverse, () => {
                         this.cellNetwork.checkSurround(() => {
-                            scoreDisplay.update();
-                            if (playSolo) {
-                                return;
-                            }
-                            let aiMove = ai.getMove2(2, aiDepth);
-                            if (aiMove.cell) {
-                                this.cellNetwork.morphCell(2, aiMove.cell, aiMove.reverse, () => {
-                                    this.cellNetwork.checkSurround(() => {
-                                        scoreDisplay.update();
+                            setTimeout(() => {
+                                let aiMove = ai.getMove2(2, 1);
+                                if (aiMove.cell) {
+                                    this.cellNetwork.morphCell(2, aiMove.cell, aiMove.reverse, () => {
+                                        this.cellNetwork.checkSurround(move);
                                     });
-                                });
-                            }
+                                }
+                            }, 200);
                         });
                     });
                 }
-            }
-        });
+            }, 200);
+        };
+        setTimeout(move, 3000);
     }
     setPickedCell(cell) {
         if (cell === this.pickedCell) {
@@ -1465,7 +1495,7 @@ window.addEventListener("load", async () => {
     main.animate();
     document.getElementById("cell-network-info").style.display = "none";
     document.getElementById("meshes-info").style.display = "none";
-    document.getElementById("debug-info").style.display = "none";
+    //document.getElementById("debug-info").style.display = "none";
     let debugColorP0 = document.getElementById("debug-p0-color");
     debugColorP0.addEventListener("input", (e) => {
         Cell.Colors[0] = BABYLON.Color4.FromHexString(e.currentTarget.value + "FF");
