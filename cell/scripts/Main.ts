@@ -11,6 +11,7 @@ class Main {
     public scene: BABYLON.Scene;
 	public cellNetwork: CellNetworkDisplayed;
 	public mainMenuContainer: HTMLDivElement;
+	public currentLevel: Level;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -161,59 +162,9 @@ class Main {
 
 	public initializeMainMenu(): void {
 		document.getElementById("level-random-ai-vs-ai").addEventListener("pointerup", () => {
-			this.generateRandomLevel();
+			this.currentLevel = new LevelRandomAIVsAI(this);
+			this.currentLevel.initialize();
 		})
-	}
-
-	public generateLevel(): void {
-		this.hideMainMenu();
-	}
-
-	public generateRandomLevel(): void {
-		this.generateLevel();
-		let scoreDisplay = new Score(3, this.cellNetwork);
-		this.cellNetwork.generate(25, 400);
-		this.cellNetwork.checkSurround(
-			() => {
-				scoreDisplay.update();
-			}
-		);
-
-		let ai = new AI(1, this.cellNetwork);
-		let testAI = new AI(0, this.cellNetwork);
-		let move = () => {
-			setTimeout(() => {
-				let aiTestMove = testAI.getMove2(0, 1);
-				if (aiTestMove.cell) {
-					this.cellNetwork.morphCell(
-						0,
-						aiTestMove.cell,
-						aiTestMove.reverse,
-						() => {
-							this.cellNetwork.checkSurround(
-								() => {
-									setTimeout(() => {
-										let aiMove = ai.getMove2(2, 1);
-										if (aiMove.cell) {
-											this.cellNetwork.morphCell(
-												2,
-												aiMove.cell,
-												aiMove.reverse,
-												() => {
-													this.cellNetwork.checkSurround(move);
-												}
-											);
-										}
-									}, 200)
-								}
-							);
-						}
-					);
-				}
-			}, 200);
-			
-		}
-		setTimeout(move, 3000);
 	}
 
 	public selected: CellSelector;

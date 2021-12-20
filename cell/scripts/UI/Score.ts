@@ -3,17 +3,26 @@ class Score {
     public playerScoreMesh: BABYLON.Mesh[] = [];
     public playerScoreText: HTMLDivElement[] = [];
 
-    constructor(public playerCount: number = 2, public network: CellNetworkDisplayed) {
+    constructor(
+        public playerCount: number = 2,
+        public network: CellNetworkDisplayed
+    ) {
         for (let i = 0; i < this.playerCount; i++) {
             this.playerScoreText[i] = document.getElementById("score-p" + i) as HTMLDivElement;
         }
         this.playerScoreText[0].style.right = (this.network.main.xToRight(- 49) * 100).toFixed(0) + "%";
         this.playerScoreText[0].style.bottom = (this.network.main.yToBottom(- 30) * 100).toFixed(0) + "%";
         this.playerScoreText[0].style.color = Cell.Colors[0].toHexString().substring(0, 7);
+        this.playerScoreText[0].style.display = "block";
+
+        for (let i = 1; i < this.playerCount - 1; i++) {
+            this.playerScoreText[i].style.display = "none";
+        }
         
-        this.playerScoreText[2].style.right = (this.network.main.xToRight(- 49) * 100).toFixed(0) + "%";
-        this.playerScoreText[2].style.top = (this.network.main.yToTop(30) * 100).toFixed(0) + "%";
-        this.playerScoreText[2].style.color = Cell.Colors[2].toHexString().substring(0, 7);
+        this.playerScoreText[this.playerCount - 1].style.right = (this.network.main.xToRight(- 49) * 100).toFixed(0) + "%";
+        this.playerScoreText[this.playerCount - 1].style.top = (this.network.main.yToTop(30) * 100).toFixed(0) + "%";
+        this.playerScoreText[this.playerCount - 1].style.color = Cell.Colors[this.playerCount - 1].toHexString().substring(0, 7);
+        this.playerScoreText[this.playerCount - 1].style.display = "block";
     }
 
     public update(): void {
@@ -24,22 +33,21 @@ class Score {
             this.playerScoreText[i].innerText = scores[i].toFixed(0);
         }
         let scoreTotal = scores.reduce((s1, s2) => { return s1 + s2; });
-        console.log(scores);
-        console.log(scoreTotal);
         
         for (let p = 0; p < this.playerCount; p++) {
-            if (!this.playerScoreMesh[p]) {
+            if (scores[p] < 2) {
+                if (this.playerScoreMesh[p]) {
+                    this.playerScoreMesh[p].dispose();
+                    continue;
+                }
+            }
+
+            if (!this.playerScoreMesh[p] || this.playerScoreMesh[p].isDisposed()) {
                 this.playerScoreMesh[p] = new BABYLON.Mesh("shape");
                 this.playerScoreMesh[p].position.x = - 45;
                 this.playerScoreMesh[p].position.z = - 30;
-                /*
-                let material = new BABYLON.StandardMaterial("shape-material", this.network.main.scene);
-                material.diffuseColor.copyFromFloats(1, 1, 1);
-                material.specularColor.copyFromFloats(0, 0, 0);
-                this.playerScoreMesh[i].material = material;
-                */
-               let material = new ToonMaterial("shape-material", false, this.network.main.scene);
-               this.playerScoreMesh[p].material = material;
+                let material = new ToonMaterial("shape-material", false, this.network.main.scene);
+                this.playerScoreMesh[p].material = material;
             }
 
             let yMin = 0;
@@ -115,6 +123,17 @@ class Score {
             data.indices = indices;
             data.colors = colors;
             data.applyToMesh(this.playerScoreMesh[p]);
+        }
+    }
+
+    public dispose(): void {
+        for (let p = 0; p < this.playerCount; p++) {
+            if (this.playerScoreMesh[p]) {
+                this.playerScoreMesh[p].dispose();
+            }
+            if (this.playerScoreText[p]) {
+                this.playerScoreText[p].style.display = "none";
+            }
         }
     }
 }

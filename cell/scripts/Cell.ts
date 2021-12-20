@@ -284,12 +284,13 @@ class Cell {
         Cell.addPointsToLength(otherPoints, thisPoints.length);
 
         this.updateShape(thisPoints);
-        let n = 0;
-        let duration = 60;
+        let t = 0;
+        let duration = 100;
         let morphStep = () => {
-            n++;
+            t += this.network.main.engine.getDeltaTime();
+            t = Math.min(t, duration);
             let tmpPoints: BABYLON.Vector2[] = [];
-            let dt = VMath.easeOutQuart(n / duration);
+            let dt = VMath.easeOutQuart(t / duration);
             for (let i = 0; i < otherPoints.length; i++) {
                 tmpPoints[i] = thisPoints[i].scale(1 - dt).add(otherPoints[i].scale(dt));
             }
@@ -300,7 +301,7 @@ class Cell {
             center.scaleInPlace(1 / tmpPoints.length);
             
             //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
-            let st = VMath.easeOutQuart(n / duration);
+            let st = VMath.easeOutQuart(t / duration);
             st = (st - 0.5) * (st - 0.5) * 4;
             st = 0.8 * (1 - st) + st;
             center.scaleInPlace(1 - st);
@@ -309,7 +310,7 @@ class Cell {
             }
 
             this.updateShape(tmpPoints);
-            if (n < duration) {
+            if (t < duration) {
                 requestAnimationFrame(morphStep);
             }
             else {
@@ -322,10 +323,11 @@ class Cell {
     }
 
     public morphValueTo(newValue: number, callback?: () => void): void {
-        let n = 0;
-        let duration = 40;
+        let t = 0;
+        let duration = 100;
         let morphValueStep = () => {
-            n++;
+            t += this.network.main.engine.getDeltaTime();
+            t = Math.min(t, duration);
             let tmpPoints = this.points.map(p => { return p.clone()});
             let center = BABYLON.Vector2.Zero();
             for (let i = 0; i < tmpPoints.length; i++) {
@@ -334,18 +336,18 @@ class Cell {
             center.scaleInPlace(1 / tmpPoints.length);
             
             //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
-            let st = VMath.easeOutQuart(n / duration);
+            let st = VMath.easeOutQuart(t / duration);
             st = ((st - 0.5) * (st - 0.5) * 4) * 0.9 + 0.1;
             center.scaleInPlace(1 - st);
             for (let i = 0; i < tmpPoints.length; i++) {
                 tmpPoints[i].scaleInPlace(st).addInPlace(center);
             }
 
-            if (n > duration * 0.5) {
+            if (t > duration * 0.5) {
                 this.value = newValue;
             }
             this.updateShape(tmpPoints);
-            if (n < duration) {
+            if (t < duration) {
                 requestAnimationFrame(morphValueStep);
             }
             else {

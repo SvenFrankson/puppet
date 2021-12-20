@@ -326,6 +326,14 @@ class CellNetworkDisplayed extends CellNetwork {
         })
     }
 
+    public dispose(): void {
+        this.cells.forEach(c => {
+            c.dispose();
+        })
+        this.cells = [];
+        this.cellTriangles = [];
+    }
+
     public triangulate(): void {
 
         this.cells.forEach(v => {

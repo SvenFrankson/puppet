@@ -432,12 +432,13 @@ class Cell {
         Cell.addPointsToLength(thisPoints, otherPoints.length);
         Cell.addPointsToLength(otherPoints, thisPoints.length);
         this.updateShape(thisPoints);
-        let n = 0;
-        let duration = 60;
+        let t = 0;
+        let duration = 100;
         let morphStep = () => {
-            n++;
+            t += this.network.main.engine.getDeltaTime();
+            t = Math.min(t, duration);
             let tmpPoints = [];
-            let dt = VMath.easeOutQuart(n / duration);
+            let dt = VMath.easeOutQuart(t / duration);
             for (let i = 0; i < otherPoints.length; i++) {
                 tmpPoints[i] = thisPoints[i].scale(1 - dt).add(otherPoints[i].scale(dt));
             }
@@ -447,7 +448,7 @@ class Cell {
             }
             center.scaleInPlace(1 / tmpPoints.length);
             //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
-            let st = VMath.easeOutQuart(n / duration);
+            let st = VMath.easeOutQuart(t / duration);
             st = (st - 0.5) * (st - 0.5) * 4;
             st = 0.8 * (1 - st) + st;
             center.scaleInPlace(1 - st);
@@ -455,7 +456,7 @@ class Cell {
                 tmpPoints[i].scaleInPlace(st).addInPlace(center);
             }
             this.updateShape(tmpPoints);
-            if (n < duration) {
+            if (t < duration) {
                 requestAnimationFrame(morphStep);
             }
             else {
@@ -467,10 +468,11 @@ class Cell {
         morphStep();
     }
     morphValueTo(newValue, callback) {
-        let n = 0;
-        let duration = 40;
+        let t = 0;
+        let duration = 100;
         let morphValueStep = () => {
-            n++;
+            t += this.network.main.engine.getDeltaTime();
+            t = Math.min(t, duration);
             let tmpPoints = this.points.map(p => { return p.clone(); });
             let center = BABYLON.Vector2.Zero();
             for (let i = 0; i < tmpPoints.length; i++) {
@@ -478,17 +480,17 @@ class Cell {
             }
             center.scaleInPlace(1 / tmpPoints.length);
             //let st = (n - duration * 0.5) * (n - duration * 0.5) / (duration * 0.5 * duration * 0.5);
-            let st = VMath.easeOutQuart(n / duration);
+            let st = VMath.easeOutQuart(t / duration);
             st = ((st - 0.5) * (st - 0.5) * 4) * 0.9 + 0.1;
             center.scaleInPlace(1 - st);
             for (let i = 0; i < tmpPoints.length; i++) {
                 tmpPoints[i].scaleInPlace(st).addInPlace(center);
             }
-            if (n > duration * 0.5) {
+            if (t > duration * 0.5) {
                 this.value = newValue;
             }
             this.updateShape(tmpPoints);
-            if (n < duration) {
+            if (t < duration) {
                 requestAnimationFrame(morphValueStep);
             }
             else {
@@ -883,6 +885,13 @@ class CellNetworkDisplayed extends CellNetwork {
             }
             v.morphFromZero();
         });
+    }
+    dispose() {
+        this.cells.forEach(c => {
+            c.dispose();
+        });
+        this.cells = [];
+        this.cellTriangles = [];
     }
     triangulate() {
         this.cells.forEach(v => {
@@ -1392,41 +1401,9 @@ class Main {
     }
     initializeMainMenu() {
         document.getElementById("level-random-ai-vs-ai").addEventListener("pointerup", () => {
-            this.generateRandomLevel();
+            this.currentLevel = new LevelRandomAIVsAI(this);
+            this.currentLevel.initialize();
         });
-    }
-    generateLevel() {
-        this.hideMainMenu();
-    }
-    generateRandomLevel() {
-        this.generateLevel();
-        let scoreDisplay = new Score(3, this.cellNetwork);
-        this.cellNetwork.generate(25, 400);
-        this.cellNetwork.checkSurround(() => {
-            scoreDisplay.update();
-        });
-        let ai = new AI(1, this.cellNetwork);
-        let testAI = new AI(0, this.cellNetwork);
-        let move = () => {
-            setTimeout(() => {
-                let aiTestMove = testAI.getMove2(0, 1);
-                if (aiTestMove.cell) {
-                    this.cellNetwork.morphCell(0, aiTestMove.cell, aiTestMove.reverse, () => {
-                        this.cellNetwork.checkSurround(() => {
-                            setTimeout(() => {
-                                let aiMove = ai.getMove2(2, 1);
-                                if (aiMove.cell) {
-                                    this.cellNetwork.morphCell(2, aiMove.cell, aiMove.reverse, () => {
-                                        this.cellNetwork.checkSurround(move);
-                                    });
-                                }
-                            }, 200);
-                        });
-                    });
-                }
-            }, 200);
-        };
-        setTimeout(move, 3000);
     }
     setPickedCell(cell) {
         if (cell === this.pickedCell) {
@@ -2109,6 +2086,73 @@ class VMath {
         }
     }
 }
+class Level {
+    constructor(main) {
+        this.main = main;
+        this._update = () => {
+            this.update();
+        };
+    }
+    initialize() {
+        this.main.hideMainMenu();
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    update() {
+    }
+    dispose() {
+        this.main.showMainMenu();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.main.cellNetwork.dispose();
+    }
+}
+class LevelRandomAIVsAI extends Level {
+    initialize() {
+        super.initialize();
+        this.scoreDisplay = new Score(3, this.main.cellNetwork);
+        this.main.cellNetwork.generate(25, 300);
+        this.main.cellNetwork.checkSurround(() => {
+            this.scoreDisplay.update();
+        });
+        let aiPlayer0 = new AI(0, this.main.cellNetwork);
+        let aiPlayer1 = new AI(1, this.main.cellNetwork);
+        let step = async () => {
+            this.scoreDisplay.update();
+            await AsyncUtils.timeOut(50);
+            let aiTestMove = aiPlayer0.getMove2(0, 1);
+            if (aiTestMove.cell) {
+                this.main.cellNetwork.morphCell(0, aiTestMove.cell, aiTestMove.reverse, () => {
+                    this.main.cellNetwork.checkSurround(async () => {
+                        this.scoreDisplay.update();
+                        await AsyncUtils.timeOut(50);
+                        let aiMove = aiPlayer1.getMove2(2, 1);
+                        if (aiMove.cell) {
+                            this.main.cellNetwork.morphCell(2, aiMove.cell, aiMove.reverse, () => {
+                                this.main.cellNetwork.checkSurround(step);
+                            });
+                        }
+                        else {
+                            await AsyncUtils.timeOut(1000);
+                            this.dispose();
+                        }
+                    });
+                });
+            }
+            else {
+                await AsyncUtils.timeOut(1000);
+                this.dispose();
+            }
+        };
+        setTimeout(step, 1000);
+    }
+    update() {
+    }
+    dispose() {
+        super.dispose();
+        if (this.scoreDisplay) {
+            this.scoreDisplay.dispose();
+        }
+    }
+}
 class TerrainToonMaterial extends BABYLON.ShaderMaterial {
     constructor(name, color, scene) {
         super(name, scene, {
@@ -2169,9 +2213,14 @@ class Score {
         this.playerScoreText[0].style.right = (this.network.main.xToRight(-49) * 100).toFixed(0) + "%";
         this.playerScoreText[0].style.bottom = (this.network.main.yToBottom(-30) * 100).toFixed(0) + "%";
         this.playerScoreText[0].style.color = Cell.Colors[0].toHexString().substring(0, 7);
-        this.playerScoreText[2].style.right = (this.network.main.xToRight(-49) * 100).toFixed(0) + "%";
-        this.playerScoreText[2].style.top = (this.network.main.yToTop(30) * 100).toFixed(0) + "%";
-        this.playerScoreText[2].style.color = Cell.Colors[2].toHexString().substring(0, 7);
+        this.playerScoreText[0].style.display = "block";
+        for (let i = 1; i < this.playerCount - 1; i++) {
+            this.playerScoreText[i].style.display = "none";
+        }
+        this.playerScoreText[this.playerCount - 1].style.right = (this.network.main.xToRight(-49) * 100).toFixed(0) + "%";
+        this.playerScoreText[this.playerCount - 1].style.top = (this.network.main.yToTop(30) * 100).toFixed(0) + "%";
+        this.playerScoreText[this.playerCount - 1].style.color = Cell.Colors[this.playerCount - 1].toHexString().substring(0, 7);
+        this.playerScoreText[this.playerCount - 1].style.display = "block";
     }
     update() {
         let scores = [];
@@ -2180,19 +2229,17 @@ class Score {
             this.playerScoreText[i].innerText = scores[i].toFixed(0);
         }
         let scoreTotal = scores.reduce((s1, s2) => { return s1 + s2; });
-        console.log(scores);
-        console.log(scoreTotal);
         for (let p = 0; p < this.playerCount; p++) {
-            if (!this.playerScoreMesh[p]) {
+            if (scores[p] < 2) {
+                if (this.playerScoreMesh[p]) {
+                    this.playerScoreMesh[p].dispose();
+                    continue;
+                }
+            }
+            if (!this.playerScoreMesh[p] || this.playerScoreMesh[p].isDisposed()) {
                 this.playerScoreMesh[p] = new BABYLON.Mesh("shape");
                 this.playerScoreMesh[p].position.x = -45;
                 this.playerScoreMesh[p].position.z = -30;
-                /*
-                let material = new BABYLON.StandardMaterial("shape-material", this.network.main.scene);
-                material.diffuseColor.copyFromFloats(1, 1, 1);
-                material.specularColor.copyFromFloats(0, 0, 0);
-                this.playerScoreMesh[i].material = material;
-                */
                 let material = new ToonMaterial("shape-material", false, this.network.main.scene);
                 this.playerScoreMesh[p].material = material;
             }
@@ -2260,5 +2307,27 @@ class Score {
             data.colors = colors;
             data.applyToMesh(this.playerScoreMesh[p]);
         }
+    }
+    dispose() {
+        for (let p = 0; p < this.playerCount; p++) {
+            if (this.playerScoreMesh[p]) {
+                this.playerScoreMesh[p].dispose();
+            }
+            if (this.playerScoreText[p]) {
+                this.playerScoreText[p].style.display = "none";
+            }
+        }
+    }
+}
+class AsyncUtils {
+    static async timeOut(delay, callback) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                if (callback) {
+                    callback();
+                }
+                resolve();
+            }, delay);
+        });
     }
 }
