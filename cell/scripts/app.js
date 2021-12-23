@@ -212,6 +212,7 @@ class Cell {
         this.highlightStatus = 0;
         this.forceLock = false;
         this.isDisposed = false;
+        this.isMeshDisposed = false;
         this._barycenter3D = BABYLON.Vector3.Zero();
     }
     clone() {
@@ -232,6 +233,16 @@ class Cell {
     }
     dispose() {
         this.isDisposed = true;
+        this.disposeMesh();
+        this.neighbors.forEach(nCell => {
+            nCell.neighbors.remove(this);
+        });
+        this.triangles.forEach(triangle => {
+            triangle.dispose();
+        });
+    }
+    disposeMesh() {
+        this.isMeshDisposed = true;
         if (this.shape) {
             this.shape.dispose();
         }
@@ -337,7 +348,7 @@ class Cell {
             let material = new ToonMaterial("shape-material", false, this.network.main.scene);
             this.shape.material = material;
         }
-        if (!this.isBorder() && !this.isHidden() && !this.isLocked()) {
+        if (!this.isBorder() /*&& !this.isHidden() && !this.isLocked()*/) {
             let dOut = 0.1;
             let dIn = 0.8;
             let lineOut = Math2D.FattenShrinkEdgeShape(points, -dOut);
@@ -349,7 +360,10 @@ class Cell {
             lineIn = CellNetworkDisplayed.Smooth(lineIn, 5);
             lineIn = CellNetworkDisplayed.Smooth(lineIn, 3);
             if (!c) {
-                if (this.isLocked()) {
+                if (this.isDisposed) {
+                    c = new BABYLON.Color4(0, 0, 0, 1);
+                }
+                else if (this.isLocked()) {
                     c = Cell.LockedColor;
                 }
                 else {
@@ -408,7 +422,7 @@ class Cell {
         center.scaleInPlace(1 / points.length);
         while (points.length < newLength) {
             let longestIndex = 0;
-            let longestDistSquared = BABYLON.Vector2.DistanceSquared(points[0], points[1]);
+            let longestDistSquared = BABYLON.Vector2.DistanceSquared(points[0], points[1 % points.length]);
             for (let i = 1; i < points.length; i++) {
                 let p = points[i];
                 let next = points[(i + 1) % points.length];
@@ -568,7 +582,6 @@ Cell.Colors = [
     BABYLON.Color4.FromHexString("#3C8AC3FF")
 ];
 Cell.Color = new BABYLON.Color4(0, 0, 0, 1);
-//public static PickColor: BABYLON.Color4 = BABYLON.Color4.FromHexString("#FCFCFCFF");
 Cell.PickColor = BABYLON.Color4.FromHexString("#FCFCFCFF");
 Cell.PickNeighborColor = BABYLON.Color4.FromHexString("#004d1eff");
 Cell.LockedColor = BABYLON.Color4.FromHexString("#A0A0A0FF");
@@ -635,8 +648,8 @@ class CellNetwork {
         for (let i = 0; i < this.cellTriangles.length; i++) {
             let baseTriangle = this.cellTriangles[i];
             let newTriangle = cloneNetwork.cellTriangles[i];
-            baseTriangle.vertices.forEach((c, j) => {
-                newTriangle.vertices[j] = cloneNetwork.cells[c.index];
+            baseTriangle.cells.forEach((c, j) => {
+                newTriangle.cells[j] = cloneNetwork.cells[c.index];
             });
             baseTriangle.neighbors.forEach((t, j) => {
                 newTriangle.neighbors.set(j, cloneNetwork.cellTriangles[t.index]);
@@ -729,6 +742,46 @@ class CellNetwork {
             }
         });
         return possibleGain;
+    }
+    removeHiddenCells() {
+        console.log("Cells count = " + this.cells.length);
+        let hits = [];
+        this.cells.forEach(cell => {
+            if (cell.isHidden()) {
+                hits.push(cell);
+            }
+        });
+        while (hits.length > 0) {
+            hits.pop().dispose();
+        }
+        let i = 0;
+        while (i < this.cells.length) {
+            if (this.cells[i].isDisposed) {
+                this.cells.splice(i, 1);
+            }
+            else {
+                i++;
+            }
+        }
+        i = 0;
+        while (i < this.cellTriangles.length) {
+            if (this.cellTriangles[i].isDisposed) {
+                this.cellTriangles.splice(i, 1);
+            }
+            else {
+                i++;
+            }
+        }
+        this.reIndex();
+        console.log("Cells count = " + this.cells.length);
+    }
+    reIndex() {
+        for (let i = 0; i < this.cells.length; i++) {
+            this.cells[i].index = i;
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            this.cellTriangles[i].index = i;
+        }
     }
 }
 class CellNetworkDisplayed extends CellNetwork {
@@ -838,7 +891,15 @@ class CellNetworkDisplayed extends CellNetwork {
             }
         }
     }
+    random(seed, n) {
+        while (n > 10000) {
+            n -= 10000;
+        }
+        return 0.5 * (Math.cos(seed + 13 * n) + 1);
+    }
     generate(r, n) {
+        let seed = 0;
+        let iterator = 0;
         if (r <= 0) {
             return;
         }
@@ -846,7 +907,7 @@ class CellNetworkDisplayed extends CellNetwork {
         let points = [];
         for (let i = 0; i < n; i++) {
             let p = BABYLON.Vector2.Zero();
-            p.copyFromFloats(-this.radius * 2 + 2 * this.radius * 2 * Math.random(), -this.radius * 2 + 2 * this.radius * 2 * Math.random());
+            p.copyFromFloats(-this.radius * 2 + 2 * this.radius * 2 * this.random(seed, iterator++), -this.radius * 2 + 2 * this.radius * 2 * this.random(seed, iterator++));
             points.push(p);
         }
         for (let i = 0; i < 10; i++) {
@@ -879,16 +940,18 @@ class CellNetworkDisplayed extends CellNetwork {
         let clone = this.clone();
         this.cells = clone.cells;
         this.cellTriangles = clone.cellTriangles;
+        this.removeHiddenCells();
         this.cells.forEach(v => {
             if (v.isLocked()) {
                 v.value = -1;
             }
             v.morphFromZero();
         });
+        console.log("!");
     }
     dispose() {
         this.cells.forEach(c => {
-            c.dispose();
+            c.disposeMesh();
         });
         this.cells = [];
         this.cellTriangles = [];
@@ -1213,8 +1276,9 @@ class CellTriangle {
     constructor(index) {
         this.index = index;
         this._barycenter3D = BABYLON.Vector3.Zero();
-        this.vertices = [];
+        this.cells = [];
         this.neighbors = new UniqueList();
+        this.isDisposed = false;
     }
     get barycenter3D() {
         this._barycenter3D.x = this.barycenter.x;
@@ -1227,9 +1291,18 @@ class CellTriangle {
         cloneTriangle.barycenter = this.barycenter.clone();
         return cloneTriangle;
     }
+    dispose() {
+        this.isDisposed = true;
+        this.cells.forEach(cell => {
+            cell.triangles.remove(this);
+        });
+        this.neighbors.forEach(nCell => {
+            nCell.neighbors.remove(this);
+        });
+    }
     static AddTriangle(index, v1, v2, v3) {
         let tri = new CellTriangle(index);
-        tri.vertices = [v1, v2, v3];
+        tri.cells = [v1, v2, v3];
         tri.barycenter = v1.baseVertexPosition.add(v2.baseVertexPosition).addInPlace(v3.baseVertexPosition).scaleInPlace(1 / 3);
         v1.triangles.push(tri);
         v1.neighbors.push(v2);
@@ -1400,8 +1473,28 @@ class Main {
         */
     }
     initializeMainMenu() {
-        document.getElementById("level-random-ai-vs-ai").addEventListener("pointerup", () => {
-            this.currentLevel = new LevelRandomAIVsAI(this);
+        document.getElementById("level-random-solo-s").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelRandomSolo(this, 150);
+            this.currentLevel.initialize();
+        });
+        document.getElementById("level-random-solo-m").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelRandomSolo(this, 300);
+            this.currentLevel.initialize();
+        });
+        document.getElementById("level-random-solo-l").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelRandomSolo(this, 450);
+            this.currentLevel.initialize();
+        });
+        document.getElementById("level-random-ai-vs-ai-s").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelRandomAIVsAI(this, 150);
+            this.currentLevel.initialize();
+        });
+        document.getElementById("level-random-ai-vs-ai-m").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelRandomAIVsAI(this, 300);
+            this.currentLevel.initialize();
+        });
+        document.getElementById("level-random-ai-vs-ai-l").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelRandomAIVsAI(this, 450);
             this.currentLevel.initialize();
         });
     }
@@ -1413,7 +1506,7 @@ class Main {
             return this.setPickedCell(undefined);
         }
         if (this.pickedCell) {
-            if (!this.pickedCell.isDisposed) {
+            if (!this.pickedCell.isMeshDisposed) {
                 this.pickedCell.highlightStatus = 0;
                 this.pickedCell.updateShape();
                 this.pickedCell.shape.position.y = 0;
@@ -1426,7 +1519,7 @@ class Main {
         }
         this.pickedCell = cell;
         if (this.pickedCell) {
-            if (!this.pickedCell.isDisposed) {
+            if (!this.pickedCell.isMeshDisposed) {
                 this.pickedCell.highlightStatus = 2;
                 this.pickedCell.updateShape();
                 this.pickedCell.shape.position.y = 0.01;
@@ -2106,10 +2199,14 @@ class Level {
     }
 }
 class LevelRandomAIVsAI extends Level {
+    constructor(main, size = 300) {
+        super(main);
+        this.size = size;
+    }
     initialize() {
         super.initialize();
         this.scoreDisplay = new Score(3, this.main.cellNetwork);
-        this.main.cellNetwork.generate(25, 300);
+        this.main.cellNetwork.generate(25, this.size);
         this.main.cellNetwork.checkSurround(() => {
             this.scoreDisplay.update();
         });
@@ -2143,6 +2240,28 @@ class LevelRandomAIVsAI extends Level {
             }
         };
         setTimeout(step, 1000);
+    }
+    update() {
+    }
+    dispose() {
+        super.dispose();
+        if (this.scoreDisplay) {
+            this.scoreDisplay.dispose();
+        }
+    }
+}
+class LevelRandomSolo extends Level {
+    constructor(main, size = 300) {
+        super(main);
+        this.size = size;
+    }
+    initialize() {
+        super.initialize();
+        this.scoreDisplay = new Score(3, this.main.cellNetwork);
+        this.main.cellNetwork.generate(25, this.size);
+        this.main.cellNetwork.checkSurround(() => {
+            this.scoreDisplay.update();
+        });
     }
     update() {
     }

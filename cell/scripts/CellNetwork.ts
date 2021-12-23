@@ -35,8 +35,8 @@ class CellNetwork implements ICellNetwork {
             let baseTriangle = this.cellTriangles[i];
             let newTriangle = cloneNetwork.cellTriangles[i];
 
-            baseTriangle.vertices.forEach((c, j) => {
-                newTriangle.vertices[j] = cloneNetwork.cells[c.index];
+            baseTriangle.cells.forEach((c, j) => {
+                newTriangle.cells[j] = cloneNetwork.cells[c.index];
             })
             baseTriangle.neighbors.forEach((t, j) => {
                 newTriangle.neighbors.set(j, cloneNetwork.cellTriangles[t.index]);
@@ -145,6 +145,48 @@ class CellNetwork implements ICellNetwork {
         });
 
         return possibleGain;
+    }
+
+    public removeHiddenCells(): void {
+        console.log("Cells count = " + this.cells.length);
+        let hits: Cell[] = [];
+        this.cells.forEach(cell => {
+            if (cell.isHidden()) {
+                hits.push(cell);
+            }
+        });
+        while (hits.length > 0) {
+            hits.pop().dispose();
+        }
+        let i = 0;
+        while (i < this.cells.length) {
+            if (this.cells[i].isDisposed) {
+                this.cells.splice(i, 1);
+            }
+            else {
+                i++;
+            }
+        }
+        i = 0;
+        while (i < this.cellTriangles.length) {
+            if (this.cellTriangles[i].isDisposed) {
+                this.cellTriangles.splice(i, 1);
+            }
+            else {
+                i++;
+            }
+        }
+        this.reIndex();
+        console.log("Cells count = " + this.cells.length);
+    }
+
+    public reIndex(): void {
+        for (let i = 0; i < this.cells.length; i++) {
+            this.cells[i].index = i;
+        }
+        for (let i = 0; i < this.cellTriangles.length; i++) {
+            this.cellTriangles[i].index = i;
+        }
     }
 }
 
@@ -264,7 +306,16 @@ class CellNetworkDisplayed extends CellNetwork {
         }
     }
 
+    public random(seed: number, n: number): number {
+        while (n > 10000) {
+            n-= 10000;
+        }
+        return 0.5 * (Math.cos(seed + 13 * n) + 1);
+    }
+
     public generate(r: number, n: number): void {
+        let seed = 0;
+        let iterator = 0;
         if (r <= 0) {
             return;
         }
@@ -274,8 +325,8 @@ class CellNetworkDisplayed extends CellNetwork {
             let p: BABYLON.Vector2 = BABYLON.Vector2.Zero();
             
             p.copyFromFloats(
-                - this.radius * 2 + 2 * this.radius * 2 * Math.random(),
-                - this.radius * 2 + 2 * this.radius * 2 * Math.random()
+                - this.radius * 2 + 2 * this.radius * 2 * this.random(seed, iterator++),
+                - this.radius * 2 + 2 * this.radius * 2 * this.random(seed, iterator++)
             );
             points.push(p);
         }
@@ -317,6 +368,8 @@ class CellNetworkDisplayed extends CellNetwork {
         let clone = this.clone();
         this.cells = clone.cells;
         this.cellTriangles = clone.cellTriangles;
+
+        this.removeHiddenCells();
         
         this.cells.forEach(v => {
             if (v.isLocked()) {
@@ -324,11 +377,13 @@ class CellNetworkDisplayed extends CellNetwork {
             }
             v.morphFromZero();
         })
+
+        console.log("!");
     }
 
     public dispose(): void {
         this.cells.forEach(c => {
-            c.dispose();
+            c.disposeMesh();
         })
         this.cells = [];
         this.cellTriangles = [];

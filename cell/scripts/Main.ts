@@ -161,10 +161,30 @@ class Main {
 	}
 
 	public initializeMainMenu(): void {
-		document.getElementById("level-random-ai-vs-ai").addEventListener("pointerup", () => {
-			this.currentLevel = new LevelRandomAIVsAI(this);
+		document.getElementById("level-random-solo-s").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelRandomSolo(this, 150);
 			this.currentLevel.initialize();
-		})
+		});
+		document.getElementById("level-random-solo-m").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelRandomSolo(this, 300);
+			this.currentLevel.initialize();
+		});
+		document.getElementById("level-random-solo-l").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelRandomSolo(this, 450);
+			this.currentLevel.initialize();
+		});
+		document.getElementById("level-random-ai-vs-ai-s").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelRandomAIVsAI(this, 150);
+			this.currentLevel.initialize();
+		});
+		document.getElementById("level-random-ai-vs-ai-m").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelRandomAIVsAI(this, 300);
+			this.currentLevel.initialize();
+		});
+		document.getElementById("level-random-ai-vs-ai-l").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelRandomAIVsAI(this, 450);
+			this.currentLevel.initialize();
+		});
 	}
 
 	public selected: CellSelector;
@@ -177,7 +197,7 @@ class Main {
 			return this.setPickedCell(undefined);
 		}
 		if (this.pickedCell) {
-			if (!this.pickedCell.isDisposed) {
+			if (!this.pickedCell.isMeshDisposed) {
 				this.pickedCell.highlightStatus = 0;
 				this.pickedCell.updateShape();
 				this.pickedCell.shape.position.y = 0;
@@ -190,7 +210,7 @@ class Main {
 		}
 		this.pickedCell = cell;
 		if (this.pickedCell) {
-			if (!this.pickedCell.isDisposed) {
+			if (!this.pickedCell.isMeshDisposed) {
 				this.pickedCell.highlightStatus = 2;
 				this.pickedCell.updateShape();
 				this.pickedCell.shape.position.y = 0.01;

@@ -9,8 +9,11 @@ class CellTriangle {
 
         return this._barycenter3D;
     }
-    public vertices: Cell[] = [];
+
+    public cells: Cell[] = [];
     public neighbors: UniqueList<CellTriangle> = new UniqueList<CellTriangle>();
+    
+    public isDisposed: boolean = false;
 
     constructor(public index: number) {
 
@@ -22,9 +25,19 @@ class CellTriangle {
         return cloneTriangle;
     }
 
+    public dispose(): void {
+        this.isDisposed = true;
+        this.cells.forEach(cell => {
+            cell.triangles.remove(this);
+        })
+        this.neighbors.forEach(nCell => {
+            nCell.neighbors.remove(this);
+        });
+    }
+
     public static AddTriangle(index: number, v1: Cell, v2: Cell, v3: Cell): CellTriangle {
         let tri = new CellTriangle(index);
-        tri.vertices = [v1, v2, v3];
+        tri.cells = [v1, v2, v3];
         tri.barycenter = v1.baseVertexPosition.add(v2.baseVertexPosition).addInPlace(v3.baseVertexPosition).scaleInPlace(1 / 3);
 
         v1.triangles.push(tri);

@@ -6,7 +6,6 @@ class Cell {
         BABYLON.Color4.FromHexString("#3C8AC3FF")
     ]
     public static Color: BABYLON.Color4 = new BABYLON.Color4(0, 0, 0, 1);
-    //public static PickColor: BABYLON.Color4 = BABYLON.Color4.FromHexString("#FCFCFCFF");
     public static PickColor: BABYLON.Color4 = BABYLON.Color4.FromHexString("#FCFCFCFF");
     public static PickNeighborColor: BABYLON.Color4 = BABYLON.Color4.FromHexString("#004d1eff");
     public static LockedColor: BABYLON.Color4 = BABYLON.Color4.FromHexString("#A0A0A0FF");
@@ -22,10 +21,9 @@ class Cell {
     public shapeLine: BABYLON.LinesMesh;
 
     public highlightStatus: number = 0;
-
     public forceLock: boolean = false;
-
     public isDisposed: boolean = false;
+    public isMeshDisposed: boolean = false;
 
     constructor(
         public baseVertexPosition: BABYLON.Vector2,
@@ -56,6 +54,17 @@ class Cell {
 
     public dispose(): void {
         this.isDisposed = true;
+        this.disposeMesh();
+        this.neighbors.forEach(nCell => {
+            nCell.neighbors.remove(this);
+        });
+        this.triangles.forEach(triangle => {
+            triangle.dispose();
+        })
+    }
+
+    public disposeMesh(): void {
+        this.isMeshDisposed = true;
         if (this.shape) {
             this.shape.dispose();
         }
@@ -173,7 +182,7 @@ class Cell {
            let material = new ToonMaterial("shape-material", false, this.network.main.scene);
            this.shape.material = material;
         }
-        if (!this.isBorder() && !this.isHidden() && !this.isLocked()) {
+        if (!this.isBorder() /*&& !this.isHidden() && !this.isLocked()*/) {
             
             let dOut = 0.1;
             let dIn = 0.8;
@@ -188,7 +197,10 @@ class Cell {
             lineIn = CellNetworkDisplayed.Smooth(lineIn, 3);
 
             if (!c) {
-                if (this.isLocked()) {
+                if (this.isDisposed) {
+                    c = new BABYLON.Color4(0, 0, 0, 1);
+                }
+                else if (this.isLocked()) {
                     c = Cell.LockedColor; 
                 }
                 else {
@@ -257,7 +269,7 @@ class Cell {
 
         while (points.length < newLength) {
             let longestIndex = 0;
-            let longestDistSquared = BABYLON.Vector2.DistanceSquared(points[0], points[1]);
+            let longestDistSquared = BABYLON.Vector2.DistanceSquared(points[0], points[1 % points.length]);
             for (let i = 1; i < points.length; i++) {
                 let p = points[i];
                 let next = points[(i + 1) % points.length];
