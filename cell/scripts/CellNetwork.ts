@@ -155,6 +155,8 @@ class CellNetwork implements ICellNetwork {
                 hits.push(cell);
             }
         });
+        console.log("Hits count = " + hits.length);
+        return;
         while (hits.length > 0) {
             hits.pop().dispose();
         }
@@ -325,8 +327,8 @@ class CellNetworkDisplayed extends CellNetwork {
             let p: BABYLON.Vector2 = BABYLON.Vector2.Zero();
             
             p.copyFromFloats(
-                - this.radius * 2 + 2 * this.radius * 2 * this.random(seed, iterator++),
-                - this.radius * 2 + 2 * this.radius * 2 * this.random(seed, iterator++)
+                - this.radius * 2 + 2 * this.radius * 2 * Math.random(),
+                - this.radius * 2 + 2 * this.radius * 2 * Math.random()
             );
             points.push(p);
         }
@@ -369,7 +371,7 @@ class CellNetworkDisplayed extends CellNetwork {
         this.cells = clone.cells;
         this.cellTriangles = clone.cellTriangles;
 
-        this.removeHiddenCells();
+        //this.removeHiddenCells();
         
         this.cells.forEach(v => {
             if (v.isLocked()) {
