@@ -99,11 +99,36 @@ class Card {
     }
 }
 class Deck {
-    constructor() {
+    constructor(board, handSize = 2) {
+        this.board = board;
+        this.handSize = handSize;
         this.cards = [];
+        this.hand = [];
+        this.hand = [];
+        for (let i = 0; i < this.handSize; i++) {
+            this.hand.push(new Tile(-1, -1, this.board));
+        }
     }
     draw() {
-        return this.cards.pop();
+        for (let i = 0; i < this.handSize; i++) {
+            let cardSlot = this.hand[i];
+            if (cardSlot.value === 0) {
+                let c = this.cards.pop();
+                if (c) {
+                    cardSlot.color = c.color;
+                    cardSlot.value = c.value;
+                }
+                else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    updateShape() {
+        for (let i = 0; i < this.handSize; i++) {
+            this.hand[i].updateShape();
+        }
     }
     shuffle() {
         let l = this.cards.length;
@@ -247,28 +272,12 @@ class Main {
         */
     }
     initializeMainMenu() {
-        document.getElementById("level-random-solo-s").addEventListener("pointerup", () => {
+        document.getElementById("level-solo").addEventListener("pointerup", () => {
             this.currentLevel = new LevelRandomSolo(this);
             this.currentLevel.initialize();
         });
-        document.getElementById("level-random-solo-m").addEventListener("pointerup", () => {
-            this.currentLevel = new LevelRandomSolo(this);
-            this.currentLevel.initialize();
-        });
-        document.getElementById("level-random-solo-l").addEventListener("pointerup", () => {
-            this.currentLevel = new LevelRandomSolo(this);
-            this.currentLevel.initialize();
-        });
-        document.getElementById("level-random-ai-vs-ai-s").addEventListener("pointerup", () => {
-            this.currentLevel = new LevelRandomAIVsAI(this);
-            this.currentLevel.initialize();
-        });
-        document.getElementById("level-random-ai-vs-ai-m").addEventListener("pointerup", () => {
-            this.currentLevel = new LevelRandomAIVsAI(this);
-            this.currentLevel.initialize();
-        });
-        document.getElementById("level-random-ai-vs-ai-l").addEventListener("pointerup", () => {
-            this.currentLevel = new LevelRandomAIVsAI(this);
+        document.getElementById("level-vs-ai").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelHumanVsAI(this);
             this.currentLevel.initialize();
         });
     }
@@ -1050,20 +1059,7 @@ class Level {
         this.main.board.reset();
     }
 }
-class LevelRandomAIVsAI extends Level {
-    constructor(main) {
-        super(main);
-    }
-    initialize() {
-        super.initialize();
-    }
-    update() {
-    }
-    dispose() {
-        super.dispose();
-    }
-}
-class LevelRandomSolo extends Level {
+class LevelPlayer extends Level {
     constructor(main) {
         super(main);
         this.pickedCard = -1;
@@ -1092,23 +1088,16 @@ class LevelRandomSolo extends Level {
                             ok = true;
                             let value = 0;
                             let color = -1;
-                            if (this.pickedCard === 0) {
-                                value = this.hand0.value;
-                                color = this.hand0.color;
-                            }
-                            if (this.pickedCard === 1) {
-                                value = this.hand1.value;
-                                color = this.hand1.color;
+                            let pickedTile = this.deckPlayer.hand[this.pickedCard];
+                            if (pickedTile) {
+                                value = pickedTile.value;
+                                color = pickedTile.color;
                             }
                             if (this.main.board.play(color, value, i, j)) {
-                                if (this.pickedCard === 0) {
-                                    this.hand0.reset();
-                                }
-                                if (this.pickedCard === 1) {
-                                    this.hand1.reset();
-                                }
+                                pickedTile.reset();
                                 this.pickedCard = -1;
-                                this.draw();
+                                this.deckPlayer.draw();
+                                this.deckPlayer.updateShape();
                             }
                         }
                     }
@@ -1121,37 +1110,90 @@ class LevelRandomSolo extends Level {
     }
     initialize() {
         super.initialize();
-        this.deckSolo = new Deck();
+        this.deckPlayer = new Deck(this.main.board);
+        this.makePlayerDeck();
+        this.deckPlayer.hand[0].i = 12;
+        this.deckPlayer.hand[0].j = 0;
+        this.deckPlayer.hand[1].i = 13;
+        this.deckPlayer.hand[1].j = 0;
+        this.deckPlayer.shuffle();
+        this.deckPlayer.draw();
+        this.deckPlayer.updateShape();
+        this.main.board.updateShapes();
+        this.main.scene.onPointerObservable.add(this.pointerEvent);
+    }
+    update() {
+    }
+    dispose() {
+        super.dispose();
+    }
+}
+/// <reference path="LevelPlayer.ts"/>
+class LevelHumanVsAI extends LevelPlayer {
+    constructor(main) {
+        super(main);
+    }
+    initialize() {
+        super.initialize();
+        this.deckAI = new Deck(this.main.board);
+        this.makeAIDeck();
+        this.deckAI.shuffle();
+        this.deckAI.draw();
+    }
+    makePlayerDeck() {
+        for (let c = 0; c < 2; c++) {
+            for (let v = 1; v <= 9; v++) {
+                for (let n = 0; n < 2; n++) {
+                    let card = new Card(v, c);
+                    this.deckPlayer.cards.push(card);
+                }
+            }
+        }
+    }
+    makeAIDeck() {
+        for (let c = 2; c < 4; c++) {
+            for (let v = 1; v <= 9; v++) {
+                for (let n = 0; n < 2; n++) {
+                    let card = new Card(v, c);
+                    this.deckPlayer.cards.push(card);
+                }
+            }
+        }
+    }
+    update() {
+    }
+    dispose() {
+        super.dispose();
+    }
+}
+class LevelRandomAIVsAI extends Level {
+    constructor(main) {
+        super(main);
+    }
+    initialize() {
+        super.initialize();
+    }
+    update() {
+    }
+    dispose() {
+        super.dispose();
+    }
+}
+/// <reference path="LevelPlayer.ts"/>
+class LevelRandomSolo extends LevelPlayer {
+    constructor(main) {
+        super(main);
+    }
+    initialize() {
+        super.initialize();
+    }
+    makePlayerDeck() {
         for (let c = 0; c < 4; c++) {
             for (let v = 1; v <= 9; v++) {
                 for (let n = 0; n < 2; n++) {
                     let card = new Card(v, c);
-                    this.deckSolo.cards.push(card);
+                    this.deckPlayer.cards.push(card);
                 }
-            }
-        }
-        this.deckSolo.shuffle();
-        this.hand0 = new Tile(12, 0, this.main.board);
-        this.hand1 = new Tile(13, 0, this.main.board);
-        this.draw();
-        this.main.board.updateShapes();
-        this.main.scene.onPointerObservable.add(this.pointerEvent);
-    }
-    draw() {
-        if (this.hand0.value === 0) {
-            let c = this.deckSolo.draw();
-            if (c) {
-                this.hand0.color = c.color;
-                this.hand0.value = c.value;
-                this.hand0.updateShape();
-            }
-        }
-        if (this.hand1.value === 0) {
-            let c = this.deckSolo.draw();
-            if (c) {
-                this.hand1.color = c.color;
-                this.hand1.value = c.value;
-                this.hand1.updateShape();
             }
         }
     }

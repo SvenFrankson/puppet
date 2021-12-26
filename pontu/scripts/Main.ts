@@ -161,28 +161,12 @@ class Main {
 	}
 
 	public initializeMainMenu(): void {
-		document.getElementById("level-random-solo-s").addEventListener("pointerup", () => {
+		document.getElementById("level-solo").addEventListener("pointerup", () => {
 			this.currentLevel = new LevelRandomSolo(this);
 			this.currentLevel.initialize();
 		});
-		document.getElementById("level-random-solo-m").addEventListener("pointerup", () => {
-			this.currentLevel = new LevelRandomSolo(this);
-			this.currentLevel.initialize();
-		});
-		document.getElementById("level-random-solo-l").addEventListener("pointerup", () => {
-			this.currentLevel = new LevelRandomSolo(this);
-			this.currentLevel.initialize();
-		});
-		document.getElementById("level-random-ai-vs-ai-s").addEventListener("pointerup", () => {
-			this.currentLevel = new LevelRandomAIVsAI(this);
-			this.currentLevel.initialize();
-		});
-		document.getElementById("level-random-ai-vs-ai-m").addEventListener("pointerup", () => {
-			this.currentLevel = new LevelRandomAIVsAI(this);
-			this.currentLevel.initialize();
-		});
-		document.getElementById("level-random-ai-vs-ai-l").addEventListener("pointerup", () => {
-			this.currentLevel = new LevelRandomAIVsAI(this);
+		document.getElementById("level-vs-ai").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelHumanVsAI(this);
 			this.currentLevel.initialize();
 		});
 	}
