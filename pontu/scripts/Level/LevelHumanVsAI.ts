@@ -47,6 +47,7 @@ class LevelHumanVsAI extends LevelPlayer {
         }
     }
 
+    /*
     public update(): void {
         if (this.main.board.activePlayer === 1) {
             let ok = false;
@@ -69,6 +70,49 @@ class LevelHumanVsAI extends LevelPlayer {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+    */
+
+    public update(): void {
+        if (this.main.board.activePlayer === 1) {
+            let playableTiles: Tile[] = [];
+            for (let i = 0; i < 11; i++) {
+                for (let j = 0; j < 11; j++) {
+                    let t = this.main.board.tiles[i][j];
+                    if (t.isPlayable && t.isInRange && t.color < 2) {
+                        playableTiles.push(t);
+                    }
+                }
+            }
+            playableTiles.sort((a, b) => { return Math.random() - 0.5; }),
+            console.log(playableTiles.length);
+            let bestN: number;
+            let bestTile: Tile;
+            let bestValue = - Infinity;
+            for (let i = 0; i < playableTiles.length; i++) {
+                for (let n = 0; n < 2; n++) {
+                    let card = this.deckAI.hand[n];
+                    if (card.value > playableTiles[i].value) {
+                        let value = playableTiles[i].value - card.value;
+                        if (value > bestValue) {
+                            bestValue = value;
+                            bestN = n;
+                            bestTile = playableTiles[i];
+                        }
+                    }
+                }
+            }
+            if (isFinite(bestValue)) {
+                let card = this.deckAI.hand[bestN];
+                if (this.main.board.play(1, card.color, card.value, bestTile.i, bestTile.j)) {
+                    card.color = - 1;
+                    card.value = 0;
+                    this.deckAI.draw();
+                    this.deckAI.updateShape();
+                    return;
                 }
             }
         }
