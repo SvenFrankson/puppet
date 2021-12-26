@@ -1,6 +1,8 @@
 class Board {
     constructor(main) {
         this.main = main;
+        this.playerCount = 1;
+        this.activePlayer = 0;
         this.tiles = [];
         for (let i = 0; i < 11; i++) {
             this.tiles[i] = [];
@@ -78,7 +80,10 @@ class Board {
             }
         }
     }
-    play(color, value, i, j) {
+    play(player, color, value, i, j) {
+        if (player != this.activePlayer) {
+            return false;
+        }
         if (i >= 0 && i < 11 && j >= 0 && j < 11) {
             let tile = this.tiles[i][j];
             if (tile.isInRange && tile.value < value) {
@@ -86,6 +91,7 @@ class Board {
                 tile.value = value;
                 this.updateRangeAndPlayable();
                 this.updateShapes();
+                this.activePlayer = (this.activePlayer + 1) % this.playerCount;
                 return true;
             }
         }
@@ -1093,7 +1099,7 @@ class LevelPlayer extends Level {
                                 value = pickedTile.value;
                                 color = pickedTile.color;
                             }
-                            if (this.main.board.play(color, value, i, j)) {
+                            if (this.main.board.play(0, color, value, i, j)) {
                                 pickedTile.reset();
                                 this.pickedCard = -1;
                                 this.deckPlayer.draw();
@@ -1135,10 +1141,16 @@ class LevelHumanVsAI extends LevelPlayer {
     }
     initialize() {
         super.initialize();
+        this.main.board.playerCount = 2;
         this.deckAI = new Deck(this.main.board);
         this.makeAIDeck();
+        this.deckAI.hand[0].i = -2;
+        this.deckAI.hand[0].j = 0;
+        this.deckAI.hand[1].i = -3;
+        this.deckAI.hand[1].j = 0;
         this.deckAI.shuffle();
         this.deckAI.draw();
+        this.deckAI.updateShape();
     }
     makePlayerDeck() {
         for (let c = 0; c < 2; c++) {
@@ -1155,12 +1167,36 @@ class LevelHumanVsAI extends LevelPlayer {
             for (let v = 1; v <= 9; v++) {
                 for (let n = 0; n < 2; n++) {
                     let card = new Card(v, c);
-                    this.deckPlayer.cards.push(card);
+                    this.deckAI.cards.push(card);
                 }
             }
         }
     }
     update() {
+        if (this.main.board.activePlayer === 1) {
+            let ok = false;
+            for (let i = 0; i < 1000; i++) {
+                let n = Math.floor(Math.random() * 2);
+                let pickedCard = this.deckAI.hand[n];
+                if (pickedCard.value > 0) {
+                    let I = Math.floor(Math.random() * 11);
+                    let J = Math.floor(Math.random() * 11);
+                    let currentBoardTile = this.main.board.tiles[I][J];
+                    if (currentBoardTile.isInRange && currentBoardTile.isPlayable) {
+                        if (currentBoardTile.color < 2) {
+                            ok = this.main.board.play(1, pickedCard.color, pickedCard.value, I, J);
+                            if (ok) {
+                                pickedCard.color = -1;
+                                pickedCard.value = 0;
+                                this.deckAI.draw();
+                                this.deckAI.updateShape();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     dispose() {
         super.dispose();

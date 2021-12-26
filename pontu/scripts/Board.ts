@@ -1,5 +1,7 @@
 class Board {
 
+    public playerCount: number = 1;
+    public activePlayer: number = 0;
     public tiles: Tile[][];
 
     constructor(
@@ -89,7 +91,10 @@ class Board {
         }
     }
 
-    public play(color: number, value: number, i: number, j: number): boolean {
+    public play(player: number, color: number, value: number, i: number, j: number): boolean {
+        if (player != this.activePlayer) {
+            return false;
+        }
         if (i >= 0 && i < 11 && j >= 0 && j < 11) {
             let tile = this.tiles[i][j];
             if (tile.isInRange && tile.value < value) {
@@ -97,6 +102,7 @@ class Board {
                 tile.value = value;
                 this.updateRangeAndPlayable();
                 this.updateShapes();
+                this.activePlayer = (this.activePlayer + 1) % this.playerCount;
                 return true;
             }
         }

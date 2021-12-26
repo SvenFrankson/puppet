@@ -59,7 +59,7 @@ abstract class LevelPlayer extends Level {
                             value = pickedTile.value;
                             color = pickedTile.color;
                         }
-                        if (this.main.board.play(color, value, i, j)) {
+                        if (this.main.board.play(0, color, value, i, j)) {
                             pickedTile.reset();
                             this.pickedCard = -1;
                             this.deckPlayer.draw();
