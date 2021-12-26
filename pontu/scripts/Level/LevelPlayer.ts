@@ -24,12 +24,16 @@ abstract class LevelPlayer extends Level {
         this.deckPlayer.updateShape();
 
         this.main.board.updateShapes();
-        this.main.scene.onPointerObservable.add(this.pointerEvent);
+        this.main.scene.onPointerObservable.add(this._pointerEvent);
     }
 
     protected abstract makePlayerDeck(): void;
 
-    public pointerEvent = (eventData: BABYLON.PointerInfo) => {
+    private _pointerEvent = (eventData: BABYLON.PointerInfo) => {
+        return this.pointerEvent(eventData);
+    }
+
+    public pointerEvent(eventData: BABYLON.PointerInfo): void {
         if (eventData.type === BABYLON.PointerEventTypes.POINTERDOWN) {
             console.log("Alpha");
             if (eventData.pickInfo.pickedMesh) {
@@ -80,5 +84,10 @@ abstract class LevelPlayer extends Level {
 
     public dispose(): void {
         super.dispose();
+        this.main.scene.onPointerObservable.removeCallback(this._pointerEvent);
+        this.deckPlayer.hand.forEach(t => {
+            t.dispose();
+        })
+        delete this.deckPlayer;
     }
 }

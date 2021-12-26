@@ -9,6 +9,7 @@ class Level {
     public initialize(): void {
 		this.main.hideMainMenu();
         this.main.scene.onBeforeRenderObservable.add(this._update);
+        this.main.board.updateShapes();
     }
 
     private _update = () => {
@@ -23,5 +24,6 @@ class Level {
         this.main.showMainMenu();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
         this.main.board.reset();
+        this.main.board.hide();
     }
 }

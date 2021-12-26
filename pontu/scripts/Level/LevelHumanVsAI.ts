@@ -87,8 +87,7 @@ class LevelHumanVsAI extends LevelPlayer {
                     }
                 }
             }
-            playableTiles.sort((a, b) => { return Math.random() - 0.5; }),
-            console.log(playableTiles.length);
+            ArrayUtils.shuffle(playableTiles);
             let bestN: number;
             let bestTile: Tile;
             let bestValue = - Infinity;
@@ -120,5 +119,9 @@ class LevelHumanVsAI extends LevelPlayer {
 
     public dispose(): void {
         super.dispose();
+        this.deckAI.hand.forEach(t => {
+            console.log("Deck AI Dispose Tile");
+            t.dispose();
+        })
     }
 }

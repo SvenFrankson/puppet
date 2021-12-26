@@ -37,6 +37,23 @@ class Tile {
         this.isPlayable = false;
     }
 
+    public dispose(): void {
+        if (this.shape) {
+            this.shape.dispose();
+            this.shape = undefined;
+        }
+        if (this.text) {
+            document.body.removeChild(this.text);
+            this.text = undefined;
+        }
+    }
+
+    public hide(): void {
+        if (this.shape) {
+            this.shape.isVisible = false;
+        }
+    }
+
     public updateShape(points: BABYLON.Vector2[] = this.points): void {
         if (!this.shape) {
             this.shape = new BABYLON.Mesh("shape_" + this.i + "_" + this.j);
