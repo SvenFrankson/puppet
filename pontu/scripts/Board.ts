@@ -17,23 +17,21 @@ class Board {
         this.tiles[5][5].isPlayable = true;
     }
 
-    public generateRandom(): void {
+    public cloneTiles(): Tile[][] {
+        let clonedTiles: Tile[][] = [];
         for (let i = 0; i < 11; i++) {
+            clonedTiles[i] = [];
             for (let j = 0; j < 11; j++) {
-                if (Math.random() > 0.5) {
-                    this.tiles[i][j].color = Math.floor(4 * Math.random());
-                    this.tiles[i][j].value = 1 + Math.floor(9 * Math.random());
-                }
+                clonedTiles[i][j] = this.tiles[i][j].clone();
             }
         }
-        this.tiles[0][0].color = 0;
-        this.tiles[0][0].value = 9;
-        this.tiles[10][0].color = 1;
-        this.tiles[10][0].value = 9;
-        this.updateShapes();
+        return clonedTiles;
     }
 
-    public updateRangeAndPlayable(): void {
+    public updateRangeAndPlayable(tiles?: Tile[][]): void {
+        if (!tiles) {
+            tiles = this.tiles;
+        }
         let iMin = 5;
         let jMin = 5;
         let iMax = 5;
@@ -41,7 +39,7 @@ class Board {
 
         for (let i = 0; i < 11; i++) {
             for (let j = 0; j < 11; j++) {
-                if (this.tiles[i][j].value > 0) {
+                if (tiles[i][j].value > 0) {
                     iMin = Math.min(i, iMin);
                     jMin = Math.min(j, jMin);
                     iMax = Math.max(i, iMax);
@@ -49,7 +47,7 @@ class Board {
                     for (let ii = -1; ii <= 1; ii++) {
                         for (let jj = -1; jj <= 1; jj++) {
                             if (i + ii >= 0 && i + ii < 11 && j + jj >= 0 && j + jj < 11) {
-                                this.tiles[i + ii][ j + jj].isPlayable = true;
+                                tiles[i + ii][ j + jj].isPlayable = true;
                             }
                         }
                     }
@@ -60,16 +58,16 @@ class Board {
         for (let i = 0; i < 11; i++) {
             for (let j = 0; j < 11; j++) {
                 if (i >= iMin + 6) {
-                    this.tiles[i][j].isInRange = false;
+                    tiles[i][j].isInRange = false;
                 }
                 if (j >= jMin + 6) {
-                    this.tiles[i][j].isInRange = false;
+                    tiles[i][j].isInRange = false;
                 }
                 if (i <= iMax - 6) {
-                    this.tiles[i][j].isInRange = false;
+                    tiles[i][j].isInRange = false;
                 }
                 if (j <= jMax - 6) {
-                    this.tiles[i][j].isInRange = false;
+                    tiles[i][j].isInRange = false;
                 }
             }
         }
@@ -129,6 +127,50 @@ class Board {
         return false;
     }
 
+    public computeBoardValueForColor(c: number, tiles?: Tile[][]): number {
+        if (!tiles) {
+            tiles = this.tiles;
+        }
+        let value = 10000;
+        for (let i = 0; i < 11; i++) {
+            for (let j = 0; j < 11; j++) {
+                let t = tiles[i][j];
+                if (c === t.color) {
+                    for (let di = - 1; di <= 1; di++) {
+                        for (let dj = - 1; dj <= 1; dj++) {
+                            if (di != 0 || dj != 0) {
+                                let l = 1;
+                                let minValueToPLay = 1;
+                                for (let n = 1; n < 5; n++) {
+                                    let ii = i + n * di;
+                                    let jj = j + n * dj;
+                                    if (ii >= 0 && ii < 11 && jj >= 0 && jj < 11 && tiles[ii][jj].isInRange) {
+                                        if (tiles[ii][jj].color === c) {
+                                            l++;
+                                        }
+                                        else {
+                                            minValueToPLay = Math.min(minValueToPLay, tiles[ii][jj].value);
+                                        }
+                                    }
+                                    else {
+                                        l = 0;
+                                        break;
+                                    }
+                                }
+                                if (l === 5) {
+                                    return 0;
+                                }
+                                let v = minValueToPLay + Math.pow(10, 4 - l);
+                                value = Math.min(v, value);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return value;
+    }
+
     public checkVictor(): boolean {
         for (let i = 0; i < 11; i++) {
             for (let j = 0; j < 11; j++) {
@@ -139,7 +181,7 @@ class Board {
                         for (let dj = - 1; dj <= 1; dj++) {
                             if (di != 0 || dj != 0) {
                                 let victory = true;
-                                for (let n = 1; n < 4; n++) {
+                                for (let n = 1; n < 5; n++) {
                                     let ii = i + n * di;
                                     let jj = j + n * dj;
                                     if (ii >= 0 && ii < 11 && jj >= 0 && jj < 11) {

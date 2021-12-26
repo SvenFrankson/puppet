@@ -30,6 +30,15 @@ class Tile {
         ];
     }
 
+    public clone(): Tile {
+        let clonedTile = new Tile(this.i, this.j, this.board);
+        clonedTile.color = this.color;
+        clonedTile.value = this.value;
+        clonedTile.isInRange = this.isInRange;
+        clonedTile.isPlayable = this.isPlayable;
+        return clonedTile;
+    }
+
     public reset(): void {
         this.color = - 1;
         this.value = 0;

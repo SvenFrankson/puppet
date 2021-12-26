@@ -76,6 +76,7 @@ class LevelHumanVsAI extends LevelPlayer {
     }
     */
 
+    /*
     public update(): void {
         if (this.main.board.activePlayer === 1) {
             let playableTiles: Tile[] = [];
@@ -113,6 +114,64 @@ class LevelHumanVsAI extends LevelPlayer {
                     this.deckAI.updateShape();
                     return;
                 }
+            }
+        }
+    }
+    */
+
+    public update(): void {
+        if (this.main.board.activePlayer === 1) {
+            let cloneTiles = this.main.board.cloneTiles();
+            let playableTiles: Tile[] = [];
+            for (let i = 0; i < 11; i++) {
+                for (let j = 0; j < 11; j++) {
+                    let t = cloneTiles[i][j];
+                    if (t.isPlayable && t.isInRange && t.color < 2) {
+                        playableTiles.push(t);
+                    }
+                }
+            }
+            ArrayUtils.shuffle(playableTiles);
+            let bestN: number;
+            let bestTile: Tile;
+            let bestValue = Infinity;
+            for (let i = 0; i < playableTiles.length; i++) {
+                for (let n = 0; n < 2; n++) {
+                    let card = this.deckAI.hand[n];
+                    if (card.value > playableTiles[i].value) {
+                        let prevColor = playableTiles[i].color;
+                        let prevValue = playableTiles[i].value;
+                        playableTiles[i].color = card.color;
+                        playableTiles[i].value = card.value;
+                        let value = this.main.board.computeBoardValueForColor(card.color, cloneTiles);
+                        value += this.main.board.computeBoardValueForColor(card.color === 2 ? 3 : 2, cloneTiles);
+                        value -= this.main.board.computeBoardValueForColor(0, cloneTiles);
+                        value -= this.main.board.computeBoardValueForColor(1, cloneTiles);
+
+                        if (value < bestValue) {
+                            bestValue = value;
+                            bestN = n;
+                            bestTile = playableTiles[i];
+                        }
+
+                        playableTiles[i].color = prevColor;
+                        playableTiles[i].value = prevValue;
+                    }
+                }
+            }
+            if (isFinite(bestValue)) {
+                console.log(bestValue);
+                let card = this.deckAI.hand[bestN];
+                if (this.main.board.play(1, card.color, card.value, bestTile.i, bestTile.j)) {
+                    card.color = - 1;
+                    card.value = 0;
+                    this.deckAI.draw();
+                    this.deckAI.updateShape();
+                    return;
+                }
+            }
+            else {
+                debugger;
             }
         }
     }
