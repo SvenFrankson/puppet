@@ -100,8 +100,8 @@ class Tile {
             this.text = document.createElement("div");
             document.body.appendChild(this.text);
             this.text.classList.add("tile-text");
-            this.text.style.right = (this.board.main.xToRight(this.shape.position.x + 2.5) * 100).toFixed(1) + "%";
-            this.text.style.bottom = (this.board.main.yToBottom(this.shape.position.z - 3.5) * 100).toFixed(1) + "%";
+            this.text.style.right = (this.board.main.xToRight(this.shape.position.x) * 100).toFixed(1) + "%";
+            this.text.style.bottom = (this.board.main.yToBottom(this.shape.position.z - 1) * 100).toFixed(1) + "%";
         }
         if (this.value === 0) {
             this.text.innerText = "";

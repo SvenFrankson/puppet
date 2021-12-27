@@ -3,6 +3,11 @@ abstract class LevelPlayer extends Level {
     public deckPlayer: Deck;
     private pickedCard: number = -1;
 
+    public hand0I = 12;
+    public hand0J = 0;
+    public hand1I = 13;
+    public hand1J = 0;
+
     constructor(
         main: Main
     ) {
@@ -12,13 +17,20 @@ abstract class LevelPlayer extends Level {
     public initialize(): void {
         super.initialize();
 
+        if (this.main.ratio < 1) {
+            this.hand0I = 10;
+            this.hand0J = - 2;
+            this.hand1I = 9
+            this.hand1J = - 2;
+        }
+
         this.deckPlayer = new Deck(this.main.board);
 
         this.makePlayerDeck();
-        this.deckPlayer.hand[0].i = 12;
-        this.deckPlayer.hand[0].j = 0;
-        this.deckPlayer.hand[1].i = 13;
-        this.deckPlayer.hand[1].j = 0;
+        this.deckPlayer.hand[0].i = this.hand0I;
+        this.deckPlayer.hand[0].j = this.hand0J;
+        this.deckPlayer.hand[1].i = this.hand1I;
+        this.deckPlayer.hand[1].j = this.hand1J;
         this.deckPlayer.shuffle();
         this.deckPlayer.draw();
         this.deckPlayer.updateShape();
@@ -38,7 +50,7 @@ abstract class LevelPlayer extends Level {
             console.log("Alpha");
             if (eventData.pickInfo.pickedMesh) {
                 console.log("Bravo " + eventData.pickInfo.pickedMesh.name);
-                if (eventData.pickInfo.pickedMesh.name === "shape_12_0") {
+                if (eventData.pickInfo.pickedMesh.name === "shape_" + this.hand0I.toFixed(0) + "_" + this.hand0J.toFixed(0)) {
                     console.log("Charly");
                     this.pickedCard = 0;
                     this.deckPlayer.hand[0].selected = true;
@@ -46,7 +58,7 @@ abstract class LevelPlayer extends Level {
                     this.deckPlayer.hand[1].selected = false;
                     this.deckPlayer.hand[1].updateShape();
                 }
-                else if (eventData.pickInfo.pickedMesh.name === "shape_13_0") {
+                else if (eventData.pickInfo.pickedMesh.name === "shape_" + this.hand1I.toFixed(0) + "_" + this.hand1J.toFixed(0)) {
                     this.pickedCard = 1;
                     this.deckPlayer.hand[0].selected = false;
                     this.deckPlayer.hand[0].updateShape();

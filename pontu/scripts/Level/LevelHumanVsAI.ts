@@ -16,10 +16,10 @@ class LevelHumanVsAI extends LevelPlayer {
 
         this.deckAI = new Deck(this.main.board);
         this.makeAIDeck();
-        this.deckAI.hand[0].i = - 2;
-        this.deckAI.hand[0].j = 0;
-        this.deckAI.hand[1].i = - 3;
-        this.deckAI.hand[1].j = 0;
+        this.deckAI.hand[0].i = - 10;
+        this.deckAI.hand[0].j = 10;
+        this.deckAI.hand[1].i = - 10;
+        this.deckAI.hand[1].j = 10;
         this.deckAI.shuffle();
         this.deckAI.draw();
         this.deckAI.updateShape();

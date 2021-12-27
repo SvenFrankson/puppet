@@ -24,25 +24,34 @@ class Main {
 		this.initializeMainMenu();
 	}
 
+	public ratio: number = 1;
+
 	public resize(): void {
-		let ratio = this.canvas.clientWidth / this.canvas.clientHeight;
-		if (ratio >= 1) {
-			this.camera.orthoTop = - 6 * 4;
-			this.camera.orthoRight = - 6 * 4 * ratio;
-			this.camera.orthoLeft = 6 * 4 * ratio;
-			this.camera.orthoBottom = 6 * 4;
+		this.ratio = this.canvas.clientWidth / this.canvas.clientHeight;
+		let n = 6;
+		if (Math.abs(this.ratio - 1) < 1 / 6) {
+			n = 8;
+		}
+		else if (Math.abs(this.ratio - 1) < 1 / 3) {
+			n = 7;
+		}
+		if (this.ratio >= 1) {
+			this.camera.orthoTop = - n * 4;
+			this.camera.orthoRight = - n * 4 * this.ratio;
+			this.camera.orthoLeft = n * 4 * this.ratio;
+			this.camera.orthoBottom = n * 4;
 		}
 		else {
-			this.camera.orthoTop = - 6 * 4 / ratio;
-			this.camera.orthoRight = - 6 * 4;
-			this.camera.orthoLeft = 6 * 4;
-			this.camera.orthoBottom = 6 * 4 / ratio;
+			this.camera.orthoTop = - n * 4 / this.ratio;
+			this.camera.orthoRight = - n * 4;
+			this.camera.orthoLeft = n * 4;
+			this.camera.orthoBottom = n * 4 / this.ratio;
 		}
 		this.centerMainMenu();
 	}
 
 	public centerMainMenu(): void {
-		let w = Math.max(this.canvas.clientWidth * 0.5, 600);
+		let w = Math.max(this.canvas.clientWidth * 0.5, 350);
 		let left = (this.canvas.clientWidth - w) * 0.5;
 
 		this.mainMenuContainer.style.width = w.toFixed(0) + "px";
