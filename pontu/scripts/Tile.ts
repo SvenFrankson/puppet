@@ -16,6 +16,7 @@ class Tile {
     public points: BABYLON.Vector2[];
     public shape: BABYLON.Mesh;
     public text: HTMLDivElement;
+    public selected: boolean = false;
 
     constructor(
         public i: number,
@@ -44,6 +45,7 @@ class Tile {
         this.value = 0;
         this.isInRange = true;
         this.isPlayable = false;
+        this.selected = false;
     }
 
     public dispose(): void {
@@ -60,6 +62,23 @@ class Tile {
     public hide(): void {
         if (this.shape) {
             this.shape.isVisible = false;
+        }
+    }
+
+    public get shapePosition(): BABYLON.Vector3 {
+        if (this.shape) {
+            return this.shape.position;
+        }
+        return BABYLON.Vector3.Zero();
+    }
+
+    public resetShapePosition(): void {
+        if (this.shape) {
+            this.shape.position.copyFromFloats(
+                (this.i  - 5) * 4,
+                0,
+                (this.j - 5) * 4
+            );
         }
     }
 
@@ -97,8 +116,8 @@ class Tile {
             }
             this.shape.isVisible = true;
             
-            let dOut = 0.1;
-            let dIn = 0.8;
+            let dOut = this.selected ? - 0.1 : 0.1;
+            let dIn = this.selected ? 0.6 : 0.8;
 
             let lineOut = Math2D.FattenShrinkEdgeShape(points, - dOut);
             let lineIn = Math2D.FattenShrinkEdgeShape(points, - dIn);

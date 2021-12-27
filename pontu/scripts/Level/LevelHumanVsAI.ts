@@ -119,8 +119,9 @@ class LevelHumanVsAI extends LevelPlayer {
     }
     */
 
+    public lock: boolean = false;
     public update(): void {
-        if (this.main.board.activePlayer === 1) {
+        if (this.main.board.activePlayer === 1 && !this.lock) {
             let cloneTiles = this.main.board.cloneTiles();
             let playableTiles: Tile[] = [];
             for (let i = 0; i < 11; i++) {
@@ -134,7 +135,7 @@ class LevelHumanVsAI extends LevelPlayer {
             ArrayUtils.shuffle(playableTiles);
             let bestN: number;
             let bestTile: Tile;
-            let bestValue = Infinity;
+            let bestValue = - Infinity;
             for (let i = 0; i < playableTiles.length; i++) {
                 for (let n = 0; n < 2; n++) {
                     let card = this.deckAI.hand[n];
@@ -144,11 +145,11 @@ class LevelHumanVsAI extends LevelPlayer {
                         playableTiles[i].color = card.color;
                         playableTiles[i].value = card.value;
                         let value = this.main.board.computeBoardValueForColor(card.color, cloneTiles);
-                        value += this.main.board.computeBoardValueForColor(card.color === 2 ? 3 : 2, cloneTiles);
+                        value += this.main.board.computeBoardValueForColor(card.color === 2 ? 3 : 2, cloneTiles) * 0.1;
                         value -= this.main.board.computeBoardValueForColor(0, cloneTiles);
                         value -= this.main.board.computeBoardValueForColor(1, cloneTiles);
 
-                        if (value < bestValue) {
+                        if (value > bestValue) {
                             bestValue = value;
                             bestN = n;
                             bestTile = playableTiles[i];
@@ -162,18 +163,44 @@ class LevelHumanVsAI extends LevelPlayer {
             if (isFinite(bestValue)) {
                 console.log(bestValue);
                 let card = this.deckAI.hand[bestN];
-                if (this.main.board.play(1, card.color, card.value, bestTile.i, bestTile.j)) {
-                    card.color = - 1;
-                    card.value = 0;
-                    this.deckAI.draw();
-                    this.deckAI.updateShape();
-                    return;
-                }
+                this.lock = true;
+                this.aiPlayAnimation(bestN, bestTile.i, bestTile.j, () => {
+                    if (this.main.board.play(1, card.color, card.value, bestTile.i, bestTile.j)) {
+                        this.lock = false;
+                        card.color = - 1;
+                        card.value = 0;
+                        this.deckAI.draw();
+                        this.deckAI.updateShape();
+                        return;
+                    }
+                })
             }
             else {
                 debugger;
             }
         }
+    }
+
+    public aiPlayAnimation(cardIndex: number, targetI: number, targetJ: number, callback: () => void): void {
+        let p0 = this.deckAI.hand[cardIndex].shapePosition.clone();
+        p0.y += 0.5;
+        let p1 = this.main.board.tiles[targetI][targetJ].shapePosition.clone();
+        p1.y += 0.5;
+        let t = 0;
+        let duration = 1;
+        let step = () => {
+            t += this.main.engine.getDeltaTime() / 1000;
+            let dt = t / duration;
+            if (dt >= 1) {
+                this.deckAI.hand[cardIndex].resetShapePosition();
+                callback();
+            }
+            else {
+                this.deckAI.hand[cardIndex].shapePosition.copyFrom(p0).scaleInPlace(1 - dt).addInPlace(p1.scale(dt));
+                requestAnimationFrame(step);
+            }
+        }
+        step();
     }
 
     public dispose(): void {

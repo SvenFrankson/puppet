@@ -131,7 +131,7 @@ class Board {
         if (!tiles) {
             tiles = this.tiles;
         }
-        let value = 10000;
+        let value = 0;
         for (let i = 0; i < 11; i++) {
             for (let j = 0; j < 11; j++) {
                 let t = tiles[i][j];
@@ -149,7 +149,7 @@ class Board {
                                             l++;
                                         }
                                         else {
-                                            minValueToPLay = Math.min(minValueToPLay, tiles[ii][jj].value);
+                                            minValueToPLay = Math.max(minValueToPLay, tiles[ii][jj].value + 1);
                                         }
                                     }
                                     else {
@@ -158,10 +158,12 @@ class Board {
                                     }
                                 }
                                 if (l === 5) {
-                                    return 0;
+                                    return 100000;
                                 }
-                                let v = minValueToPLay + Math.pow(10, 4 - l);
-                                value = Math.min(v, value);
+                                if (minValueToPLay < 10) {
+                                    let v = 10 - minValueToPLay + Math.pow(10, l);
+                                    value = Math.max(v, value);
+                                }
                             }
                         }
                     }
@@ -188,6 +190,9 @@ class Board {
                                         if (this.tiles[ii][jj].color != c) {
                                             victory = false;
                                         }
+                                    }
+                                    else {
+                                        victory = false;
                                     }
                                 }
                                 if (victory === true) {

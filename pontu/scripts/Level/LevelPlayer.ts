@@ -41,9 +41,17 @@ abstract class LevelPlayer extends Level {
                 if (eventData.pickInfo.pickedMesh.name === "shape_12_0") {
                     console.log("Charly");
                     this.pickedCard = 0;
+                    this.deckPlayer.hand[0].selected = true;
+                    this.deckPlayer.hand[0].updateShape();
+                    this.deckPlayer.hand[1].selected = false;
+                    this.deckPlayer.hand[1].updateShape();
                 }
                 else if (eventData.pickInfo.pickedMesh.name === "shape_13_0") {
                     this.pickedCard = 1;
+                    this.deckPlayer.hand[0].selected = false;
+                    this.deckPlayer.hand[0].updateShape();
+                    this.deckPlayer.hand[1].selected = true;
+                    this.deckPlayer.hand[1].updateShape();
                 }
             }
         }
