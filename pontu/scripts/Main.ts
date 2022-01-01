@@ -11,11 +11,13 @@ class Main {
     public scene: BABYLON.Scene;
 	public board: Board;
 	public mainMenuContainer: HTMLDivElement;
+	public endGamePanel: HTMLDivElement;
 	public currentLevel: Level;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
-		this.mainMenuContainer = document.getElementById("main-menu") as HTMLDivElement;
+		this.mainMenuContainer = document.getElementById("main-menu-panel") as HTMLDivElement;
+		this.endGamePanel = document.getElementById("end-game-panel") as HTMLDivElement;
         this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
 	}
 	
@@ -56,14 +58,35 @@ class Main {
 
 		this.mainMenuContainer.style.width = w.toFixed(0) + "px";
 		this.mainMenuContainer.style.left = left.toFixed(0) + "px";
+
+		this.endGamePanel.style.width = w.toFixed(0) + "px";
+		this.endGamePanel.style.left = left.toFixed(0) + "px";
 	}
 
 	public showMainMenu(): void {
 		this.mainMenuContainer.style.display = "block";
+		this.hideEndGame();
 	}
 
 	public hideMainMenu(): void {
 		this.mainMenuContainer.style.display = "none";
+	}
+
+	public showEndGame(result: number): void {
+		if (result === 0) {
+			document.getElementById("end-game-result").innerText = "you win ! :)";
+		}
+		if (result === 1) {
+			document.getElementById("end-game-result").innerText = "you loose... :(";
+		}
+		if (result === 2) {
+			document.getElementById("end-game-result").innerText = "draw";
+		}
+		this.endGamePanel.style.display = "block";
+	}
+
+	public hideEndGame(): void {
+		this.endGamePanel.style.display = "none";
 	}
 
 	public xToLeft(x: number): number {
@@ -178,29 +201,27 @@ class Main {
 			this.currentLevel = new LevelHumanVsAI(this);
 			this.currentLevel.initialize();
 		});
+		document.getElementById("end-game-back").addEventListener("pointerup", () => {
+			if (this.currentLevel) {
+				this.currentLevel.dispose();
+			}
+			this.showMainMenu();
+		});
+		document.getElementById("coder").addEventListener("pointerup", () => {
+			window.open("https://svenfrankson.github.io/");
+		});
+		document.getElementById("author").addEventListener("pointerup", () => {
+			window.open("https://fr.wikipedia.org/wiki/Bernhard_Weber");
+		});
+		document.getElementById("owner").addEventListener("pointerup", () => {
+			window.open("https://www.gamefactory-spiele.com/punto");
+		})
+		this.showMainMenu();
 	}
 	
     public animate(): void {
-		let fpsInfoElement = document.getElementById("fps-info");
-		let meshesInfoTotalElement = document.getElementById("meshes-info-total");
-		let meshesInfoNonStaticUniqueElement = document.getElementById("meshes-info-nonstatic-unique");
-		let meshesInfoStaticUniqueElement = document.getElementById("meshes-info-static-unique");
-		let meshesInfoNonStaticInstanceElement = document.getElementById("meshes-info-nonstatic-instance");
-		let meshesInfoStaticInstanceElement = document.getElementById("meshes-info-static-instance");
         this.engine.runRenderLoop(() => {
 			this.scene.render();
-			fpsInfoElement.innerText = this.engine.getFps().toFixed(0) + " fps";
-			let uniques = this.scene.meshes.filter(m => { return !(m instanceof BABYLON.InstancedMesh); });
-			let uniquesNonStatic = uniques.filter(m => { return !m.isWorldMatrixFrozen; });
-			let uniquesStatic = uniques.filter(m => { return m.isWorldMatrixFrozen; });
-			let instances = this.scene.meshes.filter(m => { return m instanceof BABYLON.InstancedMesh; });
-			let instancesNonStatic = instances.filter(m => { return !m.isWorldMatrixFrozen; });
-			let instancesStatic = instances.filter(m => { return m.isWorldMatrixFrozen; });
-			meshesInfoTotalElement.innerText = this.scene.meshes.length.toFixed(0).padStart(4, "0");
-			meshesInfoNonStaticUniqueElement.innerText = uniquesNonStatic.length.toFixed(0).padStart(4, "0");
-			meshesInfoStaticUniqueElement.innerText = uniquesStatic.length.toFixed(0).padStart(4, "0");
-			meshesInfoNonStaticInstanceElement.innerText = instancesNonStatic.length.toFixed(0).padStart(4, "0");
-			meshesInfoStaticInstanceElement.innerText = instancesStatic.length.toFixed(0).padStart(4, "0");
         });
 
         window.addEventListener("resize", () => {
@@ -213,8 +234,4 @@ window.addEventListener("load", async () => {
 	let main: Main = new Main("render-canvas");
 	await main.initialize();
 	main.animate();
-
-	document.getElementById("cell-network-info").style.display = "none";
-	document.getElementById("meshes-info").style.display = "none";
-	//document.getElementById("debug-info").style.display = "none";
 })
