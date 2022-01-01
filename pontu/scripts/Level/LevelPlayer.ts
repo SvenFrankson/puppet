@@ -68,14 +68,12 @@ abstract class LevelPlayer extends Level {
             }
         }
         else if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
-            let ok = false;
             if (eventData.pickInfo.pickedMesh) {
                 let split = eventData.pickInfo.pickedMesh.name.split("_");
                 if (split.length === 3) {
                     let i = parseInt(split[1]);
                     let j = parseInt(split[2]);
                     if (isFinite(i) && isFinite(j)) {
-                        ok = true;
                         let value = 0;
                         let color = -1;
                         let pickedTile = this.deckPlayer.hand[this.pickedCard];
@@ -91,9 +89,6 @@ abstract class LevelPlayer extends Level {
                         }
                     }
                 }
-            }
-            if (!ok) {
-                this.pickedCard = -1;
             }
         }
     }

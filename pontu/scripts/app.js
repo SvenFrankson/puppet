@@ -406,6 +406,10 @@ class Main {
             this.currentLevel = new LevelRandomSolo(this);
             this.currentLevel.initialize();
         });
+        document.getElementById("level-vs-ai-easy").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelHumanVsAIEasy(this);
+            this.currentLevel.initialize();
+        });
         document.getElementById("level-vs-ai").addEventListener("pointerup", () => {
             this.currentLevel = new LevelHumanVsAI(this);
             this.currentLevel.initialize();
@@ -1277,14 +1281,12 @@ class LevelPlayer extends Level {
             }
         }
         else if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
-            let ok = false;
             if (eventData.pickInfo.pickedMesh) {
                 let split = eventData.pickInfo.pickedMesh.name.split("_");
                 if (split.length === 3) {
                     let i = parseInt(split[1]);
                     let j = parseInt(split[2]);
                     if (isFinite(i) && isFinite(j)) {
-                        ok = true;
                         let value = 0;
                         let color = -1;
                         let pickedTile = this.deckPlayer.hand[this.pickedCard];
@@ -1300,9 +1302,6 @@ class LevelPlayer extends Level {
                         }
                     }
                 }
-            }
-            if (!ok) {
-                this.pickedCard = -1;
             }
         }
     }
@@ -1321,34 +1320,6 @@ class LevelPlayer extends Level {
 class LevelHumanVsAI extends LevelPlayer {
     constructor(main) {
         super(main);
-        /*
-        public update(): void {
-            if (this.main.board.activePlayer === 1) {
-                let ok = false;
-                for (let i = 0; i < 1000; i++) {
-                    let n = Math.floor(Math.random() * 2);
-                    let pickedCard = this.deckAI.hand[n];
-                    if (pickedCard.value > 0) {
-                        let I = Math.floor(Math.random() * 11);
-                        let J = Math.floor(Math.random() * 11);
-                        let currentBoardTile = this.main.board.tiles[I][J];
-                        if (currentBoardTile.isInRange && currentBoardTile.isPlayable) {
-                            if (currentBoardTile.color < 2) {
-                                ok = this.main.board.play(1, pickedCard.color, pickedCard.value, I, J);
-                                if (ok) {
-                                    pickedCard.color = - 1;
-                                    pickedCard.value = 0;
-                                    this.deckAI.draw();
-                                    this.deckAI.updateShape();
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        */
         /*
         public update(): void {
             if (this.main.board.activePlayer === 1) {
@@ -1490,7 +1461,7 @@ class LevelHumanVsAI extends LevelPlayer {
         let p1 = this.main.board.tiles[targetI][targetJ].shapePosition.clone();
         p1.y += 0.5;
         let t = 0;
-        let duration = 1;
+        let duration = 0.8;
         let step = () => {
             t += this.main.engine.getDeltaTime() / 1000;
             let dt = t / duration;
@@ -1511,6 +1482,39 @@ class LevelHumanVsAI extends LevelPlayer {
             console.log("Deck AI Dispose Tile");
             t.dispose();
         });
+    }
+}
+class LevelHumanVsAIEasy extends LevelHumanVsAI {
+    constructor() {
+        super(...arguments);
+        this.lock = false;
+    }
+    update() {
+        if (this.main.board.activePlayer === 1 && !this.lock) {
+            for (let i = 0; i < 1000; i++) {
+                let n = Math.floor(Math.random() * 2);
+                let card = this.deckAI.hand[n];
+                if (card.value > 0) {
+                    let I = Math.floor(Math.random() * 11);
+                    let J = Math.floor(Math.random() * 11);
+                    let currentBoardTile = this.main.board.tiles[I][J];
+                    if (currentBoardTile.isInRange && currentBoardTile.isPlayable) {
+                        if (currentBoardTile.color < 2 && currentBoardTile.value < card.value) {
+                            this.lock = true;
+                            return this.aiPlayAnimation(n, I, J, () => {
+                                if (this.main.board.play(1, card.color, card.value, I, J)) {
+                                    this.lock = false;
+                                    card.color = -1;
+                                    card.value = 0;
+                                    this.deckAI.draw();
+                                    this.deckAI.updateShape();
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 class LevelRandomAIVsAI extends Level {

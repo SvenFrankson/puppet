@@ -200,6 +200,10 @@ class Main {
 			this.currentLevel = new LevelRandomSolo(this);
 			this.currentLevel.initialize();
 		});
+		document.getElementById("level-vs-ai-easy").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelHumanVsAIEasy(this);
+			this.currentLevel.initialize();
+		});
 		document.getElementById("level-vs-ai").addEventListener("pointerup", () => {
 			this.currentLevel = new LevelHumanVsAI(this);
 			this.currentLevel.initialize();
