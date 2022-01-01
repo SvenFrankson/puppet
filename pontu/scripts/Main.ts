@@ -53,7 +53,10 @@ class Main {
 	}
 
 	public centerMainMenu(): void {
-		let w = Math.max(this.canvas.clientWidth * 0.5, 350);
+		let w = this.canvas.clientWidth * 0.6;
+		if (w < 400) {
+			w = this.canvas.clientWidth;
+		}
 		let left = (this.canvas.clientWidth - w) * 0.5;
 
 		this.mainMenuContainer.style.width = w.toFixed(0) + "px";

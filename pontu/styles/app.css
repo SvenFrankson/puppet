@@ -85,7 +85,7 @@ body {
 
 h1 {
   font-weight: 100;
-  font-size: 12vmin;
+  font-size: 12vh;
   text-decoration: underline 3px red;
   text-align: center;
 }
@@ -99,17 +99,19 @@ h2 {
 
 #main-menu-panel {
   position: fixed;
+  font-size: 6vh;
   z-index: 1;
   height: 100%;
   color: black;
-  font-size: 50px;
   font-family: "Schoolwork";
 }
 
 .credit {
+  font-size: 4vh;
   text-align: right;
   position: absolute;
   bottom: 5%;
+  right: 5%;
 }
 
 .credit p {
