@@ -107,17 +107,14 @@ class Board {
         }
         if (i >= 0 && i < 11 && j >= 0 && j < 11) {
             let tile = this.tiles[i][j];
-            if (tile.isInRange && tile.value < value) {
+            if (tile.isPlayable && tile.isInRange && tile.value < value) {
                 tile.color = color;
                 tile.value = value;
                 this.updateRangeAndPlayable();
                 this.updateShapes();
-                if (this.checkVictor()) {
-                    requestAnimationFrame(
-                        () => {
-                            this.main.currentLevel.dispose();
-                        }
-                    )
+                let victor = this.checkVictor();
+                if (victor != - 1) {
+                    this.main.showEndGame(victor);
                     return false;
                 }
                 this.activePlayer = (this.activePlayer + 1) % this.playerCount;
@@ -173,7 +170,7 @@ class Board {
         return value;
     }
 
-    public checkVictor(): boolean {
+    public checkVictor(): number {
         for (let i = 0; i < 11; i++) {
             for (let j = 0; j < 11; j++) {
                 let t = this.tiles[i][j];
@@ -183,7 +180,7 @@ class Board {
                         for (let dj = - 1; dj <= 1; dj++) {
                             if (di != 0 || dj != 0) {
                                 let victory = true;
-                                for (let n = 1; n < 5; n++) {
+                                for (let n = 1; n < 3; n++) {
                                     let ii = i + n * di;
                                     let jj = j + n * dj;
                                     if (ii >= 0 && ii < 11 && jj >= 0 && jj < 11) {
@@ -196,9 +193,8 @@ class Board {
                                     }
                                 }
                                 if (victory === true) {
-                                    alert("Color " + c + " wins");
                                     this.activePlayer = - 1;
-                                    return true;
+                                    return Math.floor(c / 2);
                                 }
                             }
                         }
@@ -206,6 +202,6 @@ class Board {
                 }
             }
         }
-        return false;
+        return -1;
     }
 }
