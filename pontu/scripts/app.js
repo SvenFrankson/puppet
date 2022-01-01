@@ -166,7 +166,7 @@ class Board {
                         for (let dj = -1; dj <= 1; dj++) {
                             if (di != 0 || dj != 0) {
                                 let victory = true;
-                                for (let n = 1; n < 3; n++) {
+                                for (let n = 1; n < 5; n++) {
                                     let ii = i + n * di;
                                     let jj = j + n * dj;
                                     if (ii >= 0 && ii < 11 && jj >= 0 && jj < 11) {
