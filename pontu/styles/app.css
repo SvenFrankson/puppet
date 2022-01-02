@@ -92,7 +92,9 @@ h1 {
 
 h2 {
   font-weight: 100;
-  font-size: 10vmin;
+  font-size: 10vh;
+  margin-top: 2%;
+  margin-bottom: 2%;
   text-align: center;
   text-decoration: underline 2px red;
 }
@@ -135,16 +137,23 @@ h2 {
   position: fixed;
   z-index: 2;
   height: 100%;
-  padding-top: 20%;
+  padding-top: 30%;
   color: black;
   font-family: "Schoolwork";
   background: rgba(255, 255, 255, 60%);
 }
 
+#end-game-note {
+  text-align: left;
+  font-style: italic;
+  margin-left: 5%;
+  font-size: 6vh;
+}
+
 #end-game-back {
   text-align: right;
   margin-right: 5%;
-  font-size: 9vmin;
+  font-size: 9vh;
   text-decoration: underline 2px #004CFF;
 }
 

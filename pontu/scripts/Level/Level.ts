@@ -1,6 +1,6 @@
 class Level {
 
-    public static MAX_CARD_VALUE = 2;
+    public static MAX_CARD_VALUE = 9;
 
     constructor(
         public main: Main

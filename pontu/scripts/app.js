@@ -399,17 +399,24 @@ class Main {
         if (result === 0) {
             document.getElementById("end-game-result").innerText = "you win ! :)";
             if (subvictory) {
-                document.getElementById("end-game-result").innerText += " (with best 4 tiles line)";
+                document.getElementById("end-game-note").innerText = "- with best 4 tiles line";
+            }
+            else {
+                document.getElementById("end-game-note").innerText = "- with 5 tiles in line";
             }
         }
         if (result === 1) {
             document.getElementById("end-game-result").innerText = "you loose... :(";
             if (subvictory) {
-                document.getElementById("end-game-result").innerText += " (with best 4 tiles line)";
+                document.getElementById("end-game-note").innerText = "- AI has best 4 tiles line";
+            }
+            else {
+                document.getElementById("end-game-note").innerText = "- AI has 5 tiles in line";
             }
         }
         if (result === 2) {
             document.getElementById("end-game-result").innerText = "draw";
+            document.getElementById("end-game-note").innerText = "";
         }
         this.endGamePanel.style.display = "block";
     }
@@ -527,6 +534,8 @@ class Main {
             window.open("https://www.gamefactory-spiele.com/punto");
         });
         this.showMainMenu();
+        // debug
+        //this.showEndGame(Math.floor(Math.random() * 3), Math.random() > 0.5);
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -1332,7 +1341,7 @@ class Level {
         this.main.board.hide();
     }
 }
-Level.MAX_CARD_VALUE = 2;
+Level.MAX_CARD_VALUE = 9;
 class LevelPlayer extends Level {
     constructor(main) {
         super(main);
