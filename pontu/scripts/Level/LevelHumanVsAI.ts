@@ -120,8 +120,8 @@ class LevelHumanVsAI extends LevelPlayer {
                         playableTiles[i].value = card.value;
                         let value = this.main.board.computeBoardValueForColor(card.color, cloneTiles);
                         value += this.main.board.computeBoardValueForColor(card.color === 2 ? 3 : 2, cloneTiles) * 0.1;
-                        value -= this.main.board.computeBoardValueForColor(0, cloneTiles);
-                        value -= this.main.board.computeBoardValueForColor(1, cloneTiles);
+                        value -= this.main.board.computeBoardValueForColor(0, cloneTiles) * 1.5;
+                        value -= this.main.board.computeBoardValueForColor(1, cloneTiles) * 1.5;
 
                         if (value > bestValue) {
                             bestValue = value;
