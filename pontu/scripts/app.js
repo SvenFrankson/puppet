@@ -518,6 +518,11 @@ class Main {
             this.currentLevel = new LevelHumanVsAI(this);
             this.currentLevel.initialize();
         });
+        document.getElementById("level-vs-ai-hard").addEventListener("pointerup", () => {
+            this.currentLevel = new LevelHumanVsAI(this);
+            this.currentLevel.aggroAI = 1.5;
+            this.currentLevel.initialize();
+        });
         document.getElementById("end-game-back").addEventListener("pointerup", () => {
             if (this.currentLevel) {
                 this.currentLevel.dispose();
@@ -1451,6 +1456,7 @@ class LevelPlayer extends Level {
 class LevelHumanVsAI extends LevelPlayer {
     constructor(main) {
         super(main);
+        this.aggroAI = 1;
         /*
         public update(): void {
             if (this.main.board.activePlayer === 1) {
@@ -1557,8 +1563,8 @@ class LevelHumanVsAI extends LevelPlayer {
                         playableTiles[i].value = card.value;
                         let value = this.main.board.computeBoardValueForColor(card.color, cloneTiles);
                         value += this.main.board.computeBoardValueForColor(card.color === 2 ? 3 : 2, cloneTiles) * 0.1;
-                        value -= this.main.board.computeBoardValueForColor(0, cloneTiles) * 1.5;
-                        value -= this.main.board.computeBoardValueForColor(1, cloneTiles) * 1.5;
+                        value -= this.main.board.computeBoardValueForColor(0, cloneTiles) * this.aggroAI;
+                        value -= this.main.board.computeBoardValueForColor(1, cloneTiles) * this.aggroAI;
                         if (value > bestValue) {
                             bestValue = value;
                             bestN = n;

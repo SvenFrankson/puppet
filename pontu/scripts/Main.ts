@@ -240,6 +240,11 @@ class Main {
 			this.currentLevel = new LevelHumanVsAI(this);
 			this.currentLevel.initialize();
 		});
+		document.getElementById("level-vs-ai-hard").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelHumanVsAI(this);
+			(this.currentLevel as LevelHumanVsAI).aggroAI = 1.5;
+			this.currentLevel.initialize();
+		});
 		document.getElementById("end-game-back").addEventListener("pointerup", () => {
 			if (this.currentLevel) {
 				this.currentLevel.dispose();
