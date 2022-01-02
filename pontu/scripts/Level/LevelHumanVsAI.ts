@@ -18,8 +18,10 @@ class LevelHumanVsAI extends LevelPlayer {
         this.makeAIDeck();
         this.deckAI.hand[0].i = - 10;
         this.deckAI.hand[0].j = 10;
+        this.deckAI.hand[0].isPlayable = true;
         this.deckAI.hand[1].i = - 10;
         this.deckAI.hand[1].j = 10;
+        this.deckAI.hand[1].isPlayable = true;
         this.deckAI.shuffle();
         this.deckAI.draw();
         this.deckAI.updateShape();
@@ -92,6 +94,7 @@ class LevelHumanVsAI extends LevelPlayer {
 
     public lock: boolean = false;
     public update(): void {
+        super.update();
         if (this.main.board.activePlayer === 1 && !this.lock) {
             let cloneTiles = this.main.board.cloneTiles();
             let playableTiles: Tile[] = [];

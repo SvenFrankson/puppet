@@ -29,27 +29,52 @@ class Main {
 	public ratio: number = 1;
 
 	public resize(): void {
+		this.resizeCamera();
+		this.centerMainMenu();
+	}
+
+	public cameraOffset: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+
+	public resizeCamera(): void {
 		this.ratio = this.canvas.clientWidth / this.canvas.clientHeight;
-		let n = 6;
+		let n = 4;
 		if (Math.abs(this.ratio - 1) < 1 / 6) {
-			n = 8;
+			n = 6;
 		}
 		else if (Math.abs(this.ratio - 1) < 1 / 3) {
-			n = 7;
+			n = 5;
 		}
+		let targetOffset = BABYLON.Vector2.Zero();
+		if (this.board) {
+			targetOffset.x = (this.board.ICenter - 5) * 4;
+			targetOffset.y = (this.board.JCenter - 5) * 4;
+		}
+
+		let needLayoutUpdate: boolean = false;
+		if (BABYLON.Vector2.DistanceSquared(this.cameraOffset, targetOffset) > 0) {
+			let n = targetOffset.subtract(this.cameraOffset).normalize();
+			let d = Math.min(this.engine.getDeltaTime() / 1000 * 10, BABYLON.Vector2.Distance(this.cameraOffset, targetOffset));
+			n.scaleInPlace(d);
+			this.cameraOffset.addInPlace(n);
+			needLayoutUpdate = true;
+		}
+
 		if (this.ratio >= 1) {
-			this.camera.orthoTop = - n * 4;
-			this.camera.orthoRight = - n * 4 * this.ratio;
-			this.camera.orthoLeft = n * 4 * this.ratio;
-			this.camera.orthoBottom = n * 4;
+			this.camera.orthoTop = - n * 4 - this.cameraOffset.y;
+			this.camera.orthoRight = - n * 4 * this.ratio - this.cameraOffset.x;
+			this.camera.orthoLeft = n * 4 * this.ratio - this.cameraOffset.x;
+			this.camera.orthoBottom = n * 4 - this.cameraOffset.y;
 		}
 		else {
-			this.camera.orthoTop = - n * 4 / this.ratio;
-			this.camera.orthoRight = - n * 4;
-			this.camera.orthoLeft = n * 4;
-			this.camera.orthoBottom = n * 4 / this.ratio;
+			this.camera.orthoTop = - n * 4 / this.ratio - this.cameraOffset.y;
+			this.camera.orthoRight = - n * 4 - this.cameraOffset.x;
+			this.camera.orthoLeft = n * 4 - this.cameraOffset.x;
+			this.camera.orthoBottom = n * 4 / this.ratio - this.cameraOffset.y;
 		}
-		this.centerMainMenu();
+
+		if (needLayoutUpdate) {
+			this.board.updateShapesTextPosition();
+		}
 	}
 
 	public centerMainMenu(): void {
@@ -93,27 +118,19 @@ class Main {
 	}
 
 	public xToLeft(x: number): number {
-		return 1 - (x - this.camera.orthoLeft) / this.sceneWidth;
+		return (x + this.camera.orthoLeft) / this.sceneWidth;
 	}
 
-	public xToRight(x: number): number {
-		return 1 + (x - this.camera.orthoRight) / this.sceneWidth;
-	}
-
-	public yToTop(y: number): number {
-		return 1 + (y - this.camera.orthoTop) / this.sceneHeight;
-	}
-
-	public yToBottom(y: number): number {
-		return 1 - (y - this.camera.orthoBottom) / this.sceneHeight;
+	public zToBottom(z: number): number {
+		return (z + this.camera.orthoBottom) / this.sceneHeight;
 	}
 
 	public get sceneWidth(): number {
-		return this.camera.orthoRight - this.camera.orthoLeft;
+		return this.camera.orthoLeft - this.camera.orthoRight;
 	}
 
 	public get sceneHeight(): number {
-		return this.camera.orthoTop - this.camera.orthoBottom;
+		return this.camera.orthoBottom - this.camera.orthoTop;
 	}
 
     public async initializeScene(): Promise<void> {
@@ -228,6 +245,7 @@ class Main {
 	
     public animate(): void {
         this.engine.runRenderLoop(() => {
+			this.resizeCamera();
 			this.scene.render();
         });
 

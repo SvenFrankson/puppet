@@ -2,9 +2,9 @@ class Tile {
 
     public static Colors: BABYLON.Color4[] = [
         BABYLON.Color4.FromHexString("#0ABB07FF"),
+        BABYLON.Color4.FromHexString("#070ABBFF"),
         BABYLON.Color4.FromHexString("#FFC800FF"),
-        BABYLON.Color4.FromHexString("#FF1900FF"),
-        BABYLON.Color4.FromHexString("#070ABBFF")
+        BABYLON.Color4.FromHexString("#FF1900FF")
     ]
 
     public color: number = - 1;
@@ -12,6 +12,7 @@ class Tile {
 
     public isInRange: boolean = true;
     public isPlayable: boolean = false;
+    public isNextToPlayable: boolean = false;
     
     public points: BABYLON.Vector2[];
     public shape: BABYLON.Mesh;
@@ -37,6 +38,7 @@ class Tile {
         clonedTile.value = this.value;
         clonedTile.isInRange = this.isInRange;
         clonedTile.isPlayable = this.isPlayable;
+        clonedTile.isNextToPlayable = this.isNextToPlayable;
         return clonedTile;
     }
 
@@ -45,6 +47,7 @@ class Tile {
         this.value = 0;
         this.isInRange = true;
         this.isPlayable = false;
+        this.isNextToPlayable = false;
         this.selected = false;
     }
 
@@ -82,6 +85,13 @@ class Tile {
         }
     }
 
+    public updateTextPosition(): void {
+        if (this.shape && this.text) {
+            this.text.style.left = (this.board.main.xToLeft(this.shape.position.x) * 100).toFixed(2) + "%";
+            this.text.style.bottom = (this.board.main.zToBottom(this.shape.position.z - 2) * 100).toFixed(2) + "%";
+        }
+    }
+
     public updateShape(points: BABYLON.Vector2[] = this.points): void {
         if (!this.shape) {
             this.shape = new BABYLON.Mesh("shape_" + this.i + "_" + this.j);
@@ -100,9 +110,8 @@ class Tile {
             this.text = document.createElement("div");
             document.body.appendChild(this.text);
             this.text.classList.add("tile-text");
-            this.text.style.right = (this.board.main.xToRight(this.shape.position.x) * 100).toFixed(1) + "%";
-            this.text.style.bottom = (this.board.main.yToBottom(this.shape.position.z - 1) * 100).toFixed(1) + "%";
         }
+        this.updateTextPosition();
         if (this.value === 0) {
             this.text.innerText = "";
         }
@@ -110,7 +119,7 @@ class Tile {
             this.text.innerText = this.value.toFixed(0);
         }
         if (true) {
-            if (!this.isInRange) {
+            if (!this.isInRange || (!this.isPlayable && !this.isNextToPlayable)) {
                 this.shape.isVisible = false;
                 return;
             }

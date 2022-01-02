@@ -4,9 +4,9 @@ abstract class LevelPlayer extends Level {
     private pickedCard: number = -1;
 
     public hand0I = 12;
-    public hand0J = 0;
+    public hand0J = 5;
     public hand1I = 13;
-    public hand1J = 0;
+    public hand1J = 5;
 
     constructor(
         main: Main
@@ -29,11 +29,12 @@ abstract class LevelPlayer extends Level {
         this.makePlayerDeck();
         this.deckPlayer.hand[0].i = this.hand0I;
         this.deckPlayer.hand[0].j = this.hand0J;
+        this.deckPlayer.hand[0].isPlayable = true;
         this.deckPlayer.hand[1].i = this.hand1I;
         this.deckPlayer.hand[1].j = this.hand1J;
+        this.deckPlayer.hand[1].isPlayable = true;
         this.deckPlayer.shuffle();
         this.deckPlayer.draw();
-        this.deckPlayer.updateShape();
 
         this.main.board.updateShapes();
         this.main.scene.onPointerObservable.add(this._pointerEvent);
@@ -83,9 +84,9 @@ abstract class LevelPlayer extends Level {
                         }
                         if (this.main.board.play(0, color, value, i, j)) {
                             pickedTile.reset();
+                            pickedTile.isPlayable = true;
                             this.pickedCard = -1;
                             this.deckPlayer.draw();
-                            this.deckPlayer.updateShape();
                         }
                     }
                 }
@@ -94,7 +95,13 @@ abstract class LevelPlayer extends Level {
     }
 
     public update(): void {
+        this.deckPlayer.hand[0].shapePosition.x = - this.main.camera.orthoRight - 4;
+        this.deckPlayer.hand[0].shapePosition.z = - this.main.camera.orthoBottom + 4;
 
+        this.deckPlayer.hand[1].shapePosition.x = - this.main.camera.orthoRight - 4;
+        this.deckPlayer.hand[1].shapePosition.z = - this.main.camera.orthoBottom + 8;
+        
+        this.deckPlayer.updateShape();
     }
 
     public dispose(): void {

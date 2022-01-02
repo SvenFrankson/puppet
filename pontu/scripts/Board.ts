@@ -4,6 +4,9 @@ class Board {
     public activePlayer: number = 0;
     public tiles: Tile[][];
 
+    public ICenter: number = 5;
+    public JCenter: number = 5;
+
     constructor(
         public main: Main
     ) {
@@ -15,6 +18,11 @@ class Board {
             }
         }
         this.tiles[5][5].isPlayable = true;
+        for (let i = 4; i <= 6; i++) {
+            for (let j = 4; j <= 6; j++) {
+                this.tiles[i][j].isNextToPlayable = true;
+            }
+        }
     }
 
     public cloneTiles(): Tile[][] {
@@ -44,6 +52,13 @@ class Board {
                     jMin = Math.min(j, jMin);
                     iMax = Math.max(i, iMax);
                     jMax = Math.max(j, jMax);
+                    for (let ii = -2; ii <= 2; ii++) {
+                        for (let jj = -2; jj <= 2; jj++) {
+                            if (i + ii >= 0 && i + ii < 11 && j + jj >= 0 && j + jj < 11) {
+                                tiles[i + ii][ j + jj].isNextToPlayable = true;
+                            }
+                        }
+                    }
                     for (let ii = -1; ii <= 1; ii++) {
                         for (let jj = -1; jj <= 1; jj++) {
                             if (i + ii >= 0 && i + ii < 11 && j + jj >= 0 && j + jj < 11) {
@@ -54,6 +69,9 @@ class Board {
                 }
             }
         }
+
+        this.ICenter = (iMin + iMax) * 0.5;
+        this.JCenter = (jMin + jMax) * 0.5;
 
         for (let i = 0; i < 11; i++) {
             for (let j = 0; j < 11; j++) {
@@ -74,10 +92,17 @@ class Board {
     }
 
     public updateShapes(): void {
-        console.log("Board Update Shape");
         for (let i = 0; i < 11; i++) {
             for (let j = 0; j < 11; j++) {
                 this.tiles[i][j].updateShape();
+            }
+        }
+    }
+
+    public updateShapesTextPosition(): void {
+        for (let i = 0; i < 11; i++) {
+            for (let j = 0; j < 11; j++) {
+                this.tiles[i][j].updateTextPosition();
             }
         }
     }
@@ -89,7 +114,15 @@ class Board {
             }
         }
         this.tiles[5][5].isPlayable = true;
+        for (let i = 4; i <= 6; i++) {
+            for (let j = 4; j <= 6; j++) {
+                this.tiles[i][j].isNextToPlayable = true;
+            }
+        }
+
         this.activePlayer = 0;
+        this.ICenter = 5;
+        this.JCenter = 5;
         this.updateShapes();
     }
 
