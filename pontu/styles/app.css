@@ -164,10 +164,10 @@ h2 {
   position: fixed;
   z-index: 1;
   color: black;
-  font-size: 8vh;
+  font-size: 12vmin;
   font-family: "Schoolwork";
   font-weight: bold;
   text-shadow: 1px 1px white, -1px 1px white, -1px -1px white, 1px -1px white;
   pointer-events: none;
-  transform: translateX(-50px) translateY(2vh);
+  transform: translateX(-50px) translateY(2.5vmin);
 }

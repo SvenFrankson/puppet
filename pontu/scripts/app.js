@@ -294,12 +294,14 @@ class Main {
     resizeCamera() {
         this.ratio = this.canvas.clientWidth / this.canvas.clientHeight;
         let n = 4;
+        /*
         if (Math.abs(this.ratio - 1) < 1 / 6) {
             n = 6;
         }
         else if (Math.abs(this.ratio - 1) < 1 / 3) {
             n = 5;
         }
+        */
         let targetOffset = BABYLON.Vector2.Zero();
         if (this.board) {
             targetOffset.x = (this.board.ICenter - 5) * 4;
