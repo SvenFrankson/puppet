@@ -102,12 +102,18 @@ class Main {
 		this.mainMenuContainer.style.display = "none";
 	}
 
-	public showEndGame(result: number): void {
+	public showEndGame(result: number, subvictory: boolean = false): void {
 		if (result === 0) {
 			document.getElementById("end-game-result").innerText = "you win ! :)";
+			if (subvictory) {
+				document.getElementById("end-game-result").innerText += " (with best 4 tiles line)";
+			}
 		}
 		if (result === 1) {
 			document.getElementById("end-game-result").innerText = "you loose... :(";
+			if (subvictory) {
+				document.getElementById("end-game-result").innerText += " (with best 4 tiles line)";
+			}
 		}
 		if (result === 2) {
 			document.getElementById("end-game-result").innerText = "draw";

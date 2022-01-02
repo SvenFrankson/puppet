@@ -237,4 +237,52 @@ class Board {
         }
         return -1;
     }
+
+    public checkSubVictor(): number {
+        let bestC: number = - 1;
+        let bestValue: number = Infinity;
+        for (let i = 0; i < 11; i++) {
+            for (let j = 0; j < 11; j++) {
+                let t = this.tiles[i][j];
+                let c = t.color;
+                if (c >= 0) {
+                    for (let di = - 1; di <= 1; di++) {
+                        for (let dj = - 1; dj <= 1; dj++) {
+                            if (di != 0 || dj != 0) {
+                                let subVictory = true;
+                                let value = 0;
+                                for (let n = 1; n < 4; n++) {
+                                    let ii = i + n * di;
+                                    let jj = j + n * dj;
+                                    if (ii >= 0 && ii < 11 && jj >= 0 && jj < 11) {
+                                        if (this.tiles[ii][jj].color != c) {
+                                            subVictory = false;
+                                        }
+                                        else {
+                                            value += this.tiles[ii][jj].value;
+                                        }
+                                    }
+                                    else {
+                                        subVictory = false;
+                                    }
+                                }
+                                if (subVictory === true) {
+                                    if (value < bestValue) {
+                                        bestValue = value;
+                                        bestC = c;
+                                    }
+                                    else if (value === bestValue) {
+                                        if (Math.floor(bestC * 0.5) != Math.floor(c * 0.5)) {
+                                            bestC = - 1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return bestC;
+    }
 }

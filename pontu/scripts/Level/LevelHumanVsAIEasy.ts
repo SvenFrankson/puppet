@@ -3,6 +3,7 @@ class LevelHumanVsAIEasy extends LevelHumanVsAI {
     public lock: boolean = false;
 
     public update(): void {
+        super.update();
         if (this.main.board.activePlayer === 1 && !this.lock) {
             for (let i = 0; i < 1000; i++) {
                 let n = Math.floor(Math.random() * 2);

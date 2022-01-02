@@ -219,6 +219,53 @@ class Board {
         }
         return -1;
     }
+    checkSubVictor() {
+        let bestC = -1;
+        let bestValue = Infinity;
+        for (let i = 0; i < 11; i++) {
+            for (let j = 0; j < 11; j++) {
+                let t = this.tiles[i][j];
+                let c = t.color;
+                if (c >= 0) {
+                    for (let di = -1; di <= 1; di++) {
+                        for (let dj = -1; dj <= 1; dj++) {
+                            if (di != 0 || dj != 0) {
+                                let subVictory = true;
+                                let value = 0;
+                                for (let n = 1; n < 4; n++) {
+                                    let ii = i + n * di;
+                                    let jj = j + n * dj;
+                                    if (ii >= 0 && ii < 11 && jj >= 0 && jj < 11) {
+                                        if (this.tiles[ii][jj].color != c) {
+                                            subVictory = false;
+                                        }
+                                        else {
+                                            value += this.tiles[ii][jj].value;
+                                        }
+                                    }
+                                    else {
+                                        subVictory = false;
+                                    }
+                                }
+                                if (subVictory === true) {
+                                    if (value < bestValue) {
+                                        bestValue = value;
+                                        bestC = c;
+                                    }
+                                    else if (value === bestValue) {
+                                        if (Math.floor(bestC * 0.5) != Math.floor(c * 0.5)) {
+                                            bestC = -1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return bestC;
+    }
 }
 class Card {
     constructor(value, color) {
@@ -254,7 +301,6 @@ class Deck {
         return true;
     }
     updateShape() {
-        console.log("Deck Update Shape");
         for (let i = 0; i < this.handSize; i++) {
             this.hand[i].updateShape();
         }
@@ -349,12 +395,18 @@ class Main {
     hideMainMenu() {
         this.mainMenuContainer.style.display = "none";
     }
-    showEndGame(result) {
+    showEndGame(result, subvictory = false) {
         if (result === 0) {
             document.getElementById("end-game-result").innerText = "you win ! :)";
+            if (subvictory) {
+                document.getElementById("end-game-result").innerText += " (with best 4 tiles line)";
+            }
         }
         if (result === 1) {
             document.getElementById("end-game-result").innerText = "you loose... :(";
+            if (subvictory) {
+                document.getElementById("end-game-result").innerText += " (with best 4 tiles line)";
+            }
         }
         if (result === 2) {
             document.getElementById("end-game-result").innerText = "draw";
@@ -1280,6 +1332,7 @@ class Level {
         this.main.board.hide();
     }
 }
+Level.MAX_CARD_VALUE = 2;
 class LevelPlayer extends Level {
     constructor(main) {
         super(main);
@@ -1366,6 +1419,15 @@ class LevelPlayer extends Level {
         this.deckPlayer.hand[1].shapePosition.x = -this.main.camera.orthoRight - 4;
         this.deckPlayer.hand[1].shapePosition.z = -this.main.camera.orthoBottom + 8;
         this.deckPlayer.updateShape();
+        if (this.main.board.activePlayer === 0 && this.deckPlayer.hand[0].value === 0 && this.deckPlayer.hand[1].value === 0) {
+            let subVictor = this.main.board.checkSubVictor();
+            if (subVictor === -1) {
+                this.main.showEndGame(2);
+            }
+            else {
+                this.main.showEndGame(Math.floor(subVictor * 0.5), true);
+            }
+        }
     }
     dispose() {
         super.dispose();
@@ -1441,7 +1503,7 @@ class LevelHumanVsAI extends LevelPlayer {
     }
     makePlayerDeck() {
         for (let c = 0; c < 2; c++) {
-            for (let v = 1; v <= 9; v++) {
+            for (let v = 1; v <= Level.MAX_CARD_VALUE; v++) {
                 for (let n = 0; n < 2; n++) {
                     let card = new Card(v, c);
                     this.deckPlayer.cards.push(card);
@@ -1451,7 +1513,7 @@ class LevelHumanVsAI extends LevelPlayer {
     }
     makeAIDeck() {
         for (let c = 2; c < 4; c++) {
-            for (let v = 1; v <= 9; v++) {
+            for (let v = 1; v <= Level.MAX_CARD_VALUE; v++) {
                 for (let n = 0; n < 2; n++) {
                     let card = new Card(v, c);
                     this.deckAI.cards.push(card);
@@ -1553,6 +1615,7 @@ class LevelHumanVsAIEasy extends LevelHumanVsAI {
         this.lock = false;
     }
     update() {
+        super.update();
         if (this.main.board.activePlayer === 1 && !this.lock) {
             for (let i = 0; i < 1000; i++) {
                 let n = Math.floor(Math.random() * 2);

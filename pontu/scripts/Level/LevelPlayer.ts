@@ -102,6 +102,16 @@ abstract class LevelPlayer extends Level {
         this.deckPlayer.hand[1].shapePosition.z = - this.main.camera.orthoBottom + 8;
         
         this.deckPlayer.updateShape();
+
+        if (this.main.board.activePlayer === 0 && this.deckPlayer.hand[0].value === 0 && this.deckPlayer.hand[1].value === 0) {
+            let subVictor = this.main.board.checkSubVictor();
+            if (subVictor === - 1) {
+                this.main.showEndGame(2);
+            }
+            else {
+                this.main.showEndGame(Math.floor(subVictor * 0.5), true);
+            }
+        }
     }
 
     public dispose(): void {

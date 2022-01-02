@@ -29,7 +29,7 @@ class LevelHumanVsAI extends LevelPlayer {
 
     public makePlayerDeck(): void {
         for (let c = 0; c < 2; c++) {
-            for (let v = 1; v <= 9; v++) {
+            for (let v = 1; v <= Level.MAX_CARD_VALUE; v++) {
                 for (let n = 0; n < 2; n++) {
                     let card = new Card(v, c);
                     this.deckPlayer.cards.push(card);
@@ -40,7 +40,7 @@ class LevelHumanVsAI extends LevelPlayer {
 
     public makeAIDeck(): void {
         for (let c = 2; c < 4; c++) {
-            for (let v = 1; v <= 9; v++) {
+            for (let v = 1; v <= Level.MAX_CARD_VALUE; v++) {
                 for (let n = 0; n < 2; n++) {
                     let card = new Card(v, c);
                     this.deckAI.cards.push(card);

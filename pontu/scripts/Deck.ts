@@ -38,7 +38,6 @@ class Deck {
     }
 
     public updateShape(): void {
-        console.log("Deck Update Shape");
         for (let i = 0; i < this.handSize; i++) {
             this.hand[i].updateShape();
         }

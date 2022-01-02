@@ -1,5 +1,7 @@
 class Level {
 
+    public static MAX_CARD_VALUE = 2;
+
     constructor(
         public main: Main
     ) {
