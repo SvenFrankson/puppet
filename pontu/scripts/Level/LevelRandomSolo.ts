@@ -24,7 +24,7 @@ class LevelRandomSolo extends LevelPlayer {
     }
 
     public update(): void {
-
+        super.update();
     }
 
     public dispose(): void {

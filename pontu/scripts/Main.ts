@@ -12,12 +12,14 @@ class Main {
 	public board: Board;
 	public mainMenuContainer: HTMLDivElement;
 	public endGamePanel: HTMLDivElement;
+	public tutorialPanel: HTMLDivElement;
 	public currentLevel: Level;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
 		this.mainMenuContainer = document.getElementById("main-menu-panel") as HTMLDivElement;
 		this.endGamePanel = document.getElementById("end-game-panel") as HTMLDivElement;
+		this.tutorialPanel = document.getElementById("tutorial-panel") as HTMLDivElement;
         this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
 	}
 	
@@ -91,11 +93,15 @@ class Main {
 
 		this.endGamePanel.style.width = w.toFixed(0) + "px";
 		this.endGamePanel.style.left = left.toFixed(0) + "px";
+
+		this.tutorialPanel.style.width = w.toFixed(0) + "px";
+		this.tutorialPanel.style.left = left.toFixed(0) + "px";
 	}
 
 	public showMainMenu(): void {
 		this.mainMenuContainer.style.display = "block";
 		this.hideEndGame();
+		this.hideTutorialPanel();
 	}
 
 	public hideMainMenu(): void {
@@ -103,6 +109,7 @@ class Main {
 	}
 
 	public showEndGame(result: number, subvictory: boolean = false): void {
+		this.hideTutorialPanel();
 		if (result === 0) {
 			document.getElementById("end-game-result").innerText = "you win ! :)";
 			if (subvictory) {
@@ -130,6 +137,43 @@ class Main {
 
 	public hideEndGame(): void {
 		this.endGamePanel.style.display = "none";
+	}
+
+	public showTutorialPanel(index: number = 0): void {
+		this.tutorialPanel.style.display = "block";
+		for (let i = 0; i < 5; i++) {
+			document.getElementById("tutorial-img-" + i).style.display = i === index ? "inline" : "none";
+			document.getElementById("tutorial-txt-" + i).style.display = i === index ? "block" : "none";
+		}
+
+		if (index === 0) {
+			document.getElementById("tutorial-back").onpointerup = () => {
+				this.showMainMenu();
+			}
+		}
+		else {
+			document.getElementById("tutorial-back").onpointerup = () => {
+				this.showTutorialPanel(index - 1);
+			}
+		}
+		
+		if (index === 4) {
+			document.getElementById("tutorial-next").onpointerup = () => {
+				this.showMainMenu();
+			}
+		}
+		else {
+			document.getElementById("tutorial-next").onpointerup = () => {
+				this.showTutorialPanel(index + 1);
+			}
+		}
+
+		this.hideMainMenu();
+		this.hideEndGame();
+	}
+
+	public hideTutorialPanel(): void {
+		this.tutorialPanel.style.display = "none";
 	}
 
 	public xToLeft(x: number): number {
@@ -228,12 +272,20 @@ class Main {
 	}
 
 	public initializeMainMenu(): void {
+		document.getElementById("open-tutorial").addEventListener("pointerup", () => {
+			this.showTutorialPanel();
+		});
+		document.getElementById("level-solo").addEventListener("pointerup", () => {
+			this.currentLevel = new LevelRandomSolo(this);
+			this.currentLevel.initialize();
+		});
 		document.getElementById("level-solo").addEventListener("pointerup", () => {
 			this.currentLevel = new LevelRandomSolo(this);
 			this.currentLevel.initialize();
 		});
 		document.getElementById("level-vs-ai-easy").addEventListener("pointerup", () => {
-			this.currentLevel = new LevelHumanVsAIEasy(this);
+			this.currentLevel = new LevelHumanVsAI(this);
+			(this.currentLevel as LevelHumanVsAI).aggroAI = 0;
 			this.currentLevel.initialize();
 		});
 		document.getElementById("level-vs-ai").addEventListener("pointerup", () => {
