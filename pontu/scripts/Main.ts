@@ -82,7 +82,7 @@ class Main {
 	}
 
 	public centerMainMenu(): void {
-		let w = this.canvas.clientWidth * 0.6;
+		let w = this.canvas.clientWidth * 0.5;
 		if (w < 400) {
 			w = this.canvas.clientWidth;
 		}

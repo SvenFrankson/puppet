@@ -136,7 +136,6 @@ class LevelHumanVsAI extends LevelPlayer {
                 }
             }
             if (isFinite(bestValue)) {
-                console.log(bestValue);
                 let card = this.deckAI.hand[bestN];
                 this.lock = true;
                 this.aiPlayAnimation(bestN, bestTile.i, bestTile.j, () => {
@@ -181,7 +180,6 @@ class LevelHumanVsAI extends LevelPlayer {
     public dispose(): void {
         super.dispose();
         this.deckAI.hand.forEach(t => {
-            console.log("Deck AI Dispose Tile");
             t.dispose();
         })
     }

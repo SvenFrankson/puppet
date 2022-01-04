@@ -48,11 +48,8 @@ abstract class LevelPlayer extends Level {
 
     public pointerEvent(eventData: BABYLON.PointerInfo): void {
         if (eventData.type === BABYLON.PointerEventTypes.POINTERDOWN) {
-            console.log("Alpha");
             if (eventData.pickInfo.pickedMesh) {
-                console.log("Bravo " + eventData.pickInfo.pickedMesh.name);
                 if (eventData.pickInfo.pickedMesh.name === "shape_" + this.hand0I.toFixed(0) + "_" + this.hand0J.toFixed(0)) {
-                    console.log("Charly");
                     this.pickedCard = 0;
                     this.deckPlayer.hand[0].selected = true;
                     this.deckPlayer.hand[0].updateShape();
