@@ -47,7 +47,7 @@ class Main {
 
     public async initializeScene(): Promise<void> {
 		this.scene = new BABYLON.Scene(this.engine);
-		this.scene.clearColor.copyFromFloats(1, 1, 1, 1);
+		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
 
 		this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 10), this.scene);
 		this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
@@ -65,6 +65,13 @@ class Main {
 		let turret = new Turret(this.scene, this.canvas);
 		turret.base.position.x = - 5;
 		turret.target = walker;
+
+		for (let i = 0; i < 20; i++) {
+			let rock = new Prop("rock_1", 0.80, 0.71, this.scene, this.canvas);
+			rock.sprite.position.x = - 20 + 40 * Math.random();
+			rock.sprite.position.y = - 20 + 40 * Math.random();
+			rock.sprite.rotation.z = 2 * Math.PI * Math.random();
+		}
 	}
 	
     public animate(): void {

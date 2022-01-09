@@ -32,7 +32,7 @@ class Main {
     }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
-        this.scene.clearColor.copyFromFloats(1, 1, 1, 1);
+        this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, -10), this.scene);
         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         this.resize();
@@ -45,6 +45,12 @@ class Main {
         let turret = new Turret(this.scene, this.canvas);
         turret.base.position.x = -5;
         turret.target = walker;
+        for (let i = 0; i < 20; i++) {
+            let rock = new Prop("rock_1", 0.80, 0.71, this.scene, this.canvas);
+            rock.sprite.position.x = -20 + 40 * Math.random();
+            rock.sprite.position.y = -20 + 40 * Math.random();
+            rock.sprite.rotation.z = 2 * Math.PI * Math.random();
+        }
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -482,6 +488,23 @@ class Math2D {
 }
 Math2D.AxisX = new BABYLON.Vector2(1, 0);
 Math2D.AxisY = new BABYLON.Vector2(0, 1);
+class Prop {
+    constructor(name, w, h, scene, canvas) {
+        this.name = name;
+        this.w = w;
+        this.h = h;
+        this.scene = scene;
+        this.canvas = canvas;
+        this.sprite = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, this.scene);
+        this.sprite.position.z = 1;
+        let spriteMaterial = new BABYLON.StandardMaterial("turret-sprite-material", this.scene);
+        spriteMaterial.diffuseTexture = new BABYLON.Texture("assets/" + name + ".png", this.scene);
+        spriteMaterial.diffuseTexture.hasAlpha = true;
+        spriteMaterial.specularColor.copyFromFloats(0, 0, 0);
+        spriteMaterial.alphaCutOff = 0.1;
+        this.sprite.material = spriteMaterial;
+    }
+}
 class Turret {
     constructor(scene, canvas) {
         this.scene = scene;
