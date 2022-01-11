@@ -30,9 +30,9 @@ class Walker {
 
     public legCount: number = 2;
 
-    public feet: BABYLON.Mesh[] = [];
-    public arms: BABYLON.Mesh[] = [];
-    public body: BABYLON.Mesh;
+    public feet: Sprite[] = [];
+    public arms: Sprite[] = [];
+    public body: Sprite;
 
     public target: WalkerTarget;
     private _inputDirs: UniqueList<number> = new UniqueList<number>();
@@ -46,117 +46,42 @@ class Walker {
     ) {
         this.target = new WalkerTarget(this);
 
-        let robotBody = BABYLON.MeshBuilder.CreatePlane("robot-body-2", { width: 1.80, height: 3.06 }, this.scene);
+        let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.scene);
+        robotBody.height = 2;
 		robotBody.position.x = 5;
 		robotBody.position.y = 5;
-
-		let robotBodyMaterial = new BABYLON.StandardMaterial("robot-body-material", this.scene);
-		robotBodyMaterial.diffuseTexture = new BABYLON.Texture("assets/robot_body_2.png", this.scene);
-		robotBodyMaterial.diffuseTexture.hasAlpha = true;
-        robotBodyMaterial.specularColor.copyFromFloats(0, 0, 0);
-		robotBodyMaterial.alphaCutOff = 0.1
-
-		robotBody.material = robotBodyMaterial;
-
-        let robotBodyShadow = SpriteUtils.MakeShadow(robotBody, 1.80, 3.06);
-        robotBodyShadow.position.z = 1.1;
-        this.scene.onBeforeRenderObservable.add(() => {
-            robotBodyShadow.position.x = robotBody.absolutePosition.x + 0.2;
-            robotBodyShadow.position.y = robotBody.absolutePosition.y - 0.1;
-            robotBodyShadow.rotation.z = robotBody.rotation.z;
-        });
-
+        
         this.body = robotBody;
 		
-		let robotArm_L = BABYLON.MeshBuilder.CreatePlane("robot-arm_L", { width: 1.38, height: 1.31 }, this.scene);
+		let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.scene);
+        robotArm_L.height = 3;
 		robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, - 0.43, 0)));
 		robotArm_L.position.x = - 1.1;
 		robotArm_L.position.y = 0.7;
 		robotArm_L.position.z = - 0.1;
 		robotArm_L.parent = robotBody
 
-		let robotArm_LMaterial = new BABYLON.StandardMaterial("robot-arm_L-material", this.scene);
-		robotArm_LMaterial.diffuseTexture = new BABYLON.Texture("assets/robot_arm_L.png", this.scene);
-		robotArm_LMaterial.diffuseTexture.hasAlpha = true;
-        robotArm_LMaterial.specularColor.copyFromFloats(0, 0, 0);
-		robotArm_LMaterial.alphaCutOff = 0.1
-
-		robotArm_L.material = robotArm_LMaterial;
-
-        let robotArm_LShadow = SpriteUtils.MakeShadow(robotArm_L, 1.38, 1.31);
-        robotArm_LShadow.position.z = 1.1;
-        this.scene.onBeforeRenderObservable.add(() => {
-            robotArm_LShadow.position.x = robotArm_L.absolutePosition.x + 0.2;
-            robotArm_LShadow.position.y = robotArm_L.absolutePosition.y - 0.1;
-            robotArm_LShadow.rotation.z = robotArm_L.rotation.z;
-        });
-
-		let robotArm_R = BABYLON.MeshBuilder.CreatePlane("robot-arm_R", { width: 1.34, height: 1.28 }, this.scene);
-		robotArm_R.setPivotPoint((new BABYLON.Vector3(- 0.47, - 0.44, 0)));
+		let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.scene);
+        robotArm_R.height = 3;
+		robotArm_R.setPivotPoint((new BABYLON.Vector3(- 0.48, - 0.43, 0)));
 		robotArm_R.position.x = 1.1;
 		robotArm_R.position.y = 0.7;
 		robotArm_R.position.z = - 0.1;
 		robotArm_R.parent = robotBody
 
-		let robotArm_RMaterial = new BABYLON.StandardMaterial("robot-arm_R-material", this.scene);
-		robotArm_RMaterial.diffuseTexture = new BABYLON.Texture("assets/robot_arm_R.png", this.scene);
-		robotArm_RMaterial.diffuseTexture.hasAlpha = true;
-        robotArm_RMaterial.specularColor.copyFromFloats(0, 0, 0);
-		robotArm_RMaterial.alphaCutOff = 0.1
-
-		robotArm_R.material = robotArm_RMaterial;
-
-        let robotArm_RShadow = SpriteUtils.MakeShadow(robotArm_R, 1.34, 1.28);
-        robotArm_RShadow.position.z = 1.1;
-        this.scene.onBeforeRenderObservable.add(() => {
-            robotArm_RShadow.position.x = robotArm_R.absolutePosition.x + 0.2;
-            robotArm_RShadow.position.y = robotArm_R.absolutePosition.y - 0.1;
-            robotArm_RShadow.rotation.z = robotArm_R.rotation.z;
-        });
-
-        let robotFoot_L = BABYLON.MeshBuilder.CreatePlane("robot-foot_L", { width: 1.60, height: 1.78 }, this.scene);
+        let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.scene);
+        robotFoot_L.height = 1;
 		robotFoot_L.position.x = - 1.1;
 		robotFoot_L.position.y = 0;
 		robotFoot_L.position.z = 0.1;
 		robotFoot_L.rotation.z = 0.3;
 
-		let robotfoot_LMaterial = new BABYLON.StandardMaterial("robot-foot_L-material", this.scene);
-		robotfoot_LMaterial.diffuseTexture = new BABYLON.Texture("assets/robot_foot_L.png", this.scene);
-		robotfoot_LMaterial.diffuseTexture.hasAlpha = true;
-        robotfoot_LMaterial.specularColor.copyFromFloats(0, 0, 0);
-		robotfoot_LMaterial.alphaCutOff = 0.1
-
-		robotFoot_L.material = robotfoot_LMaterial;
-
-        let robotFoot_LShadow = SpriteUtils.MakeShadow(robotFoot_L, 1.60, 1.78);
-        robotFoot_LShadow.position.z = 1.1;
-        this.scene.onBeforeRenderObservable.add(() => {
-            robotFoot_LShadow.position.x = robotFoot_L.absolutePosition.x + 0.2;
-            robotFoot_LShadow.position.y = robotFoot_L.absolutePosition.y - 0.1;
-            robotFoot_LShadow.rotation.z = robotFoot_L.rotation.z;
-        });
-
-		let robotFoot_R = BABYLON.MeshBuilder.CreatePlane("robot-foot_R", { width: 1.57, height: 1.76 }, this.scene);
+		let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.scene);
+        robotFoot_R.height = 1;
 		robotFoot_R.position.x = 1.1;
 		robotFoot_R.position.y = 0;
 		robotFoot_R.position.z = 0.1;
 		robotFoot_R.rotation.z = - 0.3;
-
-		let robotfoot_RMaterial = new BABYLON.StandardMaterial("robot-foot_R-material", this.scene);
-		robotfoot_RMaterial.diffuseTexture = new BABYLON.Texture("assets/robot_foot_R.png", this.scene);
-		robotfoot_RMaterial.diffuseTexture.hasAlpha = true;
-        robotfoot_RMaterial.specularColor.copyFromFloats(0, 0, 0);
-		robotfoot_RMaterial.alphaCutOff = 0.1
-
-		robotFoot_R.material = robotfoot_RMaterial;
-
-        let robotFoot_RShadow = SpriteUtils.MakeShadow(robotFoot_R, 1.57, 1.76);
-        robotFoot_RShadow.position.z = 1.1;
-        this.scene.onBeforeRenderObservable.add(() => {
-            robotFoot_RShadow.position.x = robotFoot_R.absolutePosition.x + 0.2;
-            robotFoot_RShadow.position.y = robotFoot_R.absolutePosition.y - 0.1;
-            robotFoot_RShadow.rotation.z = robotFoot_R.rotation.z;
-        });
 
         this.feet = [robotFoot_L, robotFoot_R];
         this.arms = [robotArm_L, robotArm_R];
@@ -228,6 +153,7 @@ class Walker {
                     this.feet[legIndex].position.copyFrom(
                         origin.scale(1 - d).add(target.scale(d))
                     );
+                    this.feet[legIndex].height = 1 + 3 * Math.sin(Math.PI * d);
                     this.feet[legIndex].position.z = 0.1;
                     this.feet[legIndex].rotation.z = Math2D.LerpFromToCircular(originR, targetR, d);
                     if (d < 1) {
@@ -313,7 +239,7 @@ class Walker {
                     }
                 }
             }
-            if (dist > 0.01) {
+            if (dist > 0.1) {
                 this._movingLegCount++;
                 this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.z); 
             }
