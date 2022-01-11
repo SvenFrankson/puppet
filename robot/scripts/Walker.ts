@@ -58,6 +58,14 @@ class Walker {
 
 		robotBody.material = robotBodyMaterial;
 
+        let robotBodyShadow = SpriteUtils.MakeShadow(robotBody, 1.80, 3.06);
+        robotBodyShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotBodyShadow.position.x = robotBody.absolutePosition.x + 0.2;
+            robotBodyShadow.position.y = robotBody.absolutePosition.y - 0.1;
+            robotBodyShadow.rotation.z = robotBody.rotation.z;
+        });
+
         this.body = robotBody;
 		
 		let robotArm_L = BABYLON.MeshBuilder.CreatePlane("robot-arm_L", { width: 1.38, height: 1.31 }, this.scene);
@@ -75,6 +83,14 @@ class Walker {
 
 		robotArm_L.material = robotArm_LMaterial;
 
+        let robotArm_LShadow = SpriteUtils.MakeShadow(robotArm_L, 1.38, 1.31);
+        robotArm_LShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotArm_LShadow.position.x = robotArm_L.absolutePosition.x + 0.2;
+            robotArm_LShadow.position.y = robotArm_L.absolutePosition.y - 0.1;
+            robotArm_LShadow.rotation.z = robotArm_L.rotation.z;
+        });
+
 		let robotArm_R = BABYLON.MeshBuilder.CreatePlane("robot-arm_R", { width: 1.34, height: 1.28 }, this.scene);
 		robotArm_R.setPivotPoint((new BABYLON.Vector3(- 0.47, - 0.44, 0)));
 		robotArm_R.position.x = 1.1;
@@ -90,6 +106,14 @@ class Walker {
 
 		robotArm_R.material = robotArm_RMaterial;
 
+        let robotArm_RShadow = SpriteUtils.MakeShadow(robotArm_R, 1.34, 1.28);
+        robotArm_RShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotArm_RShadow.position.x = robotArm_R.absolutePosition.x + 0.2;
+            robotArm_RShadow.position.y = robotArm_R.absolutePosition.y - 0.1;
+            robotArm_RShadow.rotation.z = robotArm_R.rotation.z;
+        });
+
         let robotFoot_L = BABYLON.MeshBuilder.CreatePlane("robot-foot_L", { width: 1.60, height: 1.78 }, this.scene);
 		robotFoot_L.position.x = - 1.1;
 		robotFoot_L.position.y = 0;
@@ -104,6 +128,14 @@ class Walker {
 
 		robotFoot_L.material = robotfoot_LMaterial;
 
+        let robotFoot_LShadow = SpriteUtils.MakeShadow(robotFoot_L, 1.60, 1.78);
+        robotFoot_LShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotFoot_LShadow.position.x = robotFoot_L.absolutePosition.x + 0.2;
+            robotFoot_LShadow.position.y = robotFoot_L.absolutePosition.y - 0.1;
+            robotFoot_LShadow.rotation.z = robotFoot_L.rotation.z;
+        });
+
 		let robotFoot_R = BABYLON.MeshBuilder.CreatePlane("robot-foot_R", { width: 1.57, height: 1.76 }, this.scene);
 		robotFoot_R.position.x = 1.1;
 		robotFoot_R.position.y = 0;
@@ -117,6 +149,14 @@ class Walker {
 		robotfoot_RMaterial.alphaCutOff = 0.1
 
 		robotFoot_R.material = robotfoot_RMaterial;
+
+        let robotFoot_RShadow = SpriteUtils.MakeShadow(robotFoot_R, 1.57, 1.76);
+        robotFoot_RShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotFoot_RShadow.position.x = robotFoot_R.absolutePosition.x + 0.2;
+            robotFoot_RShadow.position.y = robotFoot_R.absolutePosition.y - 0.1;
+            robotFoot_RShadow.rotation.z = robotFoot_R.rotation.z;
+        });
 
         this.feet = [robotFoot_L, robotFoot_R];
         this.arms = [robotArm_L, robotArm_R];

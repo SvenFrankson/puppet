@@ -19,5 +19,13 @@ class Prop {
 		spriteMaterial.alphaCutOff = 0.1
 
 		this.sprite.material = spriteMaterial;
+
+        let shadow = SpriteUtils.MakeShadow(this.sprite, w, h);
+        shadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            shadow.position.x = this.sprite.position.x + 0.2;
+            shadow.position.y = this.sprite.position.y - 0.1;
+            shadow.rotation.z = this.sprite.rotation.z;
+        });
     }
 }

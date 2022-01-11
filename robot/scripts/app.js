@@ -51,6 +51,17 @@ class Main {
             rock.sprite.position.y = -20 + 40 * Math.random();
             rock.sprite.rotation.z = 2 * Math.PI * Math.random();
         }
+        let wallNode1 = new WallNode("wallNode1", this.scene, this.canvas);
+        wallNode1.sprite.position.x = -4;
+        wallNode1.sprite.position.y = 5;
+        let wallNode2 = new WallNode("wallNode2", this.scene, this.canvas);
+        wallNode2.sprite.position.x = 7;
+        wallNode2.sprite.position.y = 3;
+        let wallNode3 = new WallNode("wallNode3", this.scene, this.canvas);
+        wallNode3.sprite.position.x = 6;
+        wallNode3.sprite.position.y = -4;
+        let wall1 = new Wall(wallNode1, wallNode2, this.scene, this.canvas);
+        let wall2 = new Wall(wallNode2, wallNode3, this.scene, this.canvas);
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -503,6 +514,13 @@ class Prop {
         spriteMaterial.specularColor.copyFromFloats(0, 0, 0);
         spriteMaterial.alphaCutOff = 0.1;
         this.sprite.material = spriteMaterial;
+        let shadow = SpriteUtils.MakeShadow(this.sprite, w, h);
+        shadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            shadow.position.x = this.sprite.position.x + 0.2;
+            shadow.position.y = this.sprite.position.y - 0.1;
+            shadow.rotation.z = this.sprite.rotation.z;
+        });
     }
 }
 class Turret {
@@ -838,6 +856,13 @@ class Walker {
         robotBodyMaterial.specularColor.copyFromFloats(0, 0, 0);
         robotBodyMaterial.alphaCutOff = 0.1;
         robotBody.material = robotBodyMaterial;
+        let robotBodyShadow = SpriteUtils.MakeShadow(robotBody, 1.80, 3.06);
+        robotBodyShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotBodyShadow.position.x = robotBody.absolutePosition.x + 0.2;
+            robotBodyShadow.position.y = robotBody.absolutePosition.y - 0.1;
+            robotBodyShadow.rotation.z = robotBody.rotation.z;
+        });
         this.body = robotBody;
         let robotArm_L = BABYLON.MeshBuilder.CreatePlane("robot-arm_L", { width: 1.38, height: 1.31 }, this.scene);
         robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, -0.43, 0)));
@@ -851,6 +876,13 @@ class Walker {
         robotArm_LMaterial.specularColor.copyFromFloats(0, 0, 0);
         robotArm_LMaterial.alphaCutOff = 0.1;
         robotArm_L.material = robotArm_LMaterial;
+        let robotArm_LShadow = SpriteUtils.MakeShadow(robotArm_L, 1.38, 1.31);
+        robotArm_LShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotArm_LShadow.position.x = robotArm_L.absolutePosition.x + 0.2;
+            robotArm_LShadow.position.y = robotArm_L.absolutePosition.y - 0.1;
+            robotArm_LShadow.rotation.z = robotArm_L.rotation.z;
+        });
         let robotArm_R = BABYLON.MeshBuilder.CreatePlane("robot-arm_R", { width: 1.34, height: 1.28 }, this.scene);
         robotArm_R.setPivotPoint((new BABYLON.Vector3(-0.47, -0.44, 0)));
         robotArm_R.position.x = 1.1;
@@ -863,6 +895,13 @@ class Walker {
         robotArm_RMaterial.specularColor.copyFromFloats(0, 0, 0);
         robotArm_RMaterial.alphaCutOff = 0.1;
         robotArm_R.material = robotArm_RMaterial;
+        let robotArm_RShadow = SpriteUtils.MakeShadow(robotArm_R, 1.34, 1.28);
+        robotArm_RShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotArm_RShadow.position.x = robotArm_R.absolutePosition.x + 0.2;
+            robotArm_RShadow.position.y = robotArm_R.absolutePosition.y - 0.1;
+            robotArm_RShadow.rotation.z = robotArm_R.rotation.z;
+        });
         let robotFoot_L = BABYLON.MeshBuilder.CreatePlane("robot-foot_L", { width: 1.60, height: 1.78 }, this.scene);
         robotFoot_L.position.x = -1.1;
         robotFoot_L.position.y = 0;
@@ -874,6 +913,13 @@ class Walker {
         robotfoot_LMaterial.specularColor.copyFromFloats(0, 0, 0);
         robotfoot_LMaterial.alphaCutOff = 0.1;
         robotFoot_L.material = robotfoot_LMaterial;
+        let robotFoot_LShadow = SpriteUtils.MakeShadow(robotFoot_L, 1.60, 1.78);
+        robotFoot_LShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotFoot_LShadow.position.x = robotFoot_L.absolutePosition.x + 0.2;
+            robotFoot_LShadow.position.y = robotFoot_L.absolutePosition.y - 0.1;
+            robotFoot_LShadow.rotation.z = robotFoot_L.rotation.z;
+        });
         let robotFoot_R = BABYLON.MeshBuilder.CreatePlane("robot-foot_R", { width: 1.57, height: 1.76 }, this.scene);
         robotFoot_R.position.x = 1.1;
         robotFoot_R.position.y = 0;
@@ -885,6 +931,13 @@ class Walker {
         robotfoot_RMaterial.specularColor.copyFromFloats(0, 0, 0);
         robotfoot_RMaterial.alphaCutOff = 0.1;
         robotFoot_R.material = robotfoot_RMaterial;
+        let robotFoot_RShadow = SpriteUtils.MakeShadow(robotFoot_R, 1.57, 1.76);
+        robotFoot_RShadow.position.z = 1.1;
+        this.scene.onBeforeRenderObservable.add(() => {
+            robotFoot_RShadow.position.x = robotFoot_R.absolutePosition.x + 0.2;
+            robotFoot_RShadow.position.y = robotFoot_R.absolutePosition.y - 0.1;
+            robotFoot_RShadow.rotation.z = robotFoot_R.rotation.z;
+        });
         this.feet = [robotFoot_L, robotFoot_R];
         this.arms = [robotArm_L, robotArm_R];
         this.scene.onBeforeRenderObservable.add(this._update);
@@ -963,6 +1016,52 @@ class Walker {
         });
     }
 }
+class WallNode {
+    constructor(name, scene, canvas) {
+        this.name = name;
+        this.scene = scene;
+        this.canvas = canvas;
+        this.sprite = BABYLON.MeshBuilder.CreatePlane(name, { width: 2.82, height: 2.75 }, this.scene);
+        this.sprite.position.z = 0;
+        let spriteMaterial = new BABYLON.StandardMaterial("wall-sprite-material", this.scene);
+        spriteMaterial.diffuseTexture = new BABYLON.Texture("assets/wall_node_base.png", this.scene);
+        spriteMaterial.diffuseTexture.hasAlpha = true;
+        spriteMaterial.specularColor.copyFromFloats(0, 0, 0);
+        spriteMaterial.alphaCutOff = 0.1;
+        this.sprite.material = spriteMaterial;
+        this.top = BABYLON.MeshBuilder.CreatePlane(name, { width: 1.15, height: 1.11 }, this.scene);
+        this.top.position.z = -0.2;
+        this.top.parent = this.sprite;
+        let topMaterial = new BABYLON.StandardMaterial("wall-top-material", this.scene);
+        topMaterial.diffuseTexture = new BABYLON.Texture("assets/wall_top.png", this.scene);
+        topMaterial.diffuseTexture.hasAlpha = true;
+        topMaterial.specularColor.copyFromFloats(0, 0, 0);
+        topMaterial.alphaCutOff = 0.1;
+        this.top.material = topMaterial;
+    }
+}
+class Wall {
+    constructor(node1, node2, scene, canvas) {
+        this.node1 = node1;
+        this.node2 = node2;
+        this.scene = scene;
+        this.canvas = canvas;
+        let n = node2.sprite.position.subtract(node1.sprite.position);
+        let l = n.length();
+        this.sprite = BABYLON.MeshBuilder.CreatePlane("wall", { width: l, height: 0.85, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, l / 2.17, 1) }, this.scene);
+        this.sprite.setPivotPoint(new BABYLON.Vector3(-l * 0.5, 0, 0));
+        this.sprite.position.z = -0.1;
+        let spriteMaterial = new BABYLON.StandardMaterial("wall-material", this.scene);
+        spriteMaterial.diffuseTexture = new BABYLON.Texture("assets/wall.png", this.scene);
+        spriteMaterial.diffuseTexture.hasAlpha = true;
+        spriteMaterial.specularColor.copyFromFloats(0, 0, 0);
+        spriteMaterial.alphaCutOff = 0.1;
+        this.sprite.material = spriteMaterial;
+        this.sprite.position.x = this.node1.sprite.position.x + l * 0.5;
+        this.sprite.position.y = this.node1.sprite.position.y;
+        this.sprite.rotation.z = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), new BABYLON.Vector2(n.x, n.y));
+    }
+}
 class TerrainToonMaterial extends BABYLON.ShaderMaterial {
     constructor(name, color, scene) {
         super(name, scene, {
@@ -1011,6 +1110,59 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
         this.setTexture("pencil_texture", new BABYLON.Texture("assets/pencil.png", this.getScene()));
     }
 }
+var CameraRadiusMode;
+(function (CameraRadiusMode) {
+    CameraRadiusMode[CameraRadiusMode["Cover"] = 0] = "Cover";
+    CameraRadiusMode[CameraRadiusMode["Contain"] = 1] = "Contain";
+})(CameraRadiusMode || (CameraRadiusMode = {}));
+class Camera {
+    constructor(scene) {
+        this.scene = scene;
+        this.radius = 10;
+        this.radiusMode = CameraRadiusMode.Cover;
+        this.position = new Vec2();
+    }
+}
+class Engine {
+}
+class Scene {
+    constructor(engine) {
+        this.engine = engine;
+        this.nodes = new UniqueList();
+        this.cameras = new UniqueList();
+    }
+    update(dt) {
+    }
+}
+class TransformNode {
+    constructor(name, scene) {
+        this.name = name;
+        this.scene = scene;
+        this.position = new Vec2();
+        this.absolutePosition = new Vec2();
+        this.rotation = 0;
+        this.absoluteRotation = 0;
+    }
+}
+/// <reference path="TransformNode.ts"/>
+class Sprite extends TransformNode {
+    constructor(name, src, width, height, scene) {
+        super(name, scene);
+        this.src = src;
+        this.width = width;
+        this.height = height;
+        this.img = document.createElement("img");
+        this.img.src = this.src;
+        this.img.style.position = "fixed";
+        document.body.appendChild(this.img);
+    }
+}
+class Vec2 {
+    constructor(x = 0, y = 0) {
+        this.x = x;
+        this.y = y;
+    }
+}
 class ArrayUtils {
     static shuffle(array) {
         let l = array.length;
@@ -1034,6 +1186,21 @@ class AsyncUtils {
                 resolve();
             }, delay);
         });
+    }
+}
+class SpriteUtils {
+    static MakeShadow(sprite, w, h) {
+        let shadowSprite = BABYLON.MeshBuilder.CreatePlane(sprite.name + "-shadow", { width: w, height: h }, sprite.getScene());
+        shadowSprite.position.z = 1;
+        let shadowSpriteMaterial = new BABYLON.StandardMaterial(sprite.material.name + "-shadow", sprite.getScene());
+        let spriteMaterial = sprite.material;
+        shadowSpriteMaterial.diffuseTexture = spriteMaterial.diffuseTexture;
+        shadowSpriteMaterial.diffuseColor.copyFromFloats(0, 0, 0);
+        shadowSpriteMaterial.diffuseTexture.hasAlpha = true;
+        shadowSpriteMaterial.specularColor.copyFromFloats(0, 0, 0);
+        shadowSpriteMaterial.alphaCutOff = 0.1;
+        shadowSprite.material = shadowSpriteMaterial;
+        return shadowSprite;
     }
 }
 class UniqueList {

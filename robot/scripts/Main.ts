@@ -72,6 +72,21 @@ class Main {
 			rock.sprite.position.y = - 20 + 40 * Math.random();
 			rock.sprite.rotation.z = 2 * Math.PI * Math.random();
 		}
+		
+		let wallNode1 = new WallNode("wallNode1", this.scene, this.canvas);
+		wallNode1.sprite.position.x = - 4;
+		wallNode1.sprite.position.y = 5;
+		
+		let wallNode2 = new WallNode("wallNode2", this.scene, this.canvas);
+		wallNode2.sprite.position.x = 7;
+		wallNode2.sprite.position.y = 3;
+		
+		let wallNode3 = new WallNode("wallNode3", this.scene, this.canvas);
+		wallNode3.sprite.position.x = 6;
+		wallNode3.sprite.position.y = -4;
+
+		let wall1 = new Wall(wallNode1, wallNode2, this.scene, this.canvas);
+		let wall2 = new Wall(wallNode2, wallNode3, this.scene, this.canvas);
 	}
 	
     public animate(): void {
