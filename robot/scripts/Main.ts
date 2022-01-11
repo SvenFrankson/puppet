@@ -87,6 +87,27 @@ class Main {
 
 		let wall1 = new Wall(wallNode1, wallNode2, this.scene, this.canvas);
 		let wall2 = new Wall(wallNode2, wallNode3, this.scene, this.canvas);
+
+		let title = SpacePanel.CreateSpacePanel();
+		title.addTitle1("MARS AT WAR");
+		title.classList.add("menu-title-panel");
+		
+		let play = SpacePanel.CreateSpacePanel();
+		play.addTitle2("PLAY");
+		play.classList.add("menu-element-panel");
+		
+		let option = SpacePanel.CreateSpacePanel();
+		option.addTitle2("OPTIONS");
+		option.classList.add("menu-element-panel");
+		
+		let credit = SpacePanel.CreateSpacePanel();
+		credit.addTitle2("CREDITS");
+		credit.classList.add("menu-element-panel");
+		
+		document.getElementById("main-menu").appendChild(title);
+		document.getElementById("main-menu").appendChild(play);
+		document.getElementById("main-menu").appendChild(option);
+		document.getElementById("main-menu").appendChild(credit);
 	}
 	
     public animate(): void {
