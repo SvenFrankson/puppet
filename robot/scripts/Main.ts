@@ -9,6 +9,7 @@ class Main {
 	public camera: BABYLON.FreeCamera;
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
+	public gameObjects: GameObject[] = [];
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -61,53 +62,44 @@ class Main {
 
 		BABYLON.Engine.ShadersRepository = "./shaders/";
 
-		let walker = new Walker(this.scene, this.canvas);
-		let turret = new Turret(this.scene, this.canvas);
+
+		let menu = new Menu(this);
+		menu.initializeMenu();
+	}
+
+	public generateScene(): void {
+		let walker = new Walker(this);
+		let turret = new Turret(this);
 		turret.base.position.x = - 5;
 		turret.target = walker;
 
 		for (let i = 0; i < 20; i++) {
-			let rock = new Prop("rock_1", 0.80, 0.71, this.scene, this.canvas);
+			let rock = new Prop("rock_1", this);
 			rock.sprite.position.x = - 20 + 40 * Math.random();
 			rock.sprite.position.y = - 20 + 40 * Math.random();
 			rock.sprite.rotation.z = 2 * Math.PI * Math.random();
 		}
 		
-		let wallNode1 = new WallNode("wallNode1", this.scene, this.canvas);
+		let wallNode1 = new WallNode(this);
 		wallNode1.sprite.position.x = - 4;
 		wallNode1.sprite.position.y = 5;
 		
-		let wallNode2 = new WallNode("wallNode2", this.scene, this.canvas);
+		let wallNode2 = new WallNode(this);
 		wallNode2.sprite.position.x = 7;
 		wallNode2.sprite.position.y = 3;
 		
-		let wallNode3 = new WallNode("wallNode3", this.scene, this.canvas);
+		let wallNode3 = new WallNode(this);
 		wallNode3.sprite.position.x = 6;
 		wallNode3.sprite.position.y = -4;
 
-		let wall1 = new Wall(wallNode1, wallNode2, this.scene, this.canvas);
-		let wall2 = new Wall(wallNode2, wallNode3, this.scene, this.canvas);
+		let wall1 = new Wall(wallNode1, wallNode2, this);
+		let wall2 = new Wall(wallNode2, wallNode3, this);
+	}
 
-		let title = SpacePanel.CreateSpacePanel();
-		title.addTitle1("MARS AT WAR");
-		title.classList.add("menu-title-panel");
-		
-		let play = SpacePanel.CreateSpacePanel();
-		play.addTitle2("PLAY");
-		play.classList.add("menu-element-panel");
-		
-		let option = SpacePanel.CreateSpacePanel();
-		option.addTitle2("OPTIONS");
-		option.classList.add("menu-element-panel");
-		
-		let credit = SpacePanel.CreateSpacePanel();
-		credit.addTitle2("CREDITS");
-		credit.classList.add("menu-element-panel");
-		
-		document.getElementById("main-menu").appendChild(title);
-		document.getElementById("main-menu").appendChild(play);
-		document.getElementById("main-menu").appendChild(option);
-		document.getElementById("main-menu").appendChild(credit);
+	public disposeScene(): void {
+		while (this.gameObjects.length > 0) {
+			this.gameObjects.pop().dispose();
+		}
 	}
 	
     public animate(): void {

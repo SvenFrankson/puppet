@@ -16,7 +16,6 @@ class Sprite extends BABYLON.Mesh {
 		let material = new BABYLON.StandardMaterial(name + "-material", scene);
 		let texture = new BABYLON.Texture(url, scene, false, true, undefined, () => {
             let size = texture.getBaseSize();
-            console.log(size.width + " " + size.height);
             let quadData: BABYLON.VertexData;
             if (isFinite(length)) {
                 quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
@@ -49,7 +48,7 @@ class Sprite extends BABYLON.Mesh {
     private _update = () => {
         this.shadowMesh.position.x = this.absolutePosition.x + 0.5 * this.height / 5;
         this.shadowMesh.position.y = this.absolutePosition.y - 0.3 * this.height / 5;
-        this.shadowMesh.position.z = 1;
+        this.shadowMesh.position.z = 1.1;
         this.shadowMesh.rotation.z = this.rotation.z;
         let parent = this.parent;
         while (parent && parent instanceof BABYLON.Mesh) {
@@ -60,6 +59,7 @@ class Sprite extends BABYLON.Mesh {
 
     public dispose(doNotRecurse?: boolean, disposeMaterialAndTextures?: boolean): void {
         super.dispose(doNotRecurse, disposeMaterialAndTextures);
+        this.shadowMesh.dispose(doNotRecurse, disposeMaterialAndTextures);
         this.getScene().onBeforeRenderObservable.removeCallback(this._update);
     }
 }

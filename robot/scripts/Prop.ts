@@ -1,31 +1,20 @@
-class Prop {
+/// <reference path="GameObject.ts"/>
+
+class Prop extends GameObject {
 
     public sprite: BABYLON.Mesh;
 
     constructor(
         public name: string,
-        public w: number,
-        public h: number,
-        public scene: BABYLON.Scene,
-        public canvas: HTMLCanvasElement
+        main: Main
     ) {
-        this.sprite = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, this.scene);
+        super(main);
+        this.sprite = new Sprite(name, "assets/" + name + ".png", this.main.scene);
         this.sprite.position.z = 1;
+    }
 
-		let spriteMaterial = new BABYLON.StandardMaterial("turret-sprite-material", this.scene);
-		spriteMaterial.diffuseTexture = new BABYLON.Texture("assets/" + name + ".png", this.scene);
-		spriteMaterial.diffuseTexture.hasAlpha = true;
-        spriteMaterial.specularColor.copyFromFloats(0, 0, 0);
-		spriteMaterial.alphaCutOff = 0.1
-
-		this.sprite.material = spriteMaterial;
-
-        let shadow = SpriteUtils.MakeShadow(this.sprite, w, h);
-        shadow.position.z = 1.1;
-        this.scene.onBeforeRenderObservable.add(() => {
-            shadow.position.x = this.sprite.position.x + 0.2;
-            shadow.position.y = this.sprite.position.y - 0.1;
-            shadow.rotation.z = this.sprite.rotation.z;
-        });
+    public dispose(): void {
+        super.dispose();
+        this.sprite.dispose();
     }
 }

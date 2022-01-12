@@ -1,8 +1,19 @@
+class GameObject {
+    constructor(main) {
+        this.main = main;
+        this.isDisposed = false;
+        main.gameObjects.push(this);
+    }
+    dispose() {
+        this.isDisposed = true;
+    }
+}
 /// <reference path="../lib/babylon.d.ts"/>
 /// <reference path="../lib/babylon.gui.d.ts"/>
 var COS30 = Math.cos(Math.PI / 6);
 class Main {
     constructor(canvasElement) {
+        this.gameObjects = [];
         this.ratio = 1;
         this.canvas = document.getElementById(canvasElement);
         this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
@@ -41,43 +52,36 @@ class Main {
             this.resize();
         };
         BABYLON.Engine.ShadersRepository = "./shaders/";
-        let walker = new Walker(this.scene, this.canvas);
-        let turret = new Turret(this.scene, this.canvas);
+        let menu = new Menu(this);
+        menu.initializeMenu();
+    }
+    generateScene() {
+        let walker = new Walker(this);
+        let turret = new Turret(this);
         turret.base.position.x = -5;
         turret.target = walker;
         for (let i = 0; i < 20; i++) {
-            let rock = new Prop("rock_1", 0.80, 0.71, this.scene, this.canvas);
+            let rock = new Prop("rock_1", this);
             rock.sprite.position.x = -20 + 40 * Math.random();
             rock.sprite.position.y = -20 + 40 * Math.random();
             rock.sprite.rotation.z = 2 * Math.PI * Math.random();
         }
-        let wallNode1 = new WallNode("wallNode1", this.scene, this.canvas);
+        let wallNode1 = new WallNode(this);
         wallNode1.sprite.position.x = -4;
         wallNode1.sprite.position.y = 5;
-        let wallNode2 = new WallNode("wallNode2", this.scene, this.canvas);
+        let wallNode2 = new WallNode(this);
         wallNode2.sprite.position.x = 7;
         wallNode2.sprite.position.y = 3;
-        let wallNode3 = new WallNode("wallNode3", this.scene, this.canvas);
+        let wallNode3 = new WallNode(this);
         wallNode3.sprite.position.x = 6;
         wallNode3.sprite.position.y = -4;
-        let wall1 = new Wall(wallNode1, wallNode2, this.scene, this.canvas);
-        let wall2 = new Wall(wallNode2, wallNode3, this.scene, this.canvas);
-        let title = SpacePanel.CreateSpacePanel();
-        title.addTitle1("MARS AT WAR");
-        title.classList.add("menu-title-panel");
-        let play = SpacePanel.CreateSpacePanel();
-        play.addTitle2("PLAY");
-        play.classList.add("menu-element-panel");
-        let option = SpacePanel.CreateSpacePanel();
-        option.addTitle2("OPTIONS");
-        option.classList.add("menu-element-panel");
-        let credit = SpacePanel.CreateSpacePanel();
-        credit.addTitle2("CREDITS");
-        credit.classList.add("menu-element-panel");
-        document.getElementById("main-menu").appendChild(title);
-        document.getElementById("main-menu").appendChild(play);
-        document.getElementById("main-menu").appendChild(option);
-        document.getElementById("main-menu").appendChild(credit);
+        let wall1 = new Wall(wallNode1, wallNode2, this);
+        let wall2 = new Wall(wallNode2, wallNode3, this);
+    }
+    disposeScene() {
+        while (this.gameObjects.length > 0) {
+            this.gameObjects.pop().dispose();
+        }
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -515,28 +519,112 @@ class Math2D {
 }
 Math2D.AxisX = new BABYLON.Vector2(1, 0);
 Math2D.AxisY = new BABYLON.Vector2(0, 1);
-class Prop {
-    constructor(name, w, h, scene, canvas) {
+class Menu {
+    constructor(main) {
+        this.main = main;
+    }
+    initializeMenu() {
+        this.mainMenu = document.getElementById("main-menu");
+        let mainTitle = SpacePanel.CreateSpacePanel();
+        mainTitle.addTitle1("MARS AT WAR");
+        mainTitle.classList.add("menu-title-panel");
+        let mainPlay = SpacePanel.CreateSpacePanel();
+        mainPlay.addTitle2("PLAY");
+        mainPlay.classList.add("menu-element-panel");
+        mainPlay.onpointerup = () => {
+            this.showPlayMenu();
+        };
+        let mainOption = SpacePanel.CreateSpacePanel();
+        mainOption.addTitle2("OPTIONS");
+        mainOption.classList.add("menu-element-panel");
+        let mainCredit = SpacePanel.CreateSpacePanel();
+        mainCredit.addTitle2("CREDITS");
+        mainCredit.classList.add("menu-element-panel");
+        this.mainMenu.appendChild(mainTitle);
+        this.mainMenu.appendChild(mainPlay);
+        this.mainMenu.appendChild(mainOption);
+        this.mainMenu.appendChild(mainCredit);
+        this.playMenu = document.getElementById("play-menu");
+        let playTitle = SpacePanel.CreateSpacePanel();
+        playTitle.addTitle1("MARS AT WAR");
+        playTitle.classList.add("menu-title-panel");
+        let playTest = SpacePanel.CreateSpacePanel();
+        playTest.addTitle2("TEST");
+        playTest.classList.add("menu-element-panel");
+        playTest.onpointerup = () => {
+            this.main.generateScene();
+            this.showIngameMenu();
+        };
+        let playBack = SpacePanel.CreateSpacePanel();
+        playBack.addTitle2("BACK");
+        playBack.classList.add("menu-element-panel");
+        playBack.onpointerup = () => {
+            this.showMainMenu();
+        };
+        this.playMenu.appendChild(playTitle);
+        this.playMenu.appendChild(playTest);
+        this.playMenu.appendChild(playBack);
+        this.ingameMenu = document.getElementById("ingame-menu");
+        let ingameShowMenu = SpacePanel.CreateSpacePanel();
+        ingameShowMenu.addTitle2("MENU");
+        ingameShowMenu.classList.add("ingame-element-showmenu");
+        ingameShowMenu.onpointerup = () => {
+            this.showPauseMenu();
+        };
+        this.ingameMenu.appendChild(ingameShowMenu);
+        this.pauseMenu = document.getElementById("pause-menu");
+        let pauseResume = SpacePanel.CreateSpacePanel();
+        pauseResume.addTitle2("RESUME GAME");
+        pauseResume.classList.add("menu-element-panel");
+        pauseResume.onpointerup = () => {
+            this.showIngameMenu();
+        };
+        let pauseExit = SpacePanel.CreateSpacePanel();
+        pauseExit.addTitle2("EXIT");
+        pauseExit.classList.add("menu-element-panel");
+        pauseExit.onpointerup = () => {
+            this.main.disposeScene();
+            this.showMainMenu();
+        };
+        this.pauseMenu.appendChild(pauseResume);
+        this.pauseMenu.appendChild(pauseExit);
+        this.showMainMenu();
+    }
+    showMainMenu() {
+        this.mainMenu.style.display = "block";
+        this.playMenu.style.display = "none";
+        this.ingameMenu.style.display = "none";
+        this.pauseMenu.style.display = "none";
+    }
+    showPlayMenu() {
+        this.mainMenu.style.display = "none";
+        this.playMenu.style.display = "block";
+        this.ingameMenu.style.display = "none";
+        this.pauseMenu.style.display = "none";
+    }
+    showIngameMenu() {
+        this.mainMenu.style.display = "none";
+        this.playMenu.style.display = "none";
+        this.ingameMenu.style.display = "block";
+        this.pauseMenu.style.display = "none";
+    }
+    showPauseMenu() {
+        this.mainMenu.style.display = "none";
+        this.playMenu.style.display = "none";
+        this.pauseMenu.style.display = "block";
+    }
+}
+/// <reference path="GameObject.ts"/>
+class Prop extends GameObject {
+    constructor(name, main) {
+        super(main);
         this.name = name;
-        this.w = w;
-        this.h = h;
-        this.scene = scene;
-        this.canvas = canvas;
-        this.sprite = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, this.scene);
+        this.sprite = new Sprite(name, "assets/" + name + ".png", this.main.scene);
         this.sprite.position.z = 1;
-        let spriteMaterial = new BABYLON.StandardMaterial("turret-sprite-material", this.scene);
-        spriteMaterial.diffuseTexture = new BABYLON.Texture("assets/" + name + ".png", this.scene);
-        spriteMaterial.diffuseTexture.hasAlpha = true;
-        spriteMaterial.specularColor.copyFromFloats(0, 0, 0);
-        spriteMaterial.alphaCutOff = 0.1;
-        this.sprite.material = spriteMaterial;
-        let shadow = SpriteUtils.MakeShadow(this.sprite, w, h);
-        shadow.position.z = 1.1;
-        this.scene.onBeforeRenderObservable.add(() => {
-            shadow.position.x = this.sprite.position.x + 0.2;
-            shadow.position.y = this.sprite.position.y - 0.1;
-            shadow.rotation.z = this.sprite.rotation.z;
-        });
+    }
+    dispose() {
+        super.dispose();
+        this.sprite.dispose();
     }
 }
 class Sprite extends BABYLON.Mesh {
@@ -546,7 +634,7 @@ class Sprite extends BABYLON.Mesh {
         this._update = () => {
             this.shadowMesh.position.x = this.absolutePosition.x + 0.5 * this.height / 5;
             this.shadowMesh.position.y = this.absolutePosition.y - 0.3 * this.height / 5;
-            this.shadowMesh.position.z = 1;
+            this.shadowMesh.position.z = 1.1;
             this.shadowMesh.rotation.z = this.rotation.z;
             let parent = this.parent;
             while (parent && parent instanceof BABYLON.Mesh) {
@@ -558,7 +646,6 @@ class Sprite extends BABYLON.Mesh {
         let material = new BABYLON.StandardMaterial(name + "-material", scene);
         let texture = new BABYLON.Texture(url, scene, false, true, undefined, () => {
             let size = texture.getBaseSize();
-            console.log(size.width + " " + size.height);
             let quadData;
             if (isFinite(length)) {
                 quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
@@ -585,20 +672,20 @@ class Sprite extends BABYLON.Mesh {
     }
     dispose(doNotRecurse, disposeMaterialAndTextures) {
         super.dispose(doNotRecurse, disposeMaterialAndTextures);
+        this.shadowMesh.dispose(doNotRecurse, disposeMaterialAndTextures);
         this.getScene().onBeforeRenderObservable.removeCallback(this._update);
     }
 }
-class Turret {
-    constructor(scene, canvas) {
-        this.scene = scene;
-        this.canvas = canvas;
+class Turret extends GameObject {
+    constructor(main) {
+        super(main);
         this._t = 0;
         this._update = () => {
-            this._t += this.scene.getEngine().getDeltaTime() / 1000;
+            this._t += this.main.scene.getEngine().getDeltaTime() / 1000;
             if (this.target) {
                 let dirToTarget = new BABYLON.Vector2(this.target.body.position.x - this.base.position.x, this.target.body.position.y - this.base.position.y);
                 let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
-                this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 * Math.PI * this.scene.getEngine().getDeltaTime() / 1000);
+                this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
                 let aligned = Math2D.AreEqualsCircular(this.body.rotation.z, targetA, Math.PI / 180);
                 if (aligned) {
                     this.canon.position.y = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
@@ -612,22 +699,30 @@ class Turret {
                 }
             }
         };
-        this.base = new Sprite("turret-base", "assets/turret_base.png", this.scene);
+        this.base = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
         this.base.height = 1;
-        this.body = new Sprite("turret-body", "assets/turret_body.png", this.scene);
+        this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
         this.body.height = 3;
         this.body.position.z = -0.1;
         this.body.parent = this.base;
-        this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.scene);
+        this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
         this.canon.height = 5;
         this.canon.position.y = 0.6;
         this.canon.position.z = -0.1;
         this.canon.parent = this.body;
-        this.top = new Sprite("turret-top", "assets/turret_top.png", this.scene);
+        this.top = new Sprite("turret-top", "assets/turret_top.png", this.main.scene);
         this.top.height = 5;
         this.top.position.z = -0.2;
         this.top.parent = this.body;
-        this.scene.onBeforeRenderObservable.add(this._update);
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    dispose() {
+        super.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.base.dispose();
+        this.body.dispose();
+        this.canon.dispose();
+        this.top.dispose();
     }
 }
 class VMath {
@@ -800,12 +895,7 @@ class WalkerTarget extends BABYLON.Mesh {
             new BABYLON.Vector2(1, 0)
         ];
         for (let i = 0; i < walker.legCount; i++) {
-            //let target = new BABYLON.Mesh("target-" + i);
-            let target = BABYLON.MeshBuilder.CreateBox("target-" + i, { size: 0.05 });
-            let red = new BABYLON.StandardMaterial("red", this.walker.scene);
-            red.diffuseColor.copyFromFloats(1, 0, 0);
-            red.specularColor.copyFromFloats(0, 0, 0);
-            target.material = red;
+            let target = new BABYLON.Mesh("target-" + i);
             target.position.x = positions[i].x;
             target.position.y = positions[i].y;
             target.parent = this;
@@ -813,13 +903,12 @@ class WalkerTarget extends BABYLON.Mesh {
         }
     }
 }
-class Walker {
-    constructor(scene, canvas) {
-        this.scene = scene;
-        this.canvas = canvas;
+class Walker extends GameObject {
+    constructor(main) {
+        super(main);
         this.legCount = 2;
-        this.feet = [];
         this.arms = [];
+        this.feet = [];
         this._inputDirs = new UniqueList();
         this._movingLegCount = 0;
         this._movingLegs = new UniqueList();
@@ -828,29 +917,29 @@ class Walker {
         this._armT = 0;
         this._armSpeed = 1;
         this._update = () => {
-            this._bodyT += this._bodySpeed * this.scene.getEngine().getDeltaTime() / 1000;
-            this._armT += this._armSpeed * this.scene.getEngine().getDeltaTime() / 1000;
+            this._bodyT += this._bodySpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
+            this._armT += this._armSpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
             this._bodySpeed = 1;
             this._armSpeed = 1;
             if (this._inputDirs.contains(0)) {
-                this.target.position.addInPlace(this.target.right.scale(2 * this.scene.getEngine().getDeltaTime() / 1000));
+                this.target.position.addInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
             }
             if (this._inputDirs.contains(1)) {
-                this.target.position.subtractInPlace(this.target.up.scale(1 * this.scene.getEngine().getDeltaTime() / 1000));
+                this.target.position.subtractInPlace(this.target.up.scale(1 * this.main.scene.getEngine().getDeltaTime() / 1000));
             }
             if (this._inputDirs.contains(2)) {
-                this.target.position.subtractInPlace(this.target.right.scale(2 * this.scene.getEngine().getDeltaTime() / 1000));
+                this.target.position.subtractInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
             }
             if (this._inputDirs.contains(3)) {
-                this.target.position.addInPlace(this.target.up.scale(3 * this.scene.getEngine().getDeltaTime() / 1000));
+                this.target.position.addInPlace(this.target.up.scale(3 * this.main.scene.getEngine().getDeltaTime() / 1000));
                 this._bodySpeed = 3;
                 this._armSpeed = 5;
             }
             if (this._inputDirs.contains(4)) {
-                this.target.rotation.z += 0.4 * Math.PI * this.scene.getEngine().getDeltaTime() / 1000;
+                this.target.rotation.z += 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
             }
             if (this._inputDirs.contains(5)) {
-                this.target.rotation.z -= 0.4 * Math.PI * this.scene.getEngine().getDeltaTime() / 1000;
+                this.target.rotation.z -= 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
             }
             while (this.target.rotation.z < 0) {
                 this.target.rotation.z += 2 * Math.PI;
@@ -891,32 +980,32 @@ class Walker {
             }
         };
         this.target = new WalkerTarget(this);
-        let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.scene);
+        let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.main.scene);
         robotBody.height = 2;
         robotBody.position.x = 5;
         robotBody.position.y = 5;
         this.body = robotBody;
-        let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.scene);
+        let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.main.scene);
         robotArm_L.height = 3;
         robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, -0.43, 0)));
         robotArm_L.position.x = -1.1;
         robotArm_L.position.y = 0.7;
         robotArm_L.position.z = -0.1;
         robotArm_L.parent = robotBody;
-        let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.scene);
+        let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.main.scene);
         robotArm_R.height = 3;
         robotArm_R.setPivotPoint((new BABYLON.Vector3(-0.48, -0.43, 0)));
         robotArm_R.position.x = 1.1;
         robotArm_R.position.y = 0.7;
         robotArm_R.position.z = -0.1;
         robotArm_R.parent = robotBody;
-        let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.scene);
+        let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.main.scene);
         robotFoot_L.height = 1;
         robotFoot_L.position.x = -1.1;
         robotFoot_L.position.y = 0;
         robotFoot_L.position.z = 0.1;
         robotFoot_L.rotation.z = 0.3;
-        let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.scene);
+        let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.main.scene);
         robotFoot_R.height = 1;
         robotFoot_R.position.x = 1.1;
         robotFoot_R.position.y = 0;
@@ -924,8 +1013,8 @@ class Walker {
         robotFoot_R.rotation.z = -0.3;
         this.feet = [robotFoot_L, robotFoot_R];
         this.arms = [robotArm_L, robotArm_R];
-        this.scene.onBeforeRenderObservable.add(this._update);
-        this.canvas.addEventListener("keydown", (e) => {
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+        this.main.canvas.addEventListener("keydown", (e) => {
             if (e.code === "KeyD") {
                 this._inputDirs.push(0);
             }
@@ -945,7 +1034,7 @@ class Walker {
                 this._inputDirs.push(5);
             }
         });
-        this.canvas.addEventListener("keyup", (e) => {
+        this.main.canvas.addEventListener("keyup", (e) => {
             if (e.code === "KeyD") {
                 this._inputDirs.remove(0);
             }
@@ -969,6 +1058,17 @@ class Walker {
     get _inputDir() {
         return this._inputDirs.getLast();
     }
+    dispose() {
+        super.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.body.dispose();
+        this.arms.forEach(a => {
+            a.dispose();
+        });
+        this.feet.forEach(f => {
+            f.dispose();
+        });
+    }
     async _moveLeg(legIndex, target, targetR) {
         return new Promise(resolve => {
             this._movingLegs.push(legIndex);
@@ -980,7 +1080,7 @@ class Walker {
             duration += 0.5;
             let t = 0;
             let step = () => {
-                t += this.scene.getEngine().getDeltaTime() / 1000;
+                t += this.main.scene.getEngine().getDeltaTime() / 1000;
                 let d = t / duration;
                 d = d * d;
                 d = Math.min(d, 1);
@@ -1001,35 +1101,41 @@ class Walker {
         });
     }
 }
-class WallNode {
-    constructor(name, scene, canvas) {
-        this.name = name;
-        this.scene = scene;
-        this.canvas = canvas;
-        this.sprite = new Sprite("wall", "assets/wall_node_base.png", this.scene);
+class WallNode extends GameObject {
+    constructor(main) {
+        super(main);
+        this.sprite = new Sprite("wall", "assets/wall_node_base.png", this.main.scene);
         this.sprite.position.z = 0;
         this.sprite.height = 1;
-        this.top = new Sprite("wall-top", "assets/wall_top.png", this.scene);
+        this.top = new Sprite("wall-top", "assets/wall_top.png", this.main.scene);
         this.top.position.z = -0.2;
         this.top.parent = this.sprite;
         this.top.height = 5;
     }
+    dispose() {
+        super.dispose();
+        this.sprite.dispose();
+        this.top.dispose();
+    }
 }
-class Wall {
-    constructor(node1, node2, scene, canvas) {
+class Wall extends GameObject {
+    constructor(node1, node2, main) {
+        super(main);
         this.node1 = node1;
         this.node2 = node2;
-        this.scene = scene;
-        this.canvas = canvas;
         let n = node2.sprite.position.subtract(node1.sprite.position);
         let l = n.length();
-        this.sprite = new Sprite("wall", "assets/wall.png", this.scene, l);
+        this.sprite = new Sprite("wall", "assets/wall.png", this.main.scene, l);
         this.sprite.height = 5;
         this.sprite.setPivotPoint(new BABYLON.Vector3(-l * 0.5, 0, 0));
         this.sprite.position.z = -0.1;
         this.sprite.position.x = this.node1.sprite.position.x + l * 0.5;
         this.sprite.position.y = this.node1.sprite.position.y;
         this.sprite.rotation.z = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), new BABYLON.Vector2(n.x, n.y));
+    }
+    dispose() {
+        super.dispose();
+        this.sprite.dispose();
     }
 }
 class TerrainToonMaterial extends BABYLON.ShaderMaterial {

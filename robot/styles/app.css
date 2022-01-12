@@ -16,14 +16,6 @@ body {
   height: 100%;
 }
 
-#main-menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-}
-
 .menu-title-panel {
   width: 600px;
   display: block;
@@ -31,6 +23,7 @@ body {
   margin-right: auto;
   margin-top: 5%;
   margin-bottom: 5%;
+  z-index: 1;
 }
 
 .menu-element-panel {
@@ -39,11 +32,18 @@ body {
   margin-right: auto;
   margin-bottom: 2%;
   cursor: pointer;
+  z-index: 1;
 }
 
-@media screen and (min-width: 800px) {
-  #main-menu {
-    width: 800px;
-    left: calc(50vw - 400px)
-  }
+#pause-menu {
+  padding-top: 23vh;
+}
+
+.ingame-element-showmenu {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  cursor: pointer;
+  z-index: 1;
 }

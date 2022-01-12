@@ -12,12 +12,7 @@ class WalkerTarget extends BABYLON.Mesh {
             new BABYLON.Vector2(1, 0)
         ]
         for (let i = 0; i < walker.legCount; i++) {
-            //let target = new BABYLON.Mesh("target-" + i);
-            let target = BABYLON.MeshBuilder.CreateBox("target-" + i, { size: 0.05 });
-            let red = new BABYLON.StandardMaterial("red", this.walker.scene);
-            red.diffuseColor.copyFromFloats(1, 0, 0);
-            red.specularColor.copyFromFloats(0, 0, 0);
-            target.material = red;
+            let target = new BABYLON.Mesh("target-" + i);
             target.position.x = positions[i].x;
             target.position.y = positions[i].y;
             target.parent = this;
@@ -26,13 +21,13 @@ class WalkerTarget extends BABYLON.Mesh {
     }
 }
 
-class Walker {
+class Walker extends GameObject {
 
     public legCount: number = 2;
 
-    public feet: Sprite[] = [];
-    public arms: Sprite[] = [];
     public body: Sprite;
+    public arms: Sprite[] = [];
+    public feet: Sprite[] = [];
 
     public target: WalkerTarget;
     private _inputDirs: UniqueList<number> = new UniqueList<number>();
@@ -41,19 +36,20 @@ class Walker {
     }
 
     constructor(
-        public scene: BABYLON.Scene,
-        public canvas: HTMLCanvasElement
+        main: Main
     ) {
+        super(main);
+
         this.target = new WalkerTarget(this);
 
-        let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.scene);
+        let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.main.scene);
         robotBody.height = 2;
 		robotBody.position.x = 5;
 		robotBody.position.y = 5;
         
         this.body = robotBody;
 		
-		let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.scene);
+		let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.main.scene);
         robotArm_L.height = 3;
 		robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, - 0.43, 0)));
 		robotArm_L.position.x = - 1.1;
@@ -61,7 +57,7 @@ class Walker {
 		robotArm_L.position.z = - 0.1;
 		robotArm_L.parent = robotBody
 
-		let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.scene);
+		let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.main.scene);
         robotArm_R.height = 3;
 		robotArm_R.setPivotPoint((new BABYLON.Vector3(- 0.48, - 0.43, 0)));
 		robotArm_R.position.x = 1.1;
@@ -69,14 +65,14 @@ class Walker {
 		robotArm_R.position.z = - 0.1;
 		robotArm_R.parent = robotBody
 
-        let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.scene);
+        let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.main.scene);
         robotFoot_L.height = 1;
 		robotFoot_L.position.x = - 1.1;
 		robotFoot_L.position.y = 0;
 		robotFoot_L.position.z = 0.1;
 		robotFoot_L.rotation.z = 0.3;
 
-		let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.scene);
+		let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.main.scene);
         robotFoot_R.height = 1;
 		robotFoot_R.position.x = 1.1;
 		robotFoot_R.position.y = 0;
@@ -86,9 +82,9 @@ class Walker {
         this.feet = [robotFoot_L, robotFoot_R];
         this.arms = [robotArm_L, robotArm_R];
 
-        this.scene.onBeforeRenderObservable.add(this._update);
+        this.main.scene.onBeforeRenderObservable.add(this._update);
 
-        this.canvas.addEventListener("keydown", (e) => {
+        this.main.canvas.addEventListener("keydown", (e) => {
             if (e.code === "KeyD") {
                 this._inputDirs.push(0);
             }
@@ -109,7 +105,7 @@ class Walker {
             }
         });
 
-        this.canvas.addEventListener("keyup", (e) => {
+        this.main.canvas.addEventListener("keyup", (e) => {
             if (e.code === "KeyD") {
                 this._inputDirs.remove(0);
             }
@@ -131,6 +127,18 @@ class Walker {
         });
     }
 
+    public dispose(): void {
+        super.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.body.dispose();
+        this.arms.forEach(a => {
+            a.dispose();
+        })
+        this.feet.forEach(f => {
+            f.dispose();
+        })
+    }
+
     private _movingLegCount: number = 0;
     private _movingLegs: UniqueList<number> = new UniqueList<number>();
 
@@ -146,7 +154,7 @@ class Walker {
                 duration += 0.5;
                 let t = 0;
                 let step = () => {
-                    t += this.scene.getEngine().getDeltaTime() / 1000;
+                    t += this.main.scene.getEngine().getDeltaTime() / 1000;
                     let d = t / duration;
                     d = d * d;
                     d = Math.min(d, 1);
@@ -175,29 +183,29 @@ class Walker {
     private _armT: number = 0;
     private _armSpeed: number = 1;
     private _update = () => {
-        this._bodyT += this._bodySpeed * this.scene.getEngine().getDeltaTime() / 1000;
-        this._armT += this._armSpeed * this.scene.getEngine().getDeltaTime() / 1000;
+        this._bodyT += this._bodySpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
+        this._armT += this._armSpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
         this._bodySpeed = 1;
         this._armSpeed = 1;
         if (this._inputDirs.contains(0)) {
-            this.target.position.addInPlace(this.target.right.scale(2 * this.scene.getEngine().getDeltaTime() / 1000));
+            this.target.position.addInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
         }
         if (this._inputDirs.contains(1)) {
-            this.target.position.subtractInPlace(this.target.up.scale(1 * this.scene.getEngine().getDeltaTime() / 1000));
+            this.target.position.subtractInPlace(this.target.up.scale(1 * this.main.scene.getEngine().getDeltaTime() / 1000));
         }
         if (this._inputDirs.contains(2)) {
-            this.target.position.subtractInPlace(this.target.right.scale(2 * this.scene.getEngine().getDeltaTime() / 1000));
+            this.target.position.subtractInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
         }
         if (this._inputDirs.contains(3)) {
-            this.target.position.addInPlace(this.target.up.scale(3 * this.scene.getEngine().getDeltaTime() / 1000));
+            this.target.position.addInPlace(this.target.up.scale(3 * this.main.scene.getEngine().getDeltaTime() / 1000));
             this._bodySpeed = 3;
             this._armSpeed = 5;
         }
         if (this._inputDirs.contains(4)) {
-            this.target.rotation.z += 0.4 * Math.PI * this.scene.getEngine().getDeltaTime() / 1000;
+            this.target.rotation.z += 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
         }
         if (this._inputDirs.contains(5)) {
-            this.target.rotation.z -= 0.4 * Math.PI * this.scene.getEngine().getDeltaTime() / 1000;
+            this.target.rotation.z -= 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
         }
         while (this.target.rotation.z < 0) {
             this.target.rotation.z += 2 * Math.PI;
