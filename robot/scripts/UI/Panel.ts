@@ -224,6 +224,34 @@ class SpacePanel extends HTMLElement {
         return inputElement;
     }
 
+    public addSquareButtons(values: string[], onClickCallbacks: (() => void)[]): HTMLInputElement[] {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let inputs = [];
+
+        for (let i = 0; i < values.length; i++) {
+            let inputElement1 = document.createElement("input");
+            inputElement1.classList.add("space-button-square");
+            inputElement1.setAttribute("type", "button");
+            inputElement1.value = values[i];
+            let cb = onClickCallbacks[i];
+            inputElement1.addEventListener(
+                "click",
+                () => {
+                    if (cb) {
+                        cb;
+                    }
+                }
+            );
+            lineElement.appendChild(inputElement1);
+            inputs.push(inputElement1);
+        }
+
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputs;
+    }
+
     public addLargeButton(value: string, onClickCallback: () => void): HTMLInputElement {
         let lineElement = document.createElement("div");
         lineElement.classList.add("space-panel-line");

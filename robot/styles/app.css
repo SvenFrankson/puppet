@@ -39,11 +39,22 @@ body {
   padding-top: 23vh;
 }
 
-.ingame-element-showmenu {
+.building-menu {
   display: block;
   position: fixed;
-  top: 0;
-  right: 0;
-  cursor: pointer;
+  width: 39.4%;
+  height: 12vh;
+  top: 0.25%;
+  right: 10.6%;
+  z-index: 1;
+}
+
+.ingame-menu {
+  display: block;
+  position: fixed;
+  width: 10%;
+  height: 12vh;
+  top: 0.25%;
+  right: 0.1%;
   z-index: 1;
 }

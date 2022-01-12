@@ -180,6 +180,7 @@ space-panel-label {
     border-radius: 2px;
     font-family: "Orbitron Light";
     color: lightgray;
+    cursor: pointer;
 }
 
 .space-panel-toggle-visibility {
@@ -208,6 +209,23 @@ space-panel-label {
     border-radius: 2px;
     font-family: "Orbitron Light";
     color: lightgray;
+    cursor: pointer;
+}
+
+.space-button-square {
+    display: inline-block;
+    padding-top: 7vh;
+    width: 9vh;
+    height: 9vh;
+    margin-left: 0.8vh;
+    margin-right: 0.8vh;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    color: lightgray;
+    cursor: pointer;
+    background-size: contain;
 }
 
 .space-button-inline {
@@ -221,6 +239,7 @@ space-panel-label {
     border-radius: 2px;
     font-family: "Orbitron Light";
     color: lightgray;
+    cursor: pointer;
 }
 
 .space-input-toggle {

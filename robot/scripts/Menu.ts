@@ -1,9 +1,10 @@
 class Menu {
 
-    public mainMenu: HTMLDivElement;
-    public playMenu: HTMLDivElement;
-    public ingameMenu: HTMLDivElement;
-    public pauseMenu: HTMLDivElement;
+    public mainMenuContainer: HTMLDivElement;
+    public playMenuContainer: HTMLDivElement;
+    public buildingMenuContainer: HTMLDivElement;
+    public ingameMenuContainer: HTMLDivElement;
+    public pauseMenuContainer: HTMLDivElement;
 
     constructor(
         public main: Main
@@ -12,7 +13,7 @@ class Menu {
     }
 
     public initializeMenu(): void {
-        this.mainMenu = document.getElementById("main-menu") as HTMLDivElement;
+        this.mainMenuContainer = document.getElementById("main-menu") as HTMLDivElement;
 
         let mainTitle = SpacePanel.CreateSpacePanel();
 		mainTitle.addTitle1("MARS AT WAR");
@@ -33,13 +34,13 @@ class Menu {
 		mainCredit.addTitle2("CREDITS");
 		mainCredit.classList.add("menu-element-panel");
 		
-		this.mainMenu.appendChild(mainTitle);
-		this.mainMenu.appendChild(mainPlay);
-		this.mainMenu.appendChild(mainOption);
-		this.mainMenu.appendChild(mainCredit);
+		this.mainMenuContainer.appendChild(mainTitle);
+		this.mainMenuContainer.appendChild(mainPlay);
+		this.mainMenuContainer.appendChild(mainOption);
+		this.mainMenuContainer.appendChild(mainCredit);
 
 
-        this.playMenu = document.getElementById("play-menu") as HTMLDivElement;
+        this.playMenuContainer = document.getElementById("play-menu") as HTMLDivElement;
 
         let playTitle = SpacePanel.CreateSpacePanel();
 		playTitle.addTitle1("MARS AT WAR");
@@ -60,24 +61,50 @@ class Menu {
             this.showMainMenu();
         }
         
-		this.playMenu.appendChild(playTitle);
-		this.playMenu.appendChild(playTest);
-		this.playMenu.appendChild(playBack);
+		this.playMenuContainer.appendChild(playTitle);
+		this.playMenuContainer.appendChild(playTest);
+		this.playMenuContainer.appendChild(playBack);
 
 
-        this.ingameMenu = document.getElementById("ingame-menu") as HTMLDivElement;
+        this.buildingMenuContainer = document.getElementById("building-menu") as HTMLDivElement;
 		
-		let ingameShowMenu = SpacePanel.CreateSpacePanel();
+		let buildingMenu = SpacePanel.CreateSpacePanel();
+        buildingMenu.classList.add("building-menu");
+        /*
+		buildingShowMenu.addTitle2("MENU");
+        buildingShowMenu.onpointerup = () => {
+            this.showPauseMenu();
+        }
+        */
+        let buildingButtons = buildingMenu.addSquareButtons(
+            ["TOWER", "WALL"],
+            []
+        );
+        buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";
+        buildingButtons[1].style.backgroundImage = "url(assets/icons/wall.png)";
+        
+		this.buildingMenuContainer.appendChild(buildingMenu);
+
+
+        this.ingameMenuContainer = document.getElementById("ingame-menu") as HTMLDivElement;
+		
+		let ingameMenu = SpacePanel.CreateSpacePanel();
+        ingameMenu.classList.add("ingame-menu");
+        /*
 		ingameShowMenu.addTitle2("MENU");
-		ingameShowMenu.classList.add("ingame-element-showmenu");
         ingameShowMenu.onpointerup = () => {
             this.showPauseMenu();
         }
+        */
+        ingameMenu.addLargeButton("MENU", () => {
+            this.showPauseMenu();
+        });
+        ingameMenu.addTitle3("740");
         
-		this.ingameMenu.appendChild(ingameShowMenu);
+		this.ingameMenuContainer.appendChild(ingameMenu);
 
 
-        this.pauseMenu = document.getElementById("pause-menu") as HTMLDivElement;
+        this.pauseMenuContainer = document.getElementById("pause-menu") as HTMLDivElement;
 		
 		let pauseResume = SpacePanel.CreateSpacePanel();
 		pauseResume.addTitle2("RESUME GAME");
@@ -94,36 +121,39 @@ class Menu {
             this.showMainMenu();
         }
         
-		this.pauseMenu.appendChild(pauseResume);
-		this.pauseMenu.appendChild(pauseExit);
+		this.pauseMenuContainer.appendChild(pauseResume);
+		this.pauseMenuContainer.appendChild(pauseExit);
 
         this.showMainMenu();
     }
 
     public showMainMenu(): void {
-        this.mainMenu.style.display = "block";
-        this.playMenu.style.display = "none";
-        this.ingameMenu.style.display = "none";
-        this.pauseMenu.style.display = "none";
+        this.mainMenuContainer.style.display = "block";
+        this.playMenuContainer.style.display = "none";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
     }
 
     public showPlayMenu(): void {
-        this.mainMenu.style.display = "none";
-        this.playMenu.style.display = "block";
-        this.ingameMenu.style.display = "none";
-        this.pauseMenu.style.display = "none";
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "block";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
     }
 
     public showIngameMenu(): void {
-        this.mainMenu.style.display = "none";
-        this.playMenu.style.display = "none";
-        this.ingameMenu.style.display = "block";
-        this.pauseMenu.style.display = "none";
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.buildingMenuContainer.style.display = "block";
+        this.ingameMenuContainer.style.display = "block";
+        this.pauseMenuContainer.style.display = "none";
     }
 
     public showPauseMenu(): void {
-        this.mainMenu.style.display = "none";
-        this.playMenu.style.display = "none";
-        this.pauseMenu.style.display = "block";
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "block";
     }
 }

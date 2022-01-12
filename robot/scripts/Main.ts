@@ -65,6 +65,8 @@ class Main {
 
 		let menu = new Menu(this);
 		menu.initializeMenu();
+		this.generateScene();
+		menu.showIngameMenu();
 	}
 
 	public generateScene(): void {

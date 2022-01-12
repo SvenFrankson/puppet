@@ -54,6 +54,8 @@ class Main {
         BABYLON.Engine.ShadersRepository = "./shaders/";
         let menu = new Menu(this);
         menu.initializeMenu();
+        this.generateScene();
+        menu.showIngameMenu();
     }
     generateScene() {
         let walker = new Walker(this);
@@ -524,7 +526,7 @@ class Menu {
         this.main = main;
     }
     initializeMenu() {
-        this.mainMenu = document.getElementById("main-menu");
+        this.mainMenuContainer = document.getElementById("main-menu");
         let mainTitle = SpacePanel.CreateSpacePanel();
         mainTitle.addTitle1("MARS AT WAR");
         mainTitle.classList.add("menu-title-panel");
@@ -540,11 +542,11 @@ class Menu {
         let mainCredit = SpacePanel.CreateSpacePanel();
         mainCredit.addTitle2("CREDITS");
         mainCredit.classList.add("menu-element-panel");
-        this.mainMenu.appendChild(mainTitle);
-        this.mainMenu.appendChild(mainPlay);
-        this.mainMenu.appendChild(mainOption);
-        this.mainMenu.appendChild(mainCredit);
-        this.playMenu = document.getElementById("play-menu");
+        this.mainMenuContainer.appendChild(mainTitle);
+        this.mainMenuContainer.appendChild(mainPlay);
+        this.mainMenuContainer.appendChild(mainOption);
+        this.mainMenuContainer.appendChild(mainCredit);
+        this.playMenuContainer = document.getElementById("play-menu");
         let playTitle = SpacePanel.CreateSpacePanel();
         playTitle.addTitle1("MARS AT WAR");
         playTitle.classList.add("menu-title-panel");
@@ -561,18 +563,37 @@ class Menu {
         playBack.onpointerup = () => {
             this.showMainMenu();
         };
-        this.playMenu.appendChild(playTitle);
-        this.playMenu.appendChild(playTest);
-        this.playMenu.appendChild(playBack);
-        this.ingameMenu = document.getElementById("ingame-menu");
-        let ingameShowMenu = SpacePanel.CreateSpacePanel();
+        this.playMenuContainer.appendChild(playTitle);
+        this.playMenuContainer.appendChild(playTest);
+        this.playMenuContainer.appendChild(playBack);
+        this.buildingMenuContainer = document.getElementById("building-menu");
+        let buildingMenu = SpacePanel.CreateSpacePanel();
+        buildingMenu.classList.add("building-menu");
+        /*
+        buildingShowMenu.addTitle2("MENU");
+        buildingShowMenu.onpointerup = () => {
+            this.showPauseMenu();
+        }
+        */
+        let buildingButtons = buildingMenu.addSquareButtons(["TOWER", "WALL"], []);
+        buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";
+        buildingButtons[1].style.backgroundImage = "url(assets/icons/wall.png)";
+        this.buildingMenuContainer.appendChild(buildingMenu);
+        this.ingameMenuContainer = document.getElementById("ingame-menu");
+        let ingameMenu = SpacePanel.CreateSpacePanel();
+        ingameMenu.classList.add("ingame-menu");
+        /*
         ingameShowMenu.addTitle2("MENU");
-        ingameShowMenu.classList.add("ingame-element-showmenu");
         ingameShowMenu.onpointerup = () => {
             this.showPauseMenu();
-        };
-        this.ingameMenu.appendChild(ingameShowMenu);
-        this.pauseMenu = document.getElementById("pause-menu");
+        }
+        */
+        ingameMenu.addLargeButton("MENU", () => {
+            this.showPauseMenu();
+        });
+        ingameMenu.addTitle3("740 7");
+        this.ingameMenuContainer.appendChild(ingameMenu);
+        this.pauseMenuContainer = document.getElementById("pause-menu");
         let pauseResume = SpacePanel.CreateSpacePanel();
         pauseResume.addTitle2("RESUME GAME");
         pauseResume.classList.add("menu-element-panel");
@@ -586,32 +607,35 @@ class Menu {
             this.main.disposeScene();
             this.showMainMenu();
         };
-        this.pauseMenu.appendChild(pauseResume);
-        this.pauseMenu.appendChild(pauseExit);
+        this.pauseMenuContainer.appendChild(pauseResume);
+        this.pauseMenuContainer.appendChild(pauseExit);
         this.showMainMenu();
     }
     showMainMenu() {
-        this.mainMenu.style.display = "block";
-        this.playMenu.style.display = "none";
-        this.ingameMenu.style.display = "none";
-        this.pauseMenu.style.display = "none";
+        this.mainMenuContainer.style.display = "block";
+        this.playMenuContainer.style.display = "none";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
     }
     showPlayMenu() {
-        this.mainMenu.style.display = "none";
-        this.playMenu.style.display = "block";
-        this.ingameMenu.style.display = "none";
-        this.pauseMenu.style.display = "none";
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "block";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
     }
     showIngameMenu() {
-        this.mainMenu.style.display = "none";
-        this.playMenu.style.display = "none";
-        this.ingameMenu.style.display = "block";
-        this.pauseMenu.style.display = "none";
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.buildingMenuContainer.style.display = "block";
+        this.ingameMenuContainer.style.display = "block";
+        this.pauseMenuContainer.style.display = "none";
     }
     showPauseMenu() {
-        this.mainMenu.style.display = "none";
-        this.playMenu.style.display = "none";
-        this.pauseMenu.style.display = "block";
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "block";
     }
 }
 /// <reference path="GameObject.ts"/>
@@ -1372,6 +1396,28 @@ class SpacePanel extends HTMLElement {
         this._innerBorder.appendChild(lineElement);
         this._htmlLines.push(lineElement);
         return inputElement;
+    }
+    addSquareButtons(values, onClickCallbacks) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let inputs = [];
+        for (let i = 0; i < values.length; i++) {
+            let inputElement1 = document.createElement("input");
+            inputElement1.classList.add("space-button-square");
+            inputElement1.setAttribute("type", "button");
+            inputElement1.value = values[i];
+            let cb = onClickCallbacks[i];
+            inputElement1.addEventListener("click", () => {
+                if (cb) {
+                    cb;
+                }
+            });
+            lineElement.appendChild(inputElement1);
+            inputs.push(inputElement1);
+        }
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputs;
     }
     addLargeButton(value, onClickCallback) {
         let lineElement = document.createElement("div");
