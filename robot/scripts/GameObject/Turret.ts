@@ -1,6 +1,6 @@
 class Turret extends GameObject {
 
-    public ready: boolean = true;
+    public isReady: boolean = true;
 
     public base: Sprite;
     public body: Sprite;
@@ -24,7 +24,7 @@ class Turret extends GameObject {
 
         this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
         this.canon.height = 5;
-        this.canon.position.y = 0.6;
+        this.canon.posY = 0.6;
         this.canon.position.z = - 0.1;
         this.canon.parent = this.body;
 
@@ -47,7 +47,7 @@ class Turret extends GameObject {
 
     private _t: number = 0;
     private _update = () => {
-        if (!this.ready) {
+        if (!this.isReady) {
             return;
         }
 
@@ -62,21 +62,21 @@ class Turret extends GameObject {
 
         if (this.target) {
             let dirToTarget = new BABYLON.Vector2(
-                this.target.body.position.x - this.base.position.x,
-                this.target.body.position.y - this.base.position.y
+                this.target.body.posX - this.base.posX,
+                this.target.body.posY - this.base.posY
             );
             let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
             this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 *  Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
             let aligned = Math2D.AreEqualsCircular(this.body.rotation.z, targetA, Math.PI / 180);
             if (aligned) {
-                this.canon.position.y = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
-                this.body.position.x = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
-                this.body.position.y = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
+                this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
+                this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
+                this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
             }
             else {
-                this.canon.position.y = 0.6;
-                this.body.position.x = 0;
-                this.body.position.y = 0;
+                this.canon.posY = 0.6;
+                this.body.posX = 0;
+                this.body.posY = 0;
             }
         }
     }

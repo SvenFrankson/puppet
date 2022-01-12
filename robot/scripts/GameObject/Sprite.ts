@@ -9,12 +9,26 @@ class Sprite extends BABYLON.Mesh {
         }
     }
 
-    private _position2D: BABYLON.Vector2 = BABYLON.Vector2.Zero();
-    public get position2D(): BABYLON.Vector2 {
-        this._position2D.x = this.position.x;
-        this._position2D.y = this.position.y;
+    private _pos2D: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+    public get pos2D(): BABYLON.Vector2 {
+        this._pos2D.x = this.position.x;
+        this._pos2D.y = this.position.y;
 
-        return this._position2D;
+        return this._pos2D;
+    }
+
+    public get posX(): number {
+        return this.position.x;
+    }
+    public set posX(x: number) {
+        this.position.x = x;
+    }
+
+    public get posY(): number {
+        return this.position.y;
+    }
+    public set posY(y: number) {
+        this.position.y = y;
     }
 
     constructor(

@@ -47,6 +47,15 @@ class Main {
 		}
 	}
 
+	public getPointerWorldPos(): BABYLON.Vector2 {
+		let pointerX = this.scene.pointerX / this.canvas.clientWidth;
+		let pointerY = 1 - this.scene.pointerY / this.canvas.clientHeight;
+		let worldX = this.camera.orthoLeft + pointerX * (this.camera.orthoRight - this.camera.orthoLeft);
+		let worldY = this.camera.orthoBottom + pointerY * (this.camera.orthoTop - this.camera.orthoBottom);
+		document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
+		return new BABYLON.Vector2(worldX, worldY);
+	}
+
     public async initializeScene(): Promise<void> {
 		this.scene = new BABYLON.Scene(this.engine);
 		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);

@@ -31,6 +31,14 @@ class Main {
             this.camera.orthoBottom = -10 / r;
         }
     }
+    getPointerWorldPos() {
+        let pointerX = this.scene.pointerX / this.canvas.clientWidth;
+        let pointerY = 1 - this.scene.pointerY / this.canvas.clientHeight;
+        let worldX = this.camera.orthoLeft + pointerX * (this.camera.orthoRight - this.camera.orthoLeft);
+        let worldY = this.camera.orthoBottom + pointerY * (this.camera.orthoTop - this.camera.orthoBottom);
+        document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
+        return new BABYLON.Vector2(worldX, worldY);
+    }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
@@ -118,7 +126,7 @@ class Sprite extends BABYLON.Mesh {
     constructor(name, url, scene, length) {
         super(name, scene);
         this.height = 1;
-        this._position2D = BABYLON.Vector2.Zero();
+        this._pos2D = BABYLON.Vector2.Zero();
         this._update = () => {
             this.shadowMesh.position.x = this.absolutePosition.x + 0.5 * this.height / 5;
             this.shadowMesh.position.y = this.absolutePosition.y - 0.3 * this.height / 5;
@@ -155,10 +163,22 @@ class Sprite extends BABYLON.Mesh {
             return this.material;
         }
     }
-    get position2D() {
-        this._position2D.x = this.position.x;
-        this._position2D.y = this.position.y;
-        return this._position2D;
+    get pos2D() {
+        this._pos2D.x = this.position.x;
+        this._pos2D.y = this.position.y;
+        return this._pos2D;
+    }
+    get posX() {
+        return this.position.x;
+    }
+    set posX(x) {
+        this.position.x = x;
+    }
+    get posY() {
+        return this.position.y;
+    }
+    set posY(y) {
+        this.position.y = y;
     }
     refreshMesh(length) {
         let size = this.spriteMaterial.diffuseTexture.getBaseSize();
@@ -181,10 +201,10 @@ class Sprite extends BABYLON.Mesh {
 class Turret extends GameObject {
     constructor(main) {
         super(main);
-        this.ready = true;
+        this.isReady = true;
         this._t = 0;
         this._update = () => {
-            if (!this.ready) {
+            if (!this.isReady) {
                 return;
             }
             this._t += this.main.scene.getEngine().getDeltaTime() / 1000;
@@ -195,19 +215,19 @@ class Turret extends GameObject {
                 }
             }
             if (this.target) {
-                let dirToTarget = new BABYLON.Vector2(this.target.body.position.x - this.base.position.x, this.target.body.position.y - this.base.position.y);
+                let dirToTarget = new BABYLON.Vector2(this.target.body.posX - this.base.posX, this.target.body.posY - this.base.posY);
                 let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
                 this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
                 let aligned = Math2D.AreEqualsCircular(this.body.rotation.z, targetA, Math.PI / 180);
                 if (aligned) {
-                    this.canon.position.y = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
-                    this.body.position.x = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
-                    this.body.position.y = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
+                    this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
+                    this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
+                    this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
                 }
                 else {
-                    this.canon.position.y = 0.6;
-                    this.body.position.x = 0;
-                    this.body.position.y = 0;
+                    this.canon.posY = 0.6;
+                    this.body.posX = 0;
+                    this.body.posY = 0;
                 }
             }
         };
@@ -219,7 +239,7 @@ class Turret extends GameObject {
         this.body.parent = this.base;
         this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
         this.canon.height = 5;
-        this.canon.position.y = 0.6;
+        this.canon.posY = 0.6;
         this.canon.position.z = -0.1;
         this.canon.parent = this.body;
         this.top = new Sprite("turret-top", "assets/turret_top.png", this.main.scene);
@@ -948,19 +968,15 @@ class PlayerAction {
         this.main = main;
         this._updateAddingTurret = () => {
             if (this._selectedTurret) {
-                let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
-                let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
-                let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
-                let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
-                this._selectedTurret.base.position.x = worldX;
-                this._selectedTurret.base.position.y = worldY;
-                document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
+                let world = this.main.getPointerWorldPos();
+                this._selectedTurret.base.posX = world.x;
+                this._selectedTurret.base.position.y = world.y;
             }
         };
         this._pointerUpAddingTurret = (eventData) => {
             if (this._selectedTurret) {
                 if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
-                    this._selectedTurret.ready = true;
+                    this._selectedTurret.isReady = true;
                     this._selectedTurret.setDarkness(1);
                     this._selectedTurret = undefined;
                     this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
@@ -970,22 +986,15 @@ class PlayerAction {
         };
         this._updateAddingWall = () => {
             if (this._selectedWallNode1 && !this._selectedWallNode2) {
-                let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
-                let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
-                let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
-                let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
-                this._selectedWallNode1.sprite.position.x = worldX;
-                this._selectedWallNode1.sprite.position.y = worldY;
-                document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
+                let world = this.main.getPointerWorldPos();
+                this._selectedWallNode1.sprite.posX = world.x;
+                this._selectedWallNode1.sprite.position.y = world.y;
             }
             else if (this._selectedWallNode1 && this._selectedWallNode2 && this._selectedWall) {
-                let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
-                let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
-                let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
-                let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
-                if (this._selectedWallNode2.sprite.position2D.x != worldX || this._selectedWallNode2.sprite.position2D.y != worldY) {
-                    this._selectedWallNode2.sprite.position.x = worldX;
-                    this._selectedWallNode2.sprite.position.y = worldY;
+                let world = this.main.getPointerWorldPos();
+                if (this._selectedWallNode2.sprite.pos2D.x != world.x || this._selectedWallNode2.sprite.pos2D.y != world.y) {
+                    this._selectedWallNode2.sprite.posX = world.x;
+                    this._selectedWallNode2.sprite.position.y = world.y;
                     this._selectedWall.refreshMesh();
                 }
             }
@@ -993,15 +1002,11 @@ class PlayerAction {
         this._pointerUpAddingWall = (eventData) => {
             if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
                 if (this._selectedWallNode1 && !this._selectedWallNode2) {
-                    let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
-                    let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
-                    let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
-                    let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
-                    let world = new BABYLON.Vector2(worldX, worldY);
+                    let world = this.main.getPointerWorldPos();
                     let existingWallNode = this.main.gameObjects.find(g => {
                         if (g instanceof WallNode) {
                             if (g.isReady) {
-                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.position2D) < 1.5 * 1.5) {
+                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.pos2D) < 1.5 * 1.5) {
                                     return true;
                                 }
                             }
@@ -1012,8 +1017,8 @@ class PlayerAction {
                         this._selectedWallNode1 = existingWallNode;
                     }
                     else {
-                        this._selectedWallNode1.sprite.position.x = worldX;
-                        this._selectedWallNode1.sprite.position.y = worldY;
+                        this._selectedWallNode1.sprite.posX = world.x;
+                        this._selectedWallNode1.sprite.position.y = world.y;
                         this._selectedWallNode1.isReady = true;
                         this._selectedWallNode1.setDarkness(1);
                     }
@@ -1024,15 +1029,11 @@ class PlayerAction {
                     this._selectedWall.setDarkness(0.5);
                 }
                 else if (this._selectedWallNode1 && this._selectedWallNode2) {
-                    let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
-                    let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
-                    let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
-                    let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
-                    let world = new BABYLON.Vector2(worldX, worldY);
+                    let world = this.main.getPointerWorldPos();
                     let existingWallNode = this.main.gameObjects.find(g => {
                         if (g instanceof WallNode) {
                             if (g.isReady && g != this._selectedWallNode1) {
-                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.position2D) < 1.5 * 1.5) {
+                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.pos2D) < 1.5 * 1.5) {
                                     return true;
                                 }
                             }
@@ -1043,8 +1044,8 @@ class PlayerAction {
                         this._selectedWallNode2 = existingWallNode;
                     }
                     else {
-                        this._selectedWallNode2.sprite.position.x = worldX;
-                        this._selectedWallNode2.sprite.position.y = worldY;
+                        this._selectedWallNode2.sprite.posX = world.x;
+                        this._selectedWallNode2.sprite.position.y = world.y;
                         this._selectedWallNode2.isReady = true;
                         this._selectedWallNode2.setDarkness(1);
                     }
@@ -1065,7 +1066,7 @@ class PlayerAction {
             return;
         }
         this._selectedTurret = new Turret(this.main);
-        this._selectedTurret.ready = false;
+        this._selectedTurret.isReady = false;
         this._selectedTurret.setDarkness(0.5);
         this.main.scene.onBeforeRenderObservable.add(this._updateAddingTurret);
         this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret);
