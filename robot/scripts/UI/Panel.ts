@@ -159,12 +159,13 @@ class SpacePanel extends HTMLElement {
         this._innerBorder.appendChild(titleLine);
     }
 
-    public addTitle3(title: string): void {
+    public addTitle3(title: string): HTMLHeadingElement {
         let e = document.createElement("h3");
         e.classList.add("space-title-3");
         e.textContent = title;
         this._innerBorder.appendChild(e);
         this._htmlLines.push(e);
+        return e;
     }
 
     public addNumberInput(label: string, value: number, onInputCallback?: (v: number) => void, precision: number = 1): HTMLInputElement {
@@ -234,12 +235,12 @@ class SpacePanel extends HTMLElement {
             inputElement1.classList.add("space-button-square");
             inputElement1.setAttribute("type", "button");
             inputElement1.value = values[i];
-            let cb = onClickCallbacks[i];
+            let callback = onClickCallbacks[i];
             inputElement1.addEventListener(
-                "click",
+                "pointerup",
                 () => {
-                    if (cb) {
-                        cb;
+                    if (callback) {
+                        callback();
                     }
                 }
             );

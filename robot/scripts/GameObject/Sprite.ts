@@ -3,6 +3,20 @@ class Sprite extends BABYLON.Mesh {
     public shadowMesh: BABYLON.Mesh;
     public height: number = 1;
 
+    public get spriteMaterial(): BABYLON.StandardMaterial {
+        if (this.material instanceof BABYLON.StandardMaterial) {
+            return this.material;
+        }
+    }
+
+    private _position2D: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+    public get position2D(): BABYLON.Vector2 {
+        this._position2D.x = this.position.x;
+        this._position2D.y = this.position.y;
+
+        return this._position2D;
+    }
+
     constructor(
         name: string,
         url: string,
@@ -15,16 +29,7 @@ class Sprite extends BABYLON.Mesh {
 
 		let material = new BABYLON.StandardMaterial(name + "-material", scene);
 		let texture = new BABYLON.Texture(url, scene, false, true, undefined, () => {
-            let size = texture.getBaseSize();
-            let quadData: BABYLON.VertexData;
-            if (isFinite(length)) {
-                quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
-            }
-            else {
-                quadData = BABYLON.VertexData.CreatePlane({ width: size.width / 100, height: size.height / 100 });
-            }
-            quadData.applyToMesh(this);
-            quadData.applyToMesh(this.shadowMesh);
+            this.refreshMesh(length);
         });
         material.diffuseTexture = texture;
 		material.diffuseTexture.hasAlpha = true;
@@ -38,11 +43,25 @@ class Sprite extends BABYLON.Mesh {
         shadowMaterial.diffuseColor.copyFromFloats(0, 0, 0);
 		shadowMaterial.diffuseTexture.hasAlpha = true;
         shadowMaterial.specularColor.copyFromFloats(0, 0, 0);
-		shadowMaterial.alphaCutOff = 0.5
+		shadowMaterial.useAlphaFromDiffuseTexture = true;
+        shadowMaterial.alpha = 0.8;
 
         this.shadowMesh.material = shadowMaterial;
 
         scene.onBeforeRenderObservable.add(this._update);
+    }
+
+    public refreshMesh(length?: number): void {
+        let size = this.spriteMaterial.diffuseTexture.getBaseSize();
+        let quadData: BABYLON.VertexData;
+        if (isFinite(length)) {
+            quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
+        }
+        else {
+            quadData = BABYLON.VertexData.CreatePlane({ width: size.width / 100, height: size.height / 100 });
+        }
+        quadData.applyToMesh(this);
+        quadData.applyToMesh(this.shadowMesh);
     }
 
     private _update = () => {

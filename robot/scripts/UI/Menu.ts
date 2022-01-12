@@ -5,6 +5,7 @@ class Menu {
     public buildingMenuContainer: HTMLDivElement;
     public ingameMenuContainer: HTMLDivElement;
     public pauseMenuContainer: HTMLDivElement;
+    public debugContainer: HTMLDivElement;
 
     constructor(
         public main: Main
@@ -78,7 +79,10 @@ class Menu {
         */
         let buildingButtons = buildingMenu.addSquareButtons(
             ["TOWER", "WALL"],
-            []
+            [
+                () => { this.main.playerAction.addTurret(); },
+                () => { this.main.playerAction.addWall(); }
+            ]
         );
         buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";
         buildingButtons[1].style.backgroundImage = "url(assets/icons/wall.png)";
@@ -123,6 +127,18 @@ class Menu {
         
 		this.pauseMenuContainer.appendChild(pauseResume);
 		this.pauseMenuContainer.appendChild(pauseExit);
+
+        
+        this.debugContainer = document.getElementById("debug-menu") as HTMLDivElement;
+		
+		let debugPanel = SpacePanel.CreateSpacePanel();
+		debugPanel.addTitle2("DEBUG");
+		debugPanel.classList.add("debug-panel");
+        debugPanel.onpointerup = () => {
+            this.showIngameMenu();
+        }
+
+        debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
 
         this.showMainMenu();
     }

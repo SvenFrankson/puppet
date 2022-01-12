@@ -58,3 +58,12 @@ body {
   right: 0.1%;
   z-index: 1;
 }
+
+.debug-panel {
+  display: block;
+  position: fixed;
+  width: 25%;
+  top: 0.25%;
+  left: 0.1%;
+  z-index: 1;
+}

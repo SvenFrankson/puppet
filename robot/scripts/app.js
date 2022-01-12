@@ -1,13 +1,3 @@
-class GameObject {
-    constructor(main) {
-        this.main = main;
-        this.isDisposed = false;
-        main.gameObjects.push(this);
-    }
-    dispose() {
-        this.isDisposed = true;
-    }
-}
 /// <reference path="../lib/babylon.d.ts"/>
 /// <reference path="../lib/babylon.gui.d.ts"/>
 var COS30 = Math.cos(Math.PI / 6);
@@ -52,6 +42,7 @@ class Main {
             this.resize();
         };
         BABYLON.Engine.ShadersRepository = "./shaders/";
+        this.playerAction = new PlayerAction(this);
         let menu = new Menu(this);
         menu.initializeMenu();
         this.generateScene();
@@ -100,6 +91,1021 @@ window.addEventListener("load", async () => {
     await main.initialize();
     main.animate();
 });
+class GameObject {
+    constructor(main) {
+        this.main = main;
+        this.isDisposed = false;
+        main.gameObjects.push(this);
+    }
+    dispose() {
+        this.isDisposed = true;
+    }
+}
+/// <reference path="GameObject.ts"/>
+class Prop extends GameObject {
+    constructor(name, main) {
+        super(main);
+        this.name = name;
+        this.sprite = new Sprite(name, "assets/" + name + ".png", this.main.scene);
+        this.sprite.position.z = 1;
+    }
+    dispose() {
+        super.dispose();
+        this.sprite.dispose();
+    }
+}
+class Sprite extends BABYLON.Mesh {
+    constructor(name, url, scene, length) {
+        super(name, scene);
+        this.height = 1;
+        this._position2D = BABYLON.Vector2.Zero();
+        this._update = () => {
+            this.shadowMesh.position.x = this.absolutePosition.x + 0.5 * this.height / 5;
+            this.shadowMesh.position.y = this.absolutePosition.y - 0.3 * this.height / 5;
+            this.shadowMesh.position.z = 1.1;
+            this.shadowMesh.rotation.z = this.rotation.z;
+            let parent = this.parent;
+            while (parent && parent instanceof BABYLON.Mesh) {
+                this.shadowMesh.rotation.z += parent.rotation.z;
+                parent = parent.parent;
+            }
+        };
+        this.shadowMesh = new BABYLON.Mesh(name + "-shadow", scene);
+        let material = new BABYLON.StandardMaterial(name + "-material", scene);
+        let texture = new BABYLON.Texture(url, scene, false, true, undefined, () => {
+            this.refreshMesh(length);
+        });
+        material.diffuseTexture = texture;
+        material.diffuseTexture.hasAlpha = true;
+        material.specularColor.copyFromFloats(0, 0, 0);
+        material.alphaCutOff = 0.5;
+        this.material = material;
+        let shadowMaterial = new BABYLON.StandardMaterial(name + "-material", scene);
+        shadowMaterial.diffuseTexture = texture;
+        shadowMaterial.diffuseColor.copyFromFloats(0, 0, 0);
+        shadowMaterial.diffuseTexture.hasAlpha = true;
+        shadowMaterial.specularColor.copyFromFloats(0, 0, 0);
+        shadowMaterial.useAlphaFromDiffuseTexture = true;
+        shadowMaterial.alpha = 0.8;
+        this.shadowMesh.material = shadowMaterial;
+        scene.onBeforeRenderObservable.add(this._update);
+    }
+    get spriteMaterial() {
+        if (this.material instanceof BABYLON.StandardMaterial) {
+            return this.material;
+        }
+    }
+    get position2D() {
+        this._position2D.x = this.position.x;
+        this._position2D.y = this.position.y;
+        return this._position2D;
+    }
+    refreshMesh(length) {
+        let size = this.spriteMaterial.diffuseTexture.getBaseSize();
+        let quadData;
+        if (isFinite(length)) {
+            quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
+        }
+        else {
+            quadData = BABYLON.VertexData.CreatePlane({ width: size.width / 100, height: size.height / 100 });
+        }
+        quadData.applyToMesh(this);
+        quadData.applyToMesh(this.shadowMesh);
+    }
+    dispose(doNotRecurse, disposeMaterialAndTextures) {
+        super.dispose(doNotRecurse, disposeMaterialAndTextures);
+        this.shadowMesh.dispose(doNotRecurse, disposeMaterialAndTextures);
+        this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+    }
+}
+class Turret extends GameObject {
+    constructor(main) {
+        super(main);
+        this.ready = true;
+        this._t = 0;
+        this._update = () => {
+            if (!this.ready) {
+                return;
+            }
+            this._t += this.main.scene.getEngine().getDeltaTime() / 1000;
+            if (!this.target) {
+                let walker = this.main.gameObjects.find(g => { return g instanceof Walker; });
+                if (walker) {
+                    this.target = walker;
+                }
+            }
+            if (this.target) {
+                let dirToTarget = new BABYLON.Vector2(this.target.body.position.x - this.base.position.x, this.target.body.position.y - this.base.position.y);
+                let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
+                this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
+                let aligned = Math2D.AreEqualsCircular(this.body.rotation.z, targetA, Math.PI / 180);
+                if (aligned) {
+                    this.canon.position.y = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
+                    this.body.position.x = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
+                    this.body.position.y = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
+                }
+                else {
+                    this.canon.position.y = 0.6;
+                    this.body.position.x = 0;
+                    this.body.position.y = 0;
+                }
+            }
+        };
+        this.base = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
+        this.base.height = 1;
+        this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
+        this.body.height = 3;
+        this.body.position.z = -0.1;
+        this.body.parent = this.base;
+        this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
+        this.canon.height = 5;
+        this.canon.position.y = 0.6;
+        this.canon.position.z = -0.1;
+        this.canon.parent = this.body;
+        this.top = new Sprite("turret-top", "assets/turret_top.png", this.main.scene);
+        this.top.height = 5;
+        this.top.position.z = -0.2;
+        this.top.parent = this.body;
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    dispose() {
+        super.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.base.dispose();
+        this.body.dispose();
+        this.canon.dispose();
+        this.top.dispose();
+    }
+    setDarkness(d) {
+        this.base.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+    }
+}
+class WalkerTarget extends BABYLON.Mesh {
+    constructor(walker) {
+        super("target");
+        this.walker = walker;
+        this.targets = [];
+        let positions = [
+            new BABYLON.Vector2(-1, 0),
+            new BABYLON.Vector2(1, 0)
+        ];
+        for (let i = 0; i < walker.legCount; i++) {
+            let target = new BABYLON.Mesh("target-" + i);
+            target.position.x = positions[i].x;
+            target.position.y = positions[i].y;
+            target.parent = this;
+            this.targets[i] = target;
+        }
+    }
+}
+class Walker extends GameObject {
+    constructor(main) {
+        super(main);
+        this.legCount = 2;
+        this.arms = [];
+        this.feet = [];
+        this._inputDirs = new UniqueList();
+        this._movingLegCount = 0;
+        this._movingLegs = new UniqueList();
+        this._bodyT = 0;
+        this._bodySpeed = 0.5;
+        this._armT = 0;
+        this._armSpeed = 1;
+        this._update = () => {
+            this._bodyT += this._bodySpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
+            this._armT += this._armSpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
+            this._bodySpeed = 1;
+            this._armSpeed = 1;
+            if (this._inputDirs.contains(0)) {
+                this.target.position.addInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
+            }
+            if (this._inputDirs.contains(1)) {
+                this.target.position.subtractInPlace(this.target.up.scale(1 * this.main.scene.getEngine().getDeltaTime() / 1000));
+            }
+            if (this._inputDirs.contains(2)) {
+                this.target.position.subtractInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
+            }
+            if (this._inputDirs.contains(3)) {
+                this.target.position.addInPlace(this.target.up.scale(3 * this.main.scene.getEngine().getDeltaTime() / 1000));
+                this._bodySpeed = 3;
+                this._armSpeed = 5;
+            }
+            if (this._inputDirs.contains(4)) {
+                this.target.rotation.z += 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+            }
+            if (this._inputDirs.contains(5)) {
+                this.target.rotation.z -= 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+            }
+            while (this.target.rotation.z < 0) {
+                this.target.rotation.z += 2 * Math.PI;
+            }
+            while (this.target.rotation.z >= 2 * Math.PI) {
+                this.target.rotation.z -= 2 * Math.PI;
+            }
+            this.body.position.copyFrom(this.feet[0].position);
+            for (let i = 1; i < this.legCount; i++) {
+                this.body.position.addInPlace(this.feet[i].position);
+            }
+            this.body.position.scaleInPlace(1 / this.legCount);
+            this.body.position.x += Math.cos(1 * this._bodyT * Math.PI) * 0.1;
+            this.body.position.y += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
+            this.body.position.z = 0;
+            this.arms[0].rotation.z = Math.cos(1 * this._armT * Math.PI) * 0.15 - 0.3;
+            this.arms[1].rotation.z = Math.cos(1.1 * this._armT * Math.PI) * 0.15 + 0.3;
+            let rightDir = new BABYLON.Vector2(this.feet[1].absolutePosition.x - this.feet[0].absolutePosition.x, this.feet[1].absolutePosition.y - this.feet[0].absolutePosition.y);
+            rightDir.normalize();
+            let a = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), rightDir);
+            this.body.rotation.z = Math2D.LerpFromToCircular(a, this.target.rotation.z, 0.5);
+            if (this._movingLegCount <= 0) {
+                let index = -1;
+                let dist = 0;
+                for (let i = 0; i < this.legCount; i++) {
+                    if (!this._movingLegs.contains(i)) {
+                        let iDist = BABYLON.Vector3.DistanceSquared(this.feet[i].position, this.target.targets[i].absolutePosition);
+                        if (iDist > dist) {
+                            dist = iDist;
+                            index = i;
+                        }
+                    }
+                }
+                if (dist > 0.1) {
+                    this._movingLegCount++;
+                    this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.z);
+                }
+            }
+        };
+        this.target = new WalkerTarget(this);
+        let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.main.scene);
+        robotBody.height = 2;
+        robotBody.position.x = 5;
+        robotBody.position.y = 5;
+        this.body = robotBody;
+        let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.main.scene);
+        robotArm_L.height = 3;
+        robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, -0.43, 0)));
+        robotArm_L.position.x = -1.1;
+        robotArm_L.position.y = 0.7;
+        robotArm_L.position.z = -0.1;
+        robotArm_L.parent = robotBody;
+        let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.main.scene);
+        robotArm_R.height = 3;
+        robotArm_R.setPivotPoint((new BABYLON.Vector3(-0.48, -0.43, 0)));
+        robotArm_R.position.x = 1.1;
+        robotArm_R.position.y = 0.7;
+        robotArm_R.position.z = -0.1;
+        robotArm_R.parent = robotBody;
+        let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.main.scene);
+        robotFoot_L.height = 1;
+        robotFoot_L.position.x = -1.1;
+        robotFoot_L.position.y = 0;
+        robotFoot_L.position.z = 0.1;
+        robotFoot_L.rotation.z = 0.3;
+        let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.main.scene);
+        robotFoot_R.height = 1;
+        robotFoot_R.position.x = 1.1;
+        robotFoot_R.position.y = 0;
+        robotFoot_R.position.z = 0.1;
+        robotFoot_R.rotation.z = -0.3;
+        this.feet = [robotFoot_L, robotFoot_R];
+        this.arms = [robotArm_L, robotArm_R];
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+        this.main.canvas.addEventListener("keydown", (e) => {
+            if (e.code === "KeyD") {
+                this._inputDirs.push(0);
+            }
+            if (e.code === "KeyS") {
+                this._inputDirs.push(1);
+            }
+            if (e.code === "KeyA") {
+                this._inputDirs.push(2);
+            }
+            if (e.code === "KeyW") {
+                this._inputDirs.push(3);
+            }
+            if (e.code === "KeyQ") {
+                this._inputDirs.push(4);
+            }
+            if (e.code === "KeyE") {
+                this._inputDirs.push(5);
+            }
+        });
+        this.main.canvas.addEventListener("keyup", (e) => {
+            if (e.code === "KeyD") {
+                this._inputDirs.remove(0);
+            }
+            if (e.code === "KeyS") {
+                this._inputDirs.remove(1);
+            }
+            if (e.code === "KeyA") {
+                this._inputDirs.remove(2);
+            }
+            if (e.code === "KeyW") {
+                this._inputDirs.remove(3);
+            }
+            if (e.code === "KeyQ") {
+                this._inputDirs.remove(4);
+            }
+            if (e.code === "KeyE") {
+                this._inputDirs.remove(5);
+            }
+        });
+    }
+    get _inputDir() {
+        return this._inputDirs.getLast();
+    }
+    dispose() {
+        super.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.body.dispose();
+        this.arms.forEach(a => {
+            a.dispose();
+        });
+        this.feet.forEach(f => {
+            f.dispose();
+        });
+    }
+    async _moveLeg(legIndex, target, targetR) {
+        return new Promise(resolve => {
+            this._movingLegs.push(legIndex);
+            let origin = this.feet[legIndex].position.clone();
+            let originR = this.feet[legIndex].rotation.z;
+            let l = target.subtract(origin).length();
+            let duration = Math.floor(l / 3);
+            duration *= 0.5;
+            duration += 0.5;
+            let t = 0;
+            let step = () => {
+                t += this.main.scene.getEngine().getDeltaTime() / 1000;
+                let d = t / duration;
+                d = d * d;
+                d = Math.min(d, 1);
+                this.feet[legIndex].position.copyFrom(origin.scale(1 - d).add(target.scale(d)));
+                this.feet[legIndex].height = 1 + 3 * Math.sin(Math.PI * d);
+                this.feet[legIndex].position.z = 0.1;
+                this.feet[legIndex].rotation.z = Math2D.LerpFromToCircular(originR, targetR, d);
+                if (d < 1) {
+                    requestAnimationFrame(step);
+                }
+                else {
+                    this._movingLegCount -= 1;
+                    this._movingLegs.remove(legIndex);
+                    resolve();
+                }
+            };
+            step();
+        });
+    }
+}
+class WallNode extends GameObject {
+    constructor(main) {
+        super(main);
+        this.isReady = true;
+        this.sprite = new Sprite("wall", "assets/wall_node_base.png", this.main.scene);
+        this.sprite.position.z = 0;
+        this.sprite.height = 1;
+        this.top = new Sprite("wall-top", "assets/wall_top.png", this.main.scene);
+        this.top.position.z = -0.2;
+        this.top.parent = this.sprite;
+        this.top.height = 5;
+    }
+    dispose() {
+        super.dispose();
+        this.sprite.dispose();
+        this.top.dispose();
+    }
+    setDarkness(d) {
+        this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+    }
+}
+class Wall extends GameObject {
+    constructor(node1, node2, main) {
+        super(main);
+        this.node1 = node1;
+        this.node2 = node2;
+        this.refreshMesh();
+    }
+    refreshMesh() {
+        let n = this.node2.sprite.position.subtract(this.node1.sprite.position);
+        let l = n.length();
+        if (this.sprite) {
+            this.sprite.refreshMesh(l);
+        }
+        else {
+            if (l > 0) {
+                this.sprite = new Sprite("wall", "assets/wall.png", this.main.scene, l);
+                this.sprite.height = 5;
+            }
+            else {
+                console.log("ouf");
+            }
+        }
+        this.sprite.setPivotPoint(new BABYLON.Vector3(-l * 0.5, 0, 0));
+        this.sprite.position.z = -0.1;
+        this.sprite.position.x = this.node1.sprite.position.x + l * 0.5;
+        this.sprite.position.y = this.node1.sprite.position.y;
+        this.sprite.rotation.z = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), new BABYLON.Vector2(n.x, n.y));
+    }
+    dispose() {
+        super.dispose();
+        this.sprite.dispose();
+    }
+    setDarkness(d) {
+        this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+    }
+}
+class Menu {
+    constructor(main) {
+        this.main = main;
+    }
+    initializeMenu() {
+        this.mainMenuContainer = document.getElementById("main-menu");
+        let mainTitle = SpacePanel.CreateSpacePanel();
+        mainTitle.addTitle1("MARS AT WAR");
+        mainTitle.classList.add("menu-title-panel");
+        let mainPlay = SpacePanel.CreateSpacePanel();
+        mainPlay.addTitle2("PLAY");
+        mainPlay.classList.add("menu-element-panel");
+        mainPlay.onpointerup = () => {
+            this.showPlayMenu();
+        };
+        let mainOption = SpacePanel.CreateSpacePanel();
+        mainOption.addTitle2("OPTIONS");
+        mainOption.classList.add("menu-element-panel");
+        let mainCredit = SpacePanel.CreateSpacePanel();
+        mainCredit.addTitle2("CREDITS");
+        mainCredit.classList.add("menu-element-panel");
+        this.mainMenuContainer.appendChild(mainTitle);
+        this.mainMenuContainer.appendChild(mainPlay);
+        this.mainMenuContainer.appendChild(mainOption);
+        this.mainMenuContainer.appendChild(mainCredit);
+        this.playMenuContainer = document.getElementById("play-menu");
+        let playTitle = SpacePanel.CreateSpacePanel();
+        playTitle.addTitle1("MARS AT WAR");
+        playTitle.classList.add("menu-title-panel");
+        let playTest = SpacePanel.CreateSpacePanel();
+        playTest.addTitle2("TEST");
+        playTest.classList.add("menu-element-panel");
+        playTest.onpointerup = () => {
+            this.main.generateScene();
+            this.showIngameMenu();
+        };
+        let playBack = SpacePanel.CreateSpacePanel();
+        playBack.addTitle2("BACK");
+        playBack.classList.add("menu-element-panel");
+        playBack.onpointerup = () => {
+            this.showMainMenu();
+        };
+        this.playMenuContainer.appendChild(playTitle);
+        this.playMenuContainer.appendChild(playTest);
+        this.playMenuContainer.appendChild(playBack);
+        this.buildingMenuContainer = document.getElementById("building-menu");
+        let buildingMenu = SpacePanel.CreateSpacePanel();
+        buildingMenu.classList.add("building-menu");
+        /*
+        buildingShowMenu.addTitle2("MENU");
+        buildingShowMenu.onpointerup = () => {
+            this.showPauseMenu();
+        }
+        */
+        let buildingButtons = buildingMenu.addSquareButtons(["TOWER", "WALL"], [
+            () => { this.main.playerAction.addTurret(); },
+            () => { this.main.playerAction.addWall(); }
+        ]);
+        buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";
+        buildingButtons[1].style.backgroundImage = "url(assets/icons/wall.png)";
+        this.buildingMenuContainer.appendChild(buildingMenu);
+        this.ingameMenuContainer = document.getElementById("ingame-menu");
+        let ingameMenu = SpacePanel.CreateSpacePanel();
+        ingameMenu.classList.add("ingame-menu");
+        /*
+        ingameShowMenu.addTitle2("MENU");
+        ingameShowMenu.onpointerup = () => {
+            this.showPauseMenu();
+        }
+        */
+        ingameMenu.addLargeButton("MENU", () => {
+            this.showPauseMenu();
+        });
+        ingameMenu.addTitle3("740");
+        this.ingameMenuContainer.appendChild(ingameMenu);
+        this.pauseMenuContainer = document.getElementById("pause-menu");
+        let pauseResume = SpacePanel.CreateSpacePanel();
+        pauseResume.addTitle2("RESUME GAME");
+        pauseResume.classList.add("menu-element-panel");
+        pauseResume.onpointerup = () => {
+            this.showIngameMenu();
+        };
+        let pauseExit = SpacePanel.CreateSpacePanel();
+        pauseExit.addTitle2("EXIT");
+        pauseExit.classList.add("menu-element-panel");
+        pauseExit.onpointerup = () => {
+            this.main.disposeScene();
+            this.showMainMenu();
+        };
+        this.pauseMenuContainer.appendChild(pauseResume);
+        this.pauseMenuContainer.appendChild(pauseExit);
+        this.debugContainer = document.getElementById("debug-menu");
+        let debugPanel = SpacePanel.CreateSpacePanel();
+        debugPanel.addTitle2("DEBUG");
+        debugPanel.classList.add("debug-panel");
+        debugPanel.onpointerup = () => {
+            this.showIngameMenu();
+        };
+        debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
+        this.showMainMenu();
+    }
+    showMainMenu() {
+        this.mainMenuContainer.style.display = "block";
+        this.playMenuContainer.style.display = "none";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
+    }
+    showPlayMenu() {
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "block";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
+    }
+    showIngameMenu() {
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.buildingMenuContainer.style.display = "block";
+        this.ingameMenuContainer.style.display = "block";
+        this.pauseMenuContainer.style.display = "none";
+    }
+    showPauseMenu() {
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "block";
+    }
+}
+class SpacePanel extends HTMLElement {
+    constructor() {
+        super();
+        this._initialized = false;
+        this._htmlLines = [];
+        this._isVisible = true;
+        this._update = () => {
+            if (!this._target) {
+                return;
+            }
+            /*
+            let dView = this._target.position.subtract(Main.Camera.position);
+            let n = BABYLON.Vector3.Cross(dView, new BABYLON.Vector3(0, 1, 0));
+            n.normalize();
+            n.scaleInPlace(- this._target.groundWidth * 0.5);
+            let p0 = this._target.position;
+            let p1 = this._target.position.add(n);
+            let p2 = p1.clone();
+            p2.y += this._target.groundWidth * 0.5 + this._target.height;
+            let screenPos = BABYLON.Vector3.Project(
+                p2,
+                BABYLON.Matrix.Identity(),
+                this._target.getScene().getTransformMatrix(),
+                Main.Camera.viewport.toGlobal(1, 1)
+            );
+            this.style.left = (screenPos.x * Main.Canvas.width - this.clientWidth * 0.5) + "px";
+            this.style.bottom = ((1 - screenPos.y) * Main.Canvas.height) + "px";
+            this._line.setVerticesData(
+                BABYLON.VertexBuffer.PositionKind,
+                [...p0.asArray(), ...p2.asArray()]
+            );
+            */
+        };
+    }
+    static CreateSpacePanel() {
+        let panel = document.createElement("space-panel");
+        document.body.appendChild(panel);
+        return panel;
+    }
+    connectedCallback() {
+        if (this._initialized) {
+            return;
+        }
+        this._innerBorder = document.createElement("div");
+        this._innerBorder.classList.add("space-panel-inner-border");
+        this.appendChild(this._innerBorder);
+        /*
+        this._toggleVisibilityInput = document.createElement("button");
+        this._toggleVisibilityInput.classList.add("space-panel-toggle-visibility");
+        this._toggleVisibilityInput.textContent = "^";
+        this._toggleVisibilityInput.addEventListener("click", () => {
+            if (this._isVisible) {
+                this.hide();
+            }
+            else {
+                this.show();
+            }
+        });
+        this._innerBorder.appendChild(this._toggleVisibilityInput);
+        */
+        this._initialized = true;
+    }
+    dispose() {
+        if (this._target) {
+            this._target.getScene().onBeforeRenderObservable.removeCallback(this._update);
+        }
+        if (this._line) {
+            this._line.dispose();
+        }
+        document.body.removeChild(this);
+    }
+    show() {
+        this._toggleVisibilityInput.textContent = "^";
+        this._isVisible = true;
+        console.log("SHOW");
+        this._htmlLines.forEach((l) => {
+            l.style.display = "block";
+        });
+    }
+    hide() {
+        this._toggleVisibilityInput.textContent = "v";
+        this._isVisible = false;
+        console.log("HIDE");
+        this._htmlLines.forEach((l) => {
+            l.style.display = "none";
+        });
+    }
+    setTarget(mesh) {
+        this.style.position = "fixed";
+        this._target = mesh;
+        this._line = BABYLON.MeshBuilder.CreateLines("line", {
+            points: [
+                BABYLON.Vector3.Zero(),
+                BABYLON.Vector3.Zero()
+            ],
+            updatable: true,
+            colors: [
+                new BABYLON.Color4(0, 1, 0, 1),
+                new BABYLON.Color4(0, 1, 0, 1)
+            ]
+        }, this._target.getScene());
+        this._line.renderingGroupId = 1;
+        this._line.layerMask = 0x10000000;
+        this._target.getScene().onBeforeRenderObservable.add(this._update);
+    }
+    addTitle1(title) {
+        let titleLine = document.createElement("div");
+        titleLine.classList.add("space-title-1-line");
+        let e = document.createElement("h1");
+        e.classList.add("space-title-1");
+        e.textContent = title;
+        titleLine.appendChild(e);
+        let eShadow = document.createElement("span");
+        eShadow.classList.add("space-title-1-shadow");
+        eShadow.textContent = title;
+        titleLine.appendChild(eShadow);
+        this._innerBorder.appendChild(titleLine);
+    }
+    addTitle2(title) {
+        let titleLine = document.createElement("div");
+        titleLine.classList.add("space-title-2-line");
+        let e = document.createElement("h2");
+        e.classList.add("space-title-2");
+        e.textContent = title;
+        titleLine.appendChild(e);
+        let eShadow = document.createElement("span");
+        eShadow.classList.add("space-title-2-shadow");
+        eShadow.textContent = title;
+        titleLine.appendChild(eShadow);
+        this._innerBorder.appendChild(titleLine);
+    }
+    addTitle3(title) {
+        let e = document.createElement("h3");
+        e.classList.add("space-title-3");
+        e.textContent = title;
+        this._innerBorder.appendChild(e);
+        this._htmlLines.push(e);
+        return e;
+    }
+    addNumberInput(label, value, onInputCallback, precision = 1) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let labelElement = document.createElement("space-panel-label");
+        labelElement.textContent = label;
+        lineElement.appendChild(labelElement);
+        let inputElement = document.createElement("input");
+        inputElement.classList.add("space-input", "space-input-number");
+        inputElement.setAttribute("type", "number");
+        inputElement.value = value.toFixed(precision);
+        let step = 1 / (Math.pow(2, Math.round(precision)));
+        inputElement.setAttribute("step", step.toString());
+        inputElement.addEventListener("input", (ev) => {
+            if (ev.srcElement instanceof HTMLInputElement) {
+                let v = parseFloat(ev.srcElement.value);
+                if (isFinite(v)) {
+                    if (onInputCallback) {
+                        onInputCallback(v);
+                    }
+                }
+            }
+        });
+        lineElement.appendChild(inputElement);
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputElement;
+    }
+    addTextInput(label, text, onInputCallback) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let labelElement = document.createElement("space-panel-label");
+        labelElement.textContent = label;
+        lineElement.appendChild(labelElement);
+        let inputElement = document.createElement("input");
+        inputElement.classList.add("space-input", "space-input-text");
+        inputElement.setAttribute("type", "text");
+        inputElement.value = text;
+        inputElement.addEventListener("input", (ev) => {
+            if (ev.srcElement instanceof HTMLInputElement) {
+                if (onInputCallback) {
+                    onInputCallback(ev.srcElement.value);
+                }
+            }
+        });
+        lineElement.appendChild(inputElement);
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputElement;
+    }
+    addSquareButtons(values, onClickCallbacks) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let inputs = [];
+        for (let i = 0; i < values.length; i++) {
+            let inputElement1 = document.createElement("input");
+            inputElement1.classList.add("space-button-square");
+            inputElement1.setAttribute("type", "button");
+            inputElement1.value = values[i];
+            let callback = onClickCallbacks[i];
+            inputElement1.addEventListener("pointerup", () => {
+                if (callback) {
+                    callback();
+                }
+            });
+            lineElement.appendChild(inputElement1);
+            inputs.push(inputElement1);
+        }
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputs;
+    }
+    addLargeButton(value, onClickCallback) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let inputElement = document.createElement("input");
+        inputElement.classList.add("space-button-lg");
+        inputElement.setAttribute("type", "button");
+        inputElement.value = value;
+        inputElement.addEventListener("click", () => {
+            onClickCallback();
+        });
+        lineElement.appendChild(inputElement);
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputElement;
+    }
+    addConditionalButton(label, value, onClickCallback) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let labelElement = document.createElement("space-panel-label");
+        labelElement.textContent = label;
+        lineElement.appendChild(labelElement);
+        let inputElement = document.createElement("input");
+        inputElement.classList.add("space-button-inline");
+        inputElement.setAttribute("type", "button");
+        inputElement.value = value();
+        inputElement.addEventListener("click", () => {
+            onClickCallback();
+            inputElement.value = value();
+        });
+        lineElement.appendChild(inputElement);
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputElement;
+    }
+    addMediumButtons(value1, onClickCallback1, value2, onClickCallback2) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let inputElement1 = document.createElement("input");
+        inputElement1.classList.add("space-button");
+        inputElement1.setAttribute("type", "button");
+        inputElement1.value = value1;
+        inputElement1.addEventListener("click", () => {
+            onClickCallback1();
+        });
+        lineElement.appendChild(inputElement1);
+        let inputs = [inputElement1];
+        if (value2 && onClickCallback2) {
+            let inputElement2 = document.createElement("input");
+            inputElement2.classList.add("space-button");
+            inputElement2.setAttribute("type", "button");
+            inputElement2.value = value2;
+            inputElement2.addEventListener("click", () => {
+                onClickCallback2();
+            });
+            lineElement.appendChild(inputElement2);
+            inputs.push(inputElement2);
+        }
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputs;
+    }
+    addCheckBox(label, value, onToggleCallback) {
+        let lineElement = document.createElement("div");
+        lineElement.classList.add("space-panel-line");
+        let labelElement = document.createElement("space-panel-label");
+        labelElement.textContent = label;
+        lineElement.appendChild(labelElement);
+        let inputElement = document.createElement("input");
+        inputElement.classList.add("space-input", "space-input-toggle");
+        inputElement.setAttribute("type", "checkbox");
+        inputElement.addEventListener("input", (ev) => {
+            if (ev.srcElement instanceof HTMLInputElement) {
+                onToggleCallback(ev.srcElement.checked);
+            }
+        });
+        lineElement.appendChild(inputElement);
+        this._innerBorder.appendChild(lineElement);
+        this._htmlLines.push(lineElement);
+        return inputElement;
+    }
+}
+window.customElements.define("space-panel", SpacePanel);
+class SpacePanelLabel extends HTMLElement {
+    constructor() {
+        super();
+    }
+}
+window.customElements.define("space-panel-label", SpacePanelLabel);
+class PlayerAction {
+    constructor(main) {
+        this.main = main;
+        this._updateAddingTurret = () => {
+            if (this._selectedTurret) {
+                let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
+                let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
+                let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
+                let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
+                this._selectedTurret.base.position.x = worldX;
+                this._selectedTurret.base.position.y = worldY;
+                document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
+            }
+        };
+        this._pointerUpAddingTurret = (eventData) => {
+            if (this._selectedTurret) {
+                if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
+                    this._selectedTurret.ready = true;
+                    this._selectedTurret.setDarkness(1);
+                    this._selectedTurret = undefined;
+                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
+                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                }
+            }
+        };
+        this._updateAddingWall = () => {
+            if (this._selectedWallNode1 && !this._selectedWallNode2) {
+                let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
+                let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
+                let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
+                let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
+                this._selectedWallNode1.sprite.position.x = worldX;
+                this._selectedWallNode1.sprite.position.y = worldY;
+                document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
+            }
+            else if (this._selectedWallNode1 && this._selectedWallNode2 && this._selectedWall) {
+                let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
+                let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
+                let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
+                let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
+                if (this._selectedWallNode2.sprite.position2D.x != worldX || this._selectedWallNode2.sprite.position2D.y != worldY) {
+                    this._selectedWallNode2.sprite.position.x = worldX;
+                    this._selectedWallNode2.sprite.position.y = worldY;
+                    this._selectedWall.refreshMesh();
+                }
+            }
+        };
+        this._pointerUpAddingWall = (eventData) => {
+            if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
+                if (this._selectedWallNode1 && !this._selectedWallNode2) {
+                    let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
+                    let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
+                    let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
+                    let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
+                    let world = new BABYLON.Vector2(worldX, worldY);
+                    let existingWallNode = this.main.gameObjects.find(g => {
+                        if (g instanceof WallNode) {
+                            if (g.isReady) {
+                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.position2D) < 1.5 * 1.5) {
+                                    return true;
+                                }
+                            }
+                        }
+                    });
+                    if (existingWallNode) {
+                        this._selectedWallNode1.dispose();
+                        this._selectedWallNode1 = existingWallNode;
+                    }
+                    else {
+                        this._selectedWallNode1.sprite.position.x = worldX;
+                        this._selectedWallNode1.sprite.position.y = worldY;
+                        this._selectedWallNode1.isReady = true;
+                        this._selectedWallNode1.setDarkness(1);
+                    }
+                    this._selectedWallNode2 = new WallNode(this.main);
+                    this._selectedWallNode2.isReady = false;
+                    this._selectedWallNode2.setDarkness(0.5);
+                    this._selectedWall = new Wall(this._selectedWallNode1, this._selectedWallNode2, this.main);
+                    this._selectedWall.setDarkness(0.5);
+                }
+                else if (this._selectedWallNode1 && this._selectedWallNode2) {
+                    let pointerX = this.main.scene.pointerX / this.main.canvas.clientWidth;
+                    let pointerY = 1 - this.main.scene.pointerY / this.main.canvas.clientHeight;
+                    let worldX = this.main.camera.orthoLeft + pointerX * (this.main.camera.orthoRight - this.main.camera.orthoLeft);
+                    let worldY = this.main.camera.orthoBottom + pointerY * (this.main.camera.orthoTop - this.main.camera.orthoBottom);
+                    let world = new BABYLON.Vector2(worldX, worldY);
+                    let existingWallNode = this.main.gameObjects.find(g => {
+                        if (g instanceof WallNode) {
+                            if (g.isReady && g != this._selectedWallNode1) {
+                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.position2D) < 1.5 * 1.5) {
+                                    return true;
+                                }
+                            }
+                        }
+                    });
+                    if (existingWallNode) {
+                        this._selectedWallNode2.dispose();
+                        this._selectedWallNode2 = existingWallNode;
+                    }
+                    else {
+                        this._selectedWallNode2.sprite.position.x = worldX;
+                        this._selectedWallNode2.sprite.position.y = worldY;
+                        this._selectedWallNode2.isReady = true;
+                        this._selectedWallNode2.setDarkness(1);
+                    }
+                    this._selectedWall.node2 = this._selectedWallNode2;
+                    this._selectedWall.refreshMesh();
+                    this._selectedWall.setDarkness(1);
+                    this._selectedWallNode1 = undefined;
+                    this._selectedWallNode2 = undefined;
+                    this._selectedWall = undefined;
+                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingWall);
+                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingWall);
+                }
+            }
+        };
+    }
+    addTurret() {
+        if (this._selectedTurret) {
+            return;
+        }
+        this._selectedTurret = new Turret(this.main);
+        this._selectedTurret.ready = false;
+        this._selectedTurret.setDarkness(0.5);
+        this.main.scene.onBeforeRenderObservable.add(this._updateAddingTurret);
+        this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret);
+    }
+    addWall() {
+        if (this._selectedWallNode1 || this._selectedWallNode2) {
+            return;
+        }
+        this._selectedWallNode1 = new WallNode(this.main);
+        this._selectedWallNode1.isReady = false;
+        this._selectedWallNode1.setDarkness(0.5);
+        this.main.scene.onBeforeRenderObservable.add(this._updateAddingWall);
+        this.main.scene.onPointerObservable.add(this._pointerUpAddingWall);
+    }
+}
+class ArrayUtils {
+    static shuffle(array) {
+        let l = array.length;
+        for (let i = 0; i < l * l; i++) {
+            let i0 = Math.floor(Math.random() * l);
+            let i1 = Math.floor(Math.random() * l);
+            let e0 = array[i0];
+            let e1 = array[i1];
+            array[i0] = e1;
+            array[i1] = e0;
+        }
+    }
+}
+class AsyncUtils {
+    static async timeOut(delay, callback) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                if (callback) {
+                    callback();
+                }
+                resolve();
+            }, delay);
+        });
+    }
+}
 class Math2D {
     static AreEqualsCircular(a1, a2, epsilon = Math.PI / 60) {
         while (a1 < 0) {
@@ -521,232 +1527,62 @@ class Math2D {
 }
 Math2D.AxisX = new BABYLON.Vector2(1, 0);
 Math2D.AxisY = new BABYLON.Vector2(0, 1);
-class Menu {
-    constructor(main) {
-        this.main = main;
+class SpriteUtils {
+    static MakeShadow(sprite, w, h) {
+        let shadowSprite = BABYLON.MeshBuilder.CreatePlane(sprite.name + "-shadow", { width: w, height: h }, sprite.getScene());
+        shadowSprite.position.z = 1;
+        let shadowSpriteMaterial = new BABYLON.StandardMaterial(sprite.material.name + "-shadow", sprite.getScene());
+        let spriteMaterial = sprite.material;
+        shadowSpriteMaterial.diffuseTexture = spriteMaterial.diffuseTexture;
+        shadowSpriteMaterial.diffuseColor.copyFromFloats(0, 0, 0);
+        shadowSpriteMaterial.diffuseTexture.hasAlpha = true;
+        shadowSpriteMaterial.specularColor.copyFromFloats(0, 0, 0);
+        shadowSpriteMaterial.alphaCutOff = 0.1;
+        shadowSprite.material = shadowSpriteMaterial;
+        return shadowSprite;
     }
-    initializeMenu() {
-        this.mainMenuContainer = document.getElementById("main-menu");
-        let mainTitle = SpacePanel.CreateSpacePanel();
-        mainTitle.addTitle1("MARS AT WAR");
-        mainTitle.classList.add("menu-title-panel");
-        let mainPlay = SpacePanel.CreateSpacePanel();
-        mainPlay.addTitle2("PLAY");
-        mainPlay.classList.add("menu-element-panel");
-        mainPlay.onpointerup = () => {
-            this.showPlayMenu();
-        };
-        let mainOption = SpacePanel.CreateSpacePanel();
-        mainOption.addTitle2("OPTIONS");
-        mainOption.classList.add("menu-element-panel");
-        let mainCredit = SpacePanel.CreateSpacePanel();
-        mainCredit.addTitle2("CREDITS");
-        mainCredit.classList.add("menu-element-panel");
-        this.mainMenuContainer.appendChild(mainTitle);
-        this.mainMenuContainer.appendChild(mainPlay);
-        this.mainMenuContainer.appendChild(mainOption);
-        this.mainMenuContainer.appendChild(mainCredit);
-        this.playMenuContainer = document.getElementById("play-menu");
-        let playTitle = SpacePanel.CreateSpacePanel();
-        playTitle.addTitle1("MARS AT WAR");
-        playTitle.classList.add("menu-title-panel");
-        let playTest = SpacePanel.CreateSpacePanel();
-        playTest.addTitle2("TEST");
-        playTest.classList.add("menu-element-panel");
-        playTest.onpointerup = () => {
-            this.main.generateScene();
-            this.showIngameMenu();
-        };
-        let playBack = SpacePanel.CreateSpacePanel();
-        playBack.addTitle2("BACK");
-        playBack.classList.add("menu-element-panel");
-        playBack.onpointerup = () => {
-            this.showMainMenu();
-        };
-        this.playMenuContainer.appendChild(playTitle);
-        this.playMenuContainer.appendChild(playTest);
-        this.playMenuContainer.appendChild(playBack);
-        this.buildingMenuContainer = document.getElementById("building-menu");
-        let buildingMenu = SpacePanel.CreateSpacePanel();
-        buildingMenu.classList.add("building-menu");
-        /*
-        buildingShowMenu.addTitle2("MENU");
-        buildingShowMenu.onpointerup = () => {
-            this.showPauseMenu();
+}
+class UniqueList {
+    constructor() {
+        this._elements = [];
+    }
+    get length() {
+        return this._elements.length;
+    }
+    get(i) {
+        return this._elements[i];
+    }
+    set(i, e) {
+        this._elements[i] = e;
+    }
+    getLast() {
+        return this.get(this.length - 1);
+    }
+    push(e) {
+        if (this._elements.indexOf(e) === -1) {
+            this._elements.push(e);
         }
-        */
-        let buildingButtons = buildingMenu.addSquareButtons(["TOWER", "WALL"], []);
-        buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";
-        buildingButtons[1].style.backgroundImage = "url(assets/icons/wall.png)";
-        this.buildingMenuContainer.appendChild(buildingMenu);
-        this.ingameMenuContainer = document.getElementById("ingame-menu");
-        let ingameMenu = SpacePanel.CreateSpacePanel();
-        ingameMenu.classList.add("ingame-menu");
-        /*
-        ingameShowMenu.addTitle2("MENU");
-        ingameShowMenu.onpointerup = () => {
-            this.showPauseMenu();
+    }
+    pop() {
+        return this._elements.pop();
+    }
+    remove(e) {
+        let i = this._elements.indexOf(e);
+        if (i != -1) {
+            this._elements.splice(i, 1);
         }
-        */
-        ingameMenu.addLargeButton("MENU", () => {
-            this.showPauseMenu();
-        });
-        ingameMenu.addTitle3("740 7");
-        this.ingameMenuContainer.appendChild(ingameMenu);
-        this.pauseMenuContainer = document.getElementById("pause-menu");
-        let pauseResume = SpacePanel.CreateSpacePanel();
-        pauseResume.addTitle2("RESUME GAME");
-        pauseResume.classList.add("menu-element-panel");
-        pauseResume.onpointerup = () => {
-            this.showIngameMenu();
-        };
-        let pauseExit = SpacePanel.CreateSpacePanel();
-        pauseExit.addTitle2("EXIT");
-        pauseExit.classList.add("menu-element-panel");
-        pauseExit.onpointerup = () => {
-            this.main.disposeScene();
-            this.showMainMenu();
-        };
-        this.pauseMenuContainer.appendChild(pauseResume);
-        this.pauseMenuContainer.appendChild(pauseExit);
-        this.showMainMenu();
     }
-    showMainMenu() {
-        this.mainMenuContainer.style.display = "block";
-        this.playMenuContainer.style.display = "none";
-        this.buildingMenuContainer.style.display = "none";
-        this.ingameMenuContainer.style.display = "none";
-        this.pauseMenuContainer.style.display = "none";
+    contains(e) {
+        return this._elements.indexOf(e) != -1;
     }
-    showPlayMenu() {
-        this.mainMenuContainer.style.display = "none";
-        this.playMenuContainer.style.display = "block";
-        this.buildingMenuContainer.style.display = "none";
-        this.ingameMenuContainer.style.display = "none";
-        this.pauseMenuContainer.style.display = "none";
+    sort(sortFunction) {
+        this._elements = this._elements.sort(sortFunction);
     }
-    showIngameMenu() {
-        this.mainMenuContainer.style.display = "none";
-        this.playMenuContainer.style.display = "none";
-        this.buildingMenuContainer.style.display = "block";
-        this.ingameMenuContainer.style.display = "block";
-        this.pauseMenuContainer.style.display = "none";
+    forEach(callbackfn) {
+        this._elements.forEach(callbackfn);
     }
-    showPauseMenu() {
-        this.mainMenuContainer.style.display = "none";
-        this.playMenuContainer.style.display = "none";
-        this.pauseMenuContainer.style.display = "block";
-    }
-}
-/// <reference path="GameObject.ts"/>
-class Prop extends GameObject {
-    constructor(name, main) {
-        super(main);
-        this.name = name;
-        this.sprite = new Sprite(name, "assets/" + name + ".png", this.main.scene);
-        this.sprite.position.z = 1;
-    }
-    dispose() {
-        super.dispose();
-        this.sprite.dispose();
-    }
-}
-class Sprite extends BABYLON.Mesh {
-    constructor(name, url, scene, length) {
-        super(name, scene);
-        this.height = 1;
-        this._update = () => {
-            this.shadowMesh.position.x = this.absolutePosition.x + 0.5 * this.height / 5;
-            this.shadowMesh.position.y = this.absolutePosition.y - 0.3 * this.height / 5;
-            this.shadowMesh.position.z = 1.1;
-            this.shadowMesh.rotation.z = this.rotation.z;
-            let parent = this.parent;
-            while (parent && parent instanceof BABYLON.Mesh) {
-                this.shadowMesh.rotation.z += parent.rotation.z;
-                parent = parent.parent;
-            }
-        };
-        this.shadowMesh = new BABYLON.Mesh(name + "-shadow", scene);
-        let material = new BABYLON.StandardMaterial(name + "-material", scene);
-        let texture = new BABYLON.Texture(url, scene, false, true, undefined, () => {
-            let size = texture.getBaseSize();
-            let quadData;
-            if (isFinite(length)) {
-                quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
-            }
-            else {
-                quadData = BABYLON.VertexData.CreatePlane({ width: size.width / 100, height: size.height / 100 });
-            }
-            quadData.applyToMesh(this);
-            quadData.applyToMesh(this.shadowMesh);
-        });
-        material.diffuseTexture = texture;
-        material.diffuseTexture.hasAlpha = true;
-        material.specularColor.copyFromFloats(0, 0, 0);
-        material.alphaCutOff = 0.5;
-        this.material = material;
-        let shadowMaterial = new BABYLON.StandardMaterial(name + "-material", scene);
-        shadowMaterial.diffuseTexture = texture;
-        shadowMaterial.diffuseColor.copyFromFloats(0, 0, 0);
-        shadowMaterial.diffuseTexture.hasAlpha = true;
-        shadowMaterial.specularColor.copyFromFloats(0, 0, 0);
-        shadowMaterial.alphaCutOff = 0.5;
-        this.shadowMesh.material = shadowMaterial;
-        scene.onBeforeRenderObservable.add(this._update);
-    }
-    dispose(doNotRecurse, disposeMaterialAndTextures) {
-        super.dispose(doNotRecurse, disposeMaterialAndTextures);
-        this.shadowMesh.dispose(doNotRecurse, disposeMaterialAndTextures);
-        this.getScene().onBeforeRenderObservable.removeCallback(this._update);
-    }
-}
-class Turret extends GameObject {
-    constructor(main) {
-        super(main);
-        this._t = 0;
-        this._update = () => {
-            this._t += this.main.scene.getEngine().getDeltaTime() / 1000;
-            if (this.target) {
-                let dirToTarget = new BABYLON.Vector2(this.target.body.position.x - this.base.position.x, this.target.body.position.y - this.base.position.y);
-                let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
-                this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
-                let aligned = Math2D.AreEqualsCircular(this.body.rotation.z, targetA, Math.PI / 180);
-                if (aligned) {
-                    this.canon.position.y = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
-                    this.body.position.x = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
-                    this.body.position.y = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
-                }
-                else {
-                    this.canon.position.y = 0.6;
-                    this.body.position.x = 0;
-                    this.body.position.y = 0;
-                }
-            }
-        };
-        this.base = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
-        this.base.height = 1;
-        this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
-        this.body.height = 3;
-        this.body.position.z = -0.1;
-        this.body.parent = this.base;
-        this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
-        this.canon.height = 5;
-        this.canon.position.y = 0.6;
-        this.canon.position.z = -0.1;
-        this.canon.parent = this.body;
-        this.top = new Sprite("turret-top", "assets/turret_top.png", this.main.scene);
-        this.top.height = 5;
-        this.top.position.z = -0.2;
-        this.top.parent = this.body;
-        this.main.scene.onBeforeRenderObservable.add(this._update);
-    }
-    dispose() {
-        super.dispose();
-        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-        this.base.dispose();
-        this.body.dispose();
-        this.canon.dispose();
-        this.top.dispose();
+    array() {
+        return this._elements;
     }
 }
 class VMath {
@@ -907,686 +1743,5 @@ class VMath {
             a.addInPlace(n);
             b.subtractInPlace(n);
         }
-    }
-}
-class WalkerTarget extends BABYLON.Mesh {
-    constructor(walker) {
-        super("target");
-        this.walker = walker;
-        this.targets = [];
-        let positions = [
-            new BABYLON.Vector2(-1, 0),
-            new BABYLON.Vector2(1, 0)
-        ];
-        for (let i = 0; i < walker.legCount; i++) {
-            let target = new BABYLON.Mesh("target-" + i);
-            target.position.x = positions[i].x;
-            target.position.y = positions[i].y;
-            target.parent = this;
-            this.targets[i] = target;
-        }
-    }
-}
-class Walker extends GameObject {
-    constructor(main) {
-        super(main);
-        this.legCount = 2;
-        this.arms = [];
-        this.feet = [];
-        this._inputDirs = new UniqueList();
-        this._movingLegCount = 0;
-        this._movingLegs = new UniqueList();
-        this._bodyT = 0;
-        this._bodySpeed = 0.5;
-        this._armT = 0;
-        this._armSpeed = 1;
-        this._update = () => {
-            this._bodyT += this._bodySpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
-            this._armT += this._armSpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
-            this._bodySpeed = 1;
-            this._armSpeed = 1;
-            if (this._inputDirs.contains(0)) {
-                this.target.position.addInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
-            }
-            if (this._inputDirs.contains(1)) {
-                this.target.position.subtractInPlace(this.target.up.scale(1 * this.main.scene.getEngine().getDeltaTime() / 1000));
-            }
-            if (this._inputDirs.contains(2)) {
-                this.target.position.subtractInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
-            }
-            if (this._inputDirs.contains(3)) {
-                this.target.position.addInPlace(this.target.up.scale(3 * this.main.scene.getEngine().getDeltaTime() / 1000));
-                this._bodySpeed = 3;
-                this._armSpeed = 5;
-            }
-            if (this._inputDirs.contains(4)) {
-                this.target.rotation.z += 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
-            }
-            if (this._inputDirs.contains(5)) {
-                this.target.rotation.z -= 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
-            }
-            while (this.target.rotation.z < 0) {
-                this.target.rotation.z += 2 * Math.PI;
-            }
-            while (this.target.rotation.z >= 2 * Math.PI) {
-                this.target.rotation.z -= 2 * Math.PI;
-            }
-            this.body.position.copyFrom(this.feet[0].position);
-            for (let i = 1; i < this.legCount; i++) {
-                this.body.position.addInPlace(this.feet[i].position);
-            }
-            this.body.position.scaleInPlace(1 / this.legCount);
-            this.body.position.x += Math.cos(1 * this._bodyT * Math.PI) * 0.1;
-            this.body.position.y += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
-            this.body.position.z = 0;
-            this.arms[0].rotation.z = Math.cos(1 * this._armT * Math.PI) * 0.15 - 0.3;
-            this.arms[1].rotation.z = Math.cos(1.1 * this._armT * Math.PI) * 0.15 + 0.3;
-            let rightDir = new BABYLON.Vector2(this.feet[1].absolutePosition.x - this.feet[0].absolutePosition.x, this.feet[1].absolutePosition.y - this.feet[0].absolutePosition.y);
-            rightDir.normalize();
-            let a = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), rightDir);
-            this.body.rotation.z = Math2D.LerpFromToCircular(a, this.target.rotation.z, 0.5);
-            if (this._movingLegCount <= 0) {
-                let index = -1;
-                let dist = 0;
-                for (let i = 0; i < this.legCount; i++) {
-                    if (!this._movingLegs.contains(i)) {
-                        let iDist = BABYLON.Vector3.DistanceSquared(this.feet[i].position, this.target.targets[i].absolutePosition);
-                        if (iDist > dist) {
-                            dist = iDist;
-                            index = i;
-                        }
-                    }
-                }
-                if (dist > 0.1) {
-                    this._movingLegCount++;
-                    this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.z);
-                }
-            }
-        };
-        this.target = new WalkerTarget(this);
-        let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.main.scene);
-        robotBody.height = 2;
-        robotBody.position.x = 5;
-        robotBody.position.y = 5;
-        this.body = robotBody;
-        let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.main.scene);
-        robotArm_L.height = 3;
-        robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, -0.43, 0)));
-        robotArm_L.position.x = -1.1;
-        robotArm_L.position.y = 0.7;
-        robotArm_L.position.z = -0.1;
-        robotArm_L.parent = robotBody;
-        let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.main.scene);
-        robotArm_R.height = 3;
-        robotArm_R.setPivotPoint((new BABYLON.Vector3(-0.48, -0.43, 0)));
-        robotArm_R.position.x = 1.1;
-        robotArm_R.position.y = 0.7;
-        robotArm_R.position.z = -0.1;
-        robotArm_R.parent = robotBody;
-        let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.main.scene);
-        robotFoot_L.height = 1;
-        robotFoot_L.position.x = -1.1;
-        robotFoot_L.position.y = 0;
-        robotFoot_L.position.z = 0.1;
-        robotFoot_L.rotation.z = 0.3;
-        let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.main.scene);
-        robotFoot_R.height = 1;
-        robotFoot_R.position.x = 1.1;
-        robotFoot_R.position.y = 0;
-        robotFoot_R.position.z = 0.1;
-        robotFoot_R.rotation.z = -0.3;
-        this.feet = [robotFoot_L, robotFoot_R];
-        this.arms = [robotArm_L, robotArm_R];
-        this.main.scene.onBeforeRenderObservable.add(this._update);
-        this.main.canvas.addEventListener("keydown", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.push(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.push(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.push(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.push(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.push(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.push(5);
-            }
-        });
-        this.main.canvas.addEventListener("keyup", (e) => {
-            if (e.code === "KeyD") {
-                this._inputDirs.remove(0);
-            }
-            if (e.code === "KeyS") {
-                this._inputDirs.remove(1);
-            }
-            if (e.code === "KeyA") {
-                this._inputDirs.remove(2);
-            }
-            if (e.code === "KeyW") {
-                this._inputDirs.remove(3);
-            }
-            if (e.code === "KeyQ") {
-                this._inputDirs.remove(4);
-            }
-            if (e.code === "KeyE") {
-                this._inputDirs.remove(5);
-            }
-        });
-    }
-    get _inputDir() {
-        return this._inputDirs.getLast();
-    }
-    dispose() {
-        super.dispose();
-        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-        this.body.dispose();
-        this.arms.forEach(a => {
-            a.dispose();
-        });
-        this.feet.forEach(f => {
-            f.dispose();
-        });
-    }
-    async _moveLeg(legIndex, target, targetR) {
-        return new Promise(resolve => {
-            this._movingLegs.push(legIndex);
-            let origin = this.feet[legIndex].position.clone();
-            let originR = this.feet[legIndex].rotation.z;
-            let l = target.subtract(origin).length();
-            let duration = Math.floor(l / 3);
-            duration *= 0.5;
-            duration += 0.5;
-            let t = 0;
-            let step = () => {
-                t += this.main.scene.getEngine().getDeltaTime() / 1000;
-                let d = t / duration;
-                d = d * d;
-                d = Math.min(d, 1);
-                this.feet[legIndex].position.copyFrom(origin.scale(1 - d).add(target.scale(d)));
-                this.feet[legIndex].height = 1 + 3 * Math.sin(Math.PI * d);
-                this.feet[legIndex].position.z = 0.1;
-                this.feet[legIndex].rotation.z = Math2D.LerpFromToCircular(originR, targetR, d);
-                if (d < 1) {
-                    requestAnimationFrame(step);
-                }
-                else {
-                    this._movingLegCount -= 1;
-                    this._movingLegs.remove(legIndex);
-                    resolve();
-                }
-            };
-            step();
-        });
-    }
-}
-class WallNode extends GameObject {
-    constructor(main) {
-        super(main);
-        this.sprite = new Sprite("wall", "assets/wall_node_base.png", this.main.scene);
-        this.sprite.position.z = 0;
-        this.sprite.height = 1;
-        this.top = new Sprite("wall-top", "assets/wall_top.png", this.main.scene);
-        this.top.position.z = -0.2;
-        this.top.parent = this.sprite;
-        this.top.height = 5;
-    }
-    dispose() {
-        super.dispose();
-        this.sprite.dispose();
-        this.top.dispose();
-    }
-}
-class Wall extends GameObject {
-    constructor(node1, node2, main) {
-        super(main);
-        this.node1 = node1;
-        this.node2 = node2;
-        let n = node2.sprite.position.subtract(node1.sprite.position);
-        let l = n.length();
-        this.sprite = new Sprite("wall", "assets/wall.png", this.main.scene, l);
-        this.sprite.height = 5;
-        this.sprite.setPivotPoint(new BABYLON.Vector3(-l * 0.5, 0, 0));
-        this.sprite.position.z = -0.1;
-        this.sprite.position.x = this.node1.sprite.position.x + l * 0.5;
-        this.sprite.position.y = this.node1.sprite.position.y;
-        this.sprite.rotation.z = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), new BABYLON.Vector2(n.x, n.y));
-    }
-    dispose() {
-        super.dispose();
-        this.sprite.dispose();
-    }
-}
-class TerrainToonMaterial extends BABYLON.ShaderMaterial {
-    constructor(name, color, scene) {
-        super(name, scene, {
-            vertex: "terrainToon",
-            fragment: "terrainToon",
-        }, {
-            attributes: ["position", "normal", "uv", "color"],
-            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"]
-        });
-        this.setVector3("lightInvDirW", (new BABYLON.Vector3(0.5 + Math.random(), 2.5 + Math.random(), 1.5 + Math.random())).normalize());
-        this.setColor3("colGrass", BABYLON.Color3.FromHexString("#47a632"));
-        this.setColor3("colDirt", BABYLON.Color3.FromHexString("#a86f32"));
-        this.setColor3("colRock", BABYLON.Color3.FromHexString("#8c8c89"));
-        this.setColor3("colSand", BABYLON.Color3.FromHexString("#dbc67b"));
-    }
-}
-class TerrainTileToonMaterial extends BABYLON.ShaderMaterial {
-    constructor(name, scene) {
-        super(name, scene, {
-            vertex: "terrainTileToon",
-            fragment: "terrainTileToon",
-        }, {
-            attributes: ["position", "normal", "uv"],
-            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"]
-        });
-        this.setVector3("lightInvDirW", (new BABYLON.Vector3(0.5, 2.5, 1.5)).normalize());
-    }
-    get diffuseTexture() {
-        return this._diffuseTexture;
-    }
-    set diffuseTexture(tex) {
-        this._diffuseTexture = tex;
-        this.setTexture("diffuseTexture", this._diffuseTexture);
-    }
-}
-class ToonMaterial extends BABYLON.ShaderMaterial {
-    constructor(name, transparent, scene) {
-        super(name, scene, {
-            vertex: "toon",
-            fragment: "toon",
-        }, {
-            attributes: ["position", "normal", "uv", "color"],
-            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
-            needAlphaBlending: true
-        });
-        this.setTexture("pencil_texture", new BABYLON.Texture("assets/pencil.png", this.getScene()));
-    }
-}
-class SpacePanel extends HTMLElement {
-    constructor() {
-        super();
-        this._initialized = false;
-        this._htmlLines = [];
-        this._isVisible = true;
-        this._update = () => {
-            if (!this._target) {
-                return;
-            }
-            /*
-            let dView = this._target.position.subtract(Main.Camera.position);
-            let n = BABYLON.Vector3.Cross(dView, new BABYLON.Vector3(0, 1, 0));
-            n.normalize();
-            n.scaleInPlace(- this._target.groundWidth * 0.5);
-            let p0 = this._target.position;
-            let p1 = this._target.position.add(n);
-            let p2 = p1.clone();
-            p2.y += this._target.groundWidth * 0.5 + this._target.height;
-            let screenPos = BABYLON.Vector3.Project(
-                p2,
-                BABYLON.Matrix.Identity(),
-                this._target.getScene().getTransformMatrix(),
-                Main.Camera.viewport.toGlobal(1, 1)
-            );
-            this.style.left = (screenPos.x * Main.Canvas.width - this.clientWidth * 0.5) + "px";
-            this.style.bottom = ((1 - screenPos.y) * Main.Canvas.height) + "px";
-            this._line.setVerticesData(
-                BABYLON.VertexBuffer.PositionKind,
-                [...p0.asArray(), ...p2.asArray()]
-            );
-            */
-        };
-    }
-    static CreateSpacePanel() {
-        let panel = document.createElement("space-panel");
-        document.body.appendChild(panel);
-        return panel;
-    }
-    connectedCallback() {
-        if (this._initialized) {
-            return;
-        }
-        this._innerBorder = document.createElement("div");
-        this._innerBorder.classList.add("space-panel-inner-border");
-        this.appendChild(this._innerBorder);
-        /*
-        this._toggleVisibilityInput = document.createElement("button");
-        this._toggleVisibilityInput.classList.add("space-panel-toggle-visibility");
-        this._toggleVisibilityInput.textContent = "^";
-        this._toggleVisibilityInput.addEventListener("click", () => {
-            if (this._isVisible) {
-                this.hide();
-            }
-            else {
-                this.show();
-            }
-        });
-        this._innerBorder.appendChild(this._toggleVisibilityInput);
-        */
-        this._initialized = true;
-    }
-    dispose() {
-        if (this._target) {
-            this._target.getScene().onBeforeRenderObservable.removeCallback(this._update);
-        }
-        if (this._line) {
-            this._line.dispose();
-        }
-        document.body.removeChild(this);
-    }
-    show() {
-        this._toggleVisibilityInput.textContent = "^";
-        this._isVisible = true;
-        console.log("SHOW");
-        this._htmlLines.forEach((l) => {
-            l.style.display = "block";
-        });
-    }
-    hide() {
-        this._toggleVisibilityInput.textContent = "v";
-        this._isVisible = false;
-        console.log("HIDE");
-        this._htmlLines.forEach((l) => {
-            l.style.display = "none";
-        });
-    }
-    setTarget(mesh) {
-        this.style.position = "fixed";
-        this._target = mesh;
-        this._line = BABYLON.MeshBuilder.CreateLines("line", {
-            points: [
-                BABYLON.Vector3.Zero(),
-                BABYLON.Vector3.Zero()
-            ],
-            updatable: true,
-            colors: [
-                new BABYLON.Color4(0, 1, 0, 1),
-                new BABYLON.Color4(0, 1, 0, 1)
-            ]
-        }, this._target.getScene());
-        this._line.renderingGroupId = 1;
-        this._line.layerMask = 0x10000000;
-        this._target.getScene().onBeforeRenderObservable.add(this._update);
-    }
-    addTitle1(title) {
-        let titleLine = document.createElement("div");
-        titleLine.classList.add("space-title-1-line");
-        let e = document.createElement("h1");
-        e.classList.add("space-title-1");
-        e.textContent = title;
-        titleLine.appendChild(e);
-        let eShadow = document.createElement("span");
-        eShadow.classList.add("space-title-1-shadow");
-        eShadow.textContent = title;
-        titleLine.appendChild(eShadow);
-        this._innerBorder.appendChild(titleLine);
-    }
-    addTitle2(title) {
-        let titleLine = document.createElement("div");
-        titleLine.classList.add("space-title-2-line");
-        let e = document.createElement("h2");
-        e.classList.add("space-title-2");
-        e.textContent = title;
-        titleLine.appendChild(e);
-        let eShadow = document.createElement("span");
-        eShadow.classList.add("space-title-2-shadow");
-        eShadow.textContent = title;
-        titleLine.appendChild(eShadow);
-        this._innerBorder.appendChild(titleLine);
-    }
-    addTitle3(title) {
-        let e = document.createElement("h3");
-        e.classList.add("space-title-3");
-        e.textContent = title;
-        this._innerBorder.appendChild(e);
-        this._htmlLines.push(e);
-    }
-    addNumberInput(label, value, onInputCallback, precision = 1) {
-        let lineElement = document.createElement("div");
-        lineElement.classList.add("space-panel-line");
-        let labelElement = document.createElement("space-panel-label");
-        labelElement.textContent = label;
-        lineElement.appendChild(labelElement);
-        let inputElement = document.createElement("input");
-        inputElement.classList.add("space-input", "space-input-number");
-        inputElement.setAttribute("type", "number");
-        inputElement.value = value.toFixed(precision);
-        let step = 1 / (Math.pow(2, Math.round(precision)));
-        inputElement.setAttribute("step", step.toString());
-        inputElement.addEventListener("input", (ev) => {
-            if (ev.srcElement instanceof HTMLInputElement) {
-                let v = parseFloat(ev.srcElement.value);
-                if (isFinite(v)) {
-                    if (onInputCallback) {
-                        onInputCallback(v);
-                    }
-                }
-            }
-        });
-        lineElement.appendChild(inputElement);
-        this._innerBorder.appendChild(lineElement);
-        this._htmlLines.push(lineElement);
-        return inputElement;
-    }
-    addTextInput(label, text, onInputCallback) {
-        let lineElement = document.createElement("div");
-        lineElement.classList.add("space-panel-line");
-        let labelElement = document.createElement("space-panel-label");
-        labelElement.textContent = label;
-        lineElement.appendChild(labelElement);
-        let inputElement = document.createElement("input");
-        inputElement.classList.add("space-input", "space-input-text");
-        inputElement.setAttribute("type", "text");
-        inputElement.value = text;
-        inputElement.addEventListener("input", (ev) => {
-            if (ev.srcElement instanceof HTMLInputElement) {
-                if (onInputCallback) {
-                    onInputCallback(ev.srcElement.value);
-                }
-            }
-        });
-        lineElement.appendChild(inputElement);
-        this._innerBorder.appendChild(lineElement);
-        this._htmlLines.push(lineElement);
-        return inputElement;
-    }
-    addSquareButtons(values, onClickCallbacks) {
-        let lineElement = document.createElement("div");
-        lineElement.classList.add("space-panel-line");
-        let inputs = [];
-        for (let i = 0; i < values.length; i++) {
-            let inputElement1 = document.createElement("input");
-            inputElement1.classList.add("space-button-square");
-            inputElement1.setAttribute("type", "button");
-            inputElement1.value = values[i];
-            let cb = onClickCallbacks[i];
-            inputElement1.addEventListener("click", () => {
-                if (cb) {
-                    cb;
-                }
-            });
-            lineElement.appendChild(inputElement1);
-            inputs.push(inputElement1);
-        }
-        this._innerBorder.appendChild(lineElement);
-        this._htmlLines.push(lineElement);
-        return inputs;
-    }
-    addLargeButton(value, onClickCallback) {
-        let lineElement = document.createElement("div");
-        lineElement.classList.add("space-panel-line");
-        let inputElement = document.createElement("input");
-        inputElement.classList.add("space-button-lg");
-        inputElement.setAttribute("type", "button");
-        inputElement.value = value;
-        inputElement.addEventListener("click", () => {
-            onClickCallback();
-        });
-        lineElement.appendChild(inputElement);
-        this._innerBorder.appendChild(lineElement);
-        this._htmlLines.push(lineElement);
-        return inputElement;
-    }
-    addConditionalButton(label, value, onClickCallback) {
-        let lineElement = document.createElement("div");
-        lineElement.classList.add("space-panel-line");
-        let labelElement = document.createElement("space-panel-label");
-        labelElement.textContent = label;
-        lineElement.appendChild(labelElement);
-        let inputElement = document.createElement("input");
-        inputElement.classList.add("space-button-inline");
-        inputElement.setAttribute("type", "button");
-        inputElement.value = value();
-        inputElement.addEventListener("click", () => {
-            onClickCallback();
-            inputElement.value = value();
-        });
-        lineElement.appendChild(inputElement);
-        this._innerBorder.appendChild(lineElement);
-        this._htmlLines.push(lineElement);
-        return inputElement;
-    }
-    addMediumButtons(value1, onClickCallback1, value2, onClickCallback2) {
-        let lineElement = document.createElement("div");
-        lineElement.classList.add("space-panel-line");
-        let inputElement1 = document.createElement("input");
-        inputElement1.classList.add("space-button");
-        inputElement1.setAttribute("type", "button");
-        inputElement1.value = value1;
-        inputElement1.addEventListener("click", () => {
-            onClickCallback1();
-        });
-        lineElement.appendChild(inputElement1);
-        let inputs = [inputElement1];
-        if (value2 && onClickCallback2) {
-            let inputElement2 = document.createElement("input");
-            inputElement2.classList.add("space-button");
-            inputElement2.setAttribute("type", "button");
-            inputElement2.value = value2;
-            inputElement2.addEventListener("click", () => {
-                onClickCallback2();
-            });
-            lineElement.appendChild(inputElement2);
-            inputs.push(inputElement2);
-        }
-        this._innerBorder.appendChild(lineElement);
-        this._htmlLines.push(lineElement);
-        return inputs;
-    }
-    addCheckBox(label, value, onToggleCallback) {
-        let lineElement = document.createElement("div");
-        lineElement.classList.add("space-panel-line");
-        let labelElement = document.createElement("space-panel-label");
-        labelElement.textContent = label;
-        lineElement.appendChild(labelElement);
-        let inputElement = document.createElement("input");
-        inputElement.classList.add("space-input", "space-input-toggle");
-        inputElement.setAttribute("type", "checkbox");
-        inputElement.addEventListener("input", (ev) => {
-            if (ev.srcElement instanceof HTMLInputElement) {
-                onToggleCallback(ev.srcElement.checked);
-            }
-        });
-        lineElement.appendChild(inputElement);
-        this._innerBorder.appendChild(lineElement);
-        this._htmlLines.push(lineElement);
-        return inputElement;
-    }
-}
-window.customElements.define("space-panel", SpacePanel);
-class SpacePanelLabel extends HTMLElement {
-    constructor() {
-        super();
-    }
-}
-window.customElements.define("space-panel-label", SpacePanelLabel);
-class ArrayUtils {
-    static shuffle(array) {
-        let l = array.length;
-        for (let i = 0; i < l * l; i++) {
-            let i0 = Math.floor(Math.random() * l);
-            let i1 = Math.floor(Math.random() * l);
-            let e0 = array[i0];
-            let e1 = array[i1];
-            array[i0] = e1;
-            array[i1] = e0;
-        }
-    }
-}
-class AsyncUtils {
-    static async timeOut(delay, callback) {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                if (callback) {
-                    callback();
-                }
-                resolve();
-            }, delay);
-        });
-    }
-}
-class SpriteUtils {
-    static MakeShadow(sprite, w, h) {
-        let shadowSprite = BABYLON.MeshBuilder.CreatePlane(sprite.name + "-shadow", { width: w, height: h }, sprite.getScene());
-        shadowSprite.position.z = 1;
-        let shadowSpriteMaterial = new BABYLON.StandardMaterial(sprite.material.name + "-shadow", sprite.getScene());
-        let spriteMaterial = sprite.material;
-        shadowSpriteMaterial.diffuseTexture = spriteMaterial.diffuseTexture;
-        shadowSpriteMaterial.diffuseColor.copyFromFloats(0, 0, 0);
-        shadowSpriteMaterial.diffuseTexture.hasAlpha = true;
-        shadowSpriteMaterial.specularColor.copyFromFloats(0, 0, 0);
-        shadowSpriteMaterial.alphaCutOff = 0.1;
-        shadowSprite.material = shadowSpriteMaterial;
-        return shadowSprite;
-    }
-}
-class UniqueList {
-    constructor() {
-        this._elements = [];
-    }
-    get length() {
-        return this._elements.length;
-    }
-    get(i) {
-        return this._elements[i];
-    }
-    set(i, e) {
-        this._elements[i] = e;
-    }
-    getLast() {
-        return this.get(this.length - 1);
-    }
-    push(e) {
-        if (this._elements.indexOf(e) === -1) {
-            this._elements.push(e);
-        }
-    }
-    pop() {
-        return this._elements.pop();
-    }
-    remove(e) {
-        let i = this._elements.indexOf(e);
-        if (i != -1) {
-            this._elements.splice(i, 1);
-        }
-    }
-    contains(e) {
-        return this._elements.indexOf(e) != -1;
-    }
-    sort(sortFunction) {
-        this._elements = this._elements.sort(sortFunction);
-    }
-    forEach(callbackfn) {
-        this._elements.forEach(callbackfn);
-    }
-    array() {
-        return this._elements;
     }
 }

@@ -1,5 +1,7 @@
 class Turret extends GameObject {
 
+    public ready: boolean = true;
+
     public base: Sprite;
     public body: Sprite;
     public canon: Sprite;
@@ -45,8 +47,19 @@ class Turret extends GameObject {
 
     private _t: number = 0;
     private _update = () => {
+        if (!this.ready) {
+            return;
+        }
+
         this._t += this.main.scene.getEngine().getDeltaTime() / 1000;
         
+        if (!this.target) {
+            let walker = this.main.gameObjects.find(g => { return g instanceof Walker; }) as Walker;
+            if (walker) {
+                this.target = walker;
+            }
+        }
+
         if (this.target) {
             let dirToTarget = new BABYLON.Vector2(
                 this.target.body.position.x - this.base.position.x,
@@ -66,6 +79,12 @@ class Turret extends GameObject {
                 this.body.position.y = 0;
             }
         }
+    }
 
+    public setDarkness(d: number): void {
+        this.base.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
     }
 }

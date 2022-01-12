@@ -10,6 +10,7 @@ class Main {
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
 	public gameObjects: GameObject[] = [];
+	public playerAction: PlayerAction;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -62,6 +63,7 @@ class Main {
 
 		BABYLON.Engine.ShadersRepository = "./shaders/";
 
+		this.playerAction = new PlayerAction(this);
 
 		let menu = new Menu(this);
 		menu.initializeMenu();
