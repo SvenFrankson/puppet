@@ -80,8 +80,8 @@ class Menu {
         let buildingButtons = buildingMenu.addSquareButtons(
             ["TOWER", "WALL"],
             [
-                () => { this.main.playerAction.addTurret(); },
-                () => { this.main.playerAction.addWall(); }
+                () => { this.main.playerAction.addTurret(buildingButtons[0]); },
+                () => { this.main.playerAction.addWall(buildingButtons[1]); }
             ]
         );
         buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";

@@ -592,8 +592,8 @@ class Menu {
         }
         */
         let buildingButtons = buildingMenu.addSquareButtons(["TOWER", "WALL"], [
-            () => { this.main.playerAction.addTurret(); },
-            () => { this.main.playerAction.addWall(); }
+            () => { this.main.playerAction.addTurret(buildingButtons[0]); },
+            () => { this.main.playerAction.addWall(buildingButtons[1]); }
         ]);
         buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";
         buildingButtons[1].style.backgroundImage = "url(assets/icons/wall.png)";
@@ -981,6 +981,7 @@ class PlayerAction {
                     this._selectedTurret = undefined;
                     this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
                     this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                    this._currentActionButton.classList.remove("selected");
                 }
             }
         };
@@ -1057,24 +1058,29 @@ class PlayerAction {
                     this._selectedWall = undefined;
                     this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingWall);
                     this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingWall);
+                    this._currentActionButton.classList.remove("selected");
                 }
             }
         };
     }
-    addTurret() {
+    addTurret(actionButton) {
         if (this._selectedTurret) {
             return;
         }
+        this._currentActionButton = actionButton;
+        this._currentActionButton.classList.add("selected");
         this._selectedTurret = new Turret(this.main);
         this._selectedTurret.isReady = false;
         this._selectedTurret.setDarkness(0.5);
         this.main.scene.onBeforeRenderObservable.add(this._updateAddingTurret);
         this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret);
     }
-    addWall() {
+    addWall(actionButton) {
         if (this._selectedWallNode1 || this._selectedWallNode2) {
             return;
         }
+        this._currentActionButton = actionButton;
+        this._currentActionButton.classList.add("selected");
         this._selectedWallNode1 = new WallNode(this.main);
         this._selectedWallNode1.isReady = false;
         this._selectedWallNode1.setDarkness(0.5);

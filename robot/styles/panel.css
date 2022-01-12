@@ -214,7 +214,7 @@ space-panel-label {
 
 .space-button-square {
     display: inline-block;
-    padding-top: 7vh;
+    padding-top: 6.8vh;
     width: 9vh;
     height: 9vh;
     margin-left: 0.8vh;
@@ -226,6 +226,10 @@ space-panel-label {
     color: lightgray;
     cursor: pointer;
     background-size: contain;
+}
+
+.space-button-square.selected {
+    background-color: rgba(80, 132, 114, 0.8);
 }
 
 .space-button-inline {

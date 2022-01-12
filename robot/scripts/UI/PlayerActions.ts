@@ -6,16 +6,21 @@ class PlayerAction {
     public _selectedWallNode2: WallNode;
     public _selectedWall: Wall;
 
+    public _currentActionButton: HTMLInputElement;
+
     constructor(
         public main: Main
     ) {
 
     }
 
-    public addTurret(): void {
+    public addTurret(actionButton: HTMLInputElement): void {
         if (this._selectedTurret) {
             return;
         }
+
+        this._currentActionButton = actionButton;
+        this._currentActionButton.classList.add("selected");
         
         this._selectedTurret = new Turret(this.main);
         this._selectedTurret.isReady = false;
@@ -24,10 +29,14 @@ class PlayerAction {
         this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret)
     }
 
-    public addWall(): void {
+    public addWall(actionButton: HTMLInputElement): void {
         if (this._selectedWallNode1 || this._selectedWallNode2) {
             return;
         }
+
+        this._currentActionButton = actionButton;
+        this._currentActionButton.classList.add("selected");
+
         this._selectedWallNode1 = new WallNode(this.main);
         this._selectedWallNode1.isReady = false;
         this._selectedWallNode1.setDarkness(0.5);
@@ -50,7 +59,8 @@ class PlayerAction {
                 this._selectedTurret.setDarkness(1);
                 this._selectedTurret = undefined;
                 this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-                this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret)
+                this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                this._currentActionButton.classList.remove("selected");
             }
         }
     }
@@ -142,6 +152,7 @@ class PlayerAction {
                 
                 this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingWall);
                 this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingWall);
+                this._currentActionButton.classList.remove("selected");
             }
         }
     }
