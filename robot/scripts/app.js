@@ -39,6 +39,11 @@ class Main {
         document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
         return new BABYLON.Vector2(worldX, worldY);
     }
+    worldPosToPixel(w) {
+        let px = (w.x - this.camera.orthoLeft) / (this.camera.orthoRight - this.camera.orthoLeft);
+        let py = (w.y - this.camera.orthoBottom) / (this.camera.orthoTop - this.camera.orthoBottom);
+        return new BABYLON.Vector2(px * this.canvas.clientWidth, (1 - py) * this.canvas.clientHeight);
+    }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
@@ -55,6 +60,49 @@ class Main {
         menu.initializeMenu();
         this.generateScene();
         menu.showIngameMenu();
+        let test = new BABYLON.Mesh("test", this.scene);
+        let testMaterial = new BABYLON.StandardMaterial("test-material", this.scene);
+        testMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-green.png", this.scene);
+        testMaterial.diffuseTexture.hasAlpha = true;
+        testMaterial.specularColor.copyFromFloats(0, 0, 0);
+        testMaterial.alphaCutOff = 0.5;
+        test.material = testMaterial;
+        test.position.x = 8;
+        test.position.z = -2;
+        let test2 = new BABYLON.Mesh("test2", this.scene);
+        let test2Material = new BABYLON.StandardMaterial("test2-material", this.scene);
+        test2Material.diffuseTexture = new BABYLON.Texture("assets/building-loader-red.png", this.scene);
+        test2Material.diffuseTexture.hasAlpha = true;
+        test2Material.specularColor.copyFromFloats(0, 0, 0);
+        test2Material.alphaCutOff = 0.5;
+        test2.material = test2Material;
+        test2.position.x = 8;
+        test2.position.z = -2;
+        let a = 0;
+        ArcPlane.CreateVertexData(1.25, 0, a).applyToMesh(test);
+        ArcPlane.CreateVertexData(1.25, a, 0).applyToMesh(test2);
+        let div = document.createElement("div");
+        div.innerText = "0";
+        div.style.position = "fixed";
+        div.style.width = "100px";
+        div.style.height = "50px";
+        div.style.color = "white";
+        div.style.textAlign = "center";
+        div.style.fontSize = "45px";
+        let p = this.worldPosToPixel(new BABYLON.Vector2(8, 0));
+        div.style.left = (p.x - 50).toFixed(0) + "px";
+        div.style.top = (p.y - 25).toFixed(0) + "px";
+        div.style.zIndex = "2";
+        document.body.appendChild(div);
+        setInterval(() => {
+            a += 5 * Math.PI / 180;
+            if (a > 2 * Math.PI) {
+                a = 0;
+            }
+            ArcPlane.CreateVertexData(1.25, 0, a).applyToMesh(test);
+            ArcPlane.CreateVertexData(1.25, a, 0).applyToMesh(test2);
+            div.innerText = ((a / (2 * Math.PI)) * 100).toFixed(0);
+        }, 30);
     }
     generateScene() {
         let walker = new Walker(this);
@@ -535,6 +583,62 @@ class Wall extends GameObject {
     }
     setDarkness(d) {
         this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+    }
+}
+class ArcPlane {
+    static CreateVertexData(r, from, to) {
+        while (to < from) {
+            to += 2 * Math.PI;
+        }
+        let a = from;
+        let cosa = Math.cos(a);
+        let sina = Math.sin(a);
+        let data = new BABYLON.VertexData();
+        let px = cosa;
+        let py = sina;
+        if (px > Math.SQRT2 * 0.5) {
+            py /= px;
+            px = 1;
+        }
+        else if (py > Math.SQRT2 * 0.5) {
+            px /= py;
+            py = 1;
+        }
+        let positions = [0, 0, 0, r * px, r * py, 0];
+        let indices = [];
+        let uvs = [0.5, 0.5, px * 0.5 + 0.5, py * 0.5 + 0.5];
+        let l = 2;
+        while (a < to) {
+            a = Math.min(to, a + Math.PI / 32);
+            cosa = Math.cos(a);
+            sina = Math.sin(a);
+            let px = cosa;
+            let py = sina;
+            if (px > Math.SQRT2 * 0.5) {
+                py /= px;
+                px = 1;
+            }
+            else if (py > Math.SQRT2 * 0.5) {
+                px /= py;
+                py = 1;
+            }
+            else if (px < -Math.SQRT2 * 0.5) {
+                py /= -px;
+                px = -1;
+            }
+            else if (py < -Math.SQRT2 * 0.5) {
+                px /= -py;
+                py = -1;
+            }
+            positions.push(r * px, r * py, 0);
+            uvs.push(px * 0.5 + 0.5, py * 0.5 + 0.5);
+            indices.push(l, 0, l - 1);
+            l++;
+        }
+        data.positions = positions;
+        data.indices = indices;
+        data.uvs = uvs;
+        return data;
     }
 }
 class Menu {

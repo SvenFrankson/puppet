@@ -56,6 +56,15 @@ class Main {
 		return new BABYLON.Vector2(worldX, worldY);
 	}
 
+	public worldPosToPixel(w: BABYLON.Vector2): BABYLON.Vector2 {
+		let px = (w.x - this.camera.orthoLeft) / (this.camera.orthoRight - this.camera.orthoLeft);
+		let py = (w.y - this.camera.orthoBottom) / (this.camera.orthoTop - this.camera.orthoBottom);
+		return new BABYLON.Vector2(
+			px * this.canvas.clientWidth,
+			(1 - py) * this.canvas.clientHeight
+		);
+	} 
+
     public async initializeScene(): Promise<void> {
 		this.scene = new BABYLON.Scene(this.engine);
 		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
@@ -78,6 +87,63 @@ class Main {
 		menu.initializeMenu();
 		this.generateScene();
 		menu.showIngameMenu();
+
+		let test = new BABYLON.Mesh("test", this.scene);
+
+		let testMaterial = new BABYLON.StandardMaterial("test-material", this.scene);
+        testMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-green.png", this.scene);
+		testMaterial.diffuseTexture.hasAlpha = true;
+        testMaterial.specularColor.copyFromFloats(0, 0, 0);
+		testMaterial.alphaCutOff = 0.5
+
+		test.material = testMaterial;
+
+		test.position.x = 8;
+		test.position.z = - 2;
+		
+		let test2 = new BABYLON.Mesh("test2", this.scene);
+
+		let test2Material = new BABYLON.StandardMaterial("test2-material", this.scene);
+        test2Material.diffuseTexture = new BABYLON.Texture("assets/building-loader-red.png", this.scene);
+		test2Material.diffuseTexture.hasAlpha = true;
+        test2Material.specularColor.copyFromFloats(0, 0, 0);
+		test2Material.alphaCutOff = 0.5
+
+		test2.material = test2Material;
+
+		test2.position.x = 8;
+		test2.position.z = - 2;
+
+		let a = 0;
+		ArcPlane.CreateVertexData(1.25, 0, a).applyToMesh(test);
+		ArcPlane.CreateVertexData(1.25, a, 0).applyToMesh(test2);
+
+		let div = document.createElement("div");
+		div.innerText = "0";
+		div.style.position = "fixed";
+		div.style.width = "100px";
+		div.style.height = "50px";
+		div.style.color = "white";
+		div.style.textAlign = "center";
+		div.style.fontSize = "45px";
+		let p = this.worldPosToPixel(new BABYLON.Vector2(8, 0));
+		div.style.left = (p.x - 50).toFixed(0) + "px";
+		div.style.top = (p.y - 25).toFixed(0) + "px";
+		div.style.zIndex = "2";
+		document.body.appendChild(div);
+
+		setInterval(
+			() => {
+				a += 5 * Math.PI / 180;
+				if (a > 2 * Math.PI) {
+					a = 0;
+				}
+				ArcPlane.CreateVertexData(1.25, 0, a).applyToMesh(test);
+				ArcPlane.CreateVertexData(1.25, a, 0).applyToMesh(test2);
+				div.innerText = ((a / (2 * Math.PI)) * 100).toFixed(0);
+			},
+			30
+		)
 	}
 
 	public generateScene(): void {
