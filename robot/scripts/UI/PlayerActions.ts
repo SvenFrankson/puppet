@@ -55,12 +55,20 @@ class PlayerAction {
     public _pointerUpAddingTurret = (eventData: BABYLON.PointerInfo) => {
         if (this._selectedTurret) {
             if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
-                this._selectedTurret.isReady = true;
-                this._selectedTurret.setDarkness(1);
+                let newTurret = this._selectedTurret;
                 this._selectedTurret = undefined;
                 this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
                 this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
                 this._currentActionButton.classList.remove("selected");
+                new LoadingPlane(
+                    newTurret.base.pos2D,
+                    10,
+                    () => {
+                        newTurret.isReady = true;
+                        newTurret.setDarkness(1);
+                    },
+                    this.main
+                );
             }
         }
     }

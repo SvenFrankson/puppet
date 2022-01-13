@@ -60,54 +60,7 @@ class Main {
         menu.initializeMenu();
         this.generateScene();
         menu.showIngameMenu();
-        let test = new BABYLON.Mesh("test", this.scene);
-        let testMaterial = new BABYLON.StandardMaterial("test-material", this.scene);
-        testMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-green.png", this.scene);
-        testMaterial.diffuseTexture.hasAlpha = true;
-        testMaterial.specularColor.copyFromFloats(0, 0, 0);
-        testMaterial.alphaCutOff = 0.5;
-        test.material = testMaterial;
-        test.position.x = 8;
-        test.position.z = -2;
-        let test2 = new BABYLON.Mesh("test2", this.scene);
-        let test2Material = new BABYLON.StandardMaterial("test2-material", this.scene);
-        test2Material.diffuseTexture = new BABYLON.Texture("assets/building-loader-gray.png", this.scene);
-        test2Material.diffuseTexture.hasAlpha = true;
-        test2Material.specularColor.copyFromFloats(0, 0, 0);
-        test2Material.alphaCutOff = 0.5;
-        test2.material = test2Material;
-        test2.position.x = 8;
-        test2.position.z = -2;
-        let a = 240 / 180 * Math.PI;
-        CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 0).applyToMesh(test);
-        CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 1).applyToMesh(test2);
-        let div = document.createElement("div");
-        let d = document.createElement("span");
-        d.classList.add("building-loader-digit");
-        div.appendChild(d);
-        let u = document.createElement("span");
-        u.classList.add("building-loader-digit");
-        div.appendChild(u);
-        let pc = document.createElement("span");
-        pc.classList.add("building-loader-digit");
-        pc.innerText = "%";
-        div.appendChild(pc);
-        div.classList.add("building-loader-value");
-        let p = this.worldPosToPixel(new BABYLON.Vector2(8, 0));
-        div.style.left = (p.x - 35).toFixed(0) + "px";
-        div.style.top = (p.y - 5).toFixed(0) + "px";
-        document.body.appendChild(div);
-        let percent = 0;
-        setInterval(() => {
-            percent += 0.003;
-            if (percent >= 1) {
-                percent = 0;
-            }
-            CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, percent).applyToMesh(test);
-            CutPlane.CreateVerticalVertexData(2.5, 2.5, percent, 1).applyToMesh(test2);
-            d.innerText = (Math.floor(percent * 10)).toFixed(0);
-            u.innerText = (Math.floor(percent * 100) % 10).toFixed(0);
-        }, 30);
+        let loadingPlane = new LoadingPlane(new BABYLON.Vector2(5, -4), 3, () => { }, this);
     }
     generateScene() {
         let walker = new Walker(this);
@@ -671,6 +624,77 @@ class CutPlane {
         return data;
     }
 }
+class LoadingPlane {
+    constructor(pos2D, duration, onCompletionCallback, main) {
+        this.pos2D = pos2D;
+        this.duration = duration;
+        this.onCompletionCallback = onCompletionCallback;
+        this.main = main;
+        this._timer = 0;
+        this._update = () => {
+            this._timer += this.main.engine.getDeltaTime() / 1000;
+            let t = this._timer / this.duration;
+            if (t < 1) {
+                CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, t).applyToMesh(this.greenSprite);
+                CutPlane.CreateVerticalVertexData(2.5, 2.5, t, 1).applyToMesh(this.graySprite);
+                this.decimalElement.innerText = (Math.floor(t * 10)).toFixed(0);
+                this.unitElement.innerText = (Math.floor(t * 100) % 10).toFixed(0);
+            }
+            else {
+                this.dispose();
+                if (this.onCompletionCallback) {
+                    this.onCompletionCallback();
+                }
+            }
+        };
+        this.greenSprite = new BABYLON.Mesh("green-sprite", this.main.scene);
+        let greenSpriteMaterial = new BABYLON.StandardMaterial("green-sprite-material", this.main.scene);
+        greenSpriteMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-green.png", this.main.scene);
+        greenSpriteMaterial.diffuseTexture.hasAlpha = true;
+        greenSpriteMaterial.specularColor.copyFromFloats(0, 0, 0);
+        greenSpriteMaterial.alphaCutOff = 0.5;
+        this.greenSprite.material = greenSpriteMaterial;
+        this.greenSprite.position.x = this.pos2D.x;
+        this.greenSprite.position.y = this.pos2D.y;
+        this.greenSprite.position.z = -2;
+        this.graySprite = new BABYLON.Mesh("graySprite", this.main.scene);
+        let graySpriteMaterial = new BABYLON.StandardMaterial("graySprite-material", this.main.scene);
+        graySpriteMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-gray.png", this.main.scene);
+        graySpriteMaterial.diffuseTexture.hasAlpha = true;
+        graySpriteMaterial.specularColor.copyFromFloats(0, 0, 0);
+        graySpriteMaterial.alphaCutOff = 0.5;
+        this.graySprite.material = graySpriteMaterial;
+        this.graySprite.position.x = this.pos2D.x;
+        this.graySprite.position.y = this.pos2D.y;
+        this.graySprite.position.z = -2;
+        let a = 240 / 180 * Math.PI;
+        CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 0).applyToMesh(this.greenSprite);
+        CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 1).applyToMesh(this.graySprite);
+        this.valueElement = document.createElement("div");
+        this.decimalElement = document.createElement("span");
+        this.decimalElement.classList.add("building-loader-digit");
+        this.valueElement.appendChild(this.decimalElement);
+        this.unitElement = document.createElement("span");
+        this.unitElement.classList.add("building-loader-digit");
+        this.valueElement.appendChild(this.unitElement);
+        let pc = document.createElement("span");
+        pc.classList.add("building-loader-digit");
+        pc.innerText = "%";
+        this.valueElement.appendChild(pc);
+        this.valueElement.classList.add("building-loader-value");
+        let p = this.main.worldPosToPixel(pos2D);
+        this.valueElement.style.left = (p.x - 35).toFixed(0) + "px";
+        this.valueElement.style.top = (p.y - 5).toFixed(0) + "px";
+        document.body.appendChild(this.valueElement);
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    dispose() {
+        this.graySprite.dispose();
+        this.greenSprite.dispose();
+        document.body.removeChild(this.valueElement);
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
+}
 class Menu {
     constructor(main) {
         this.main = main;
@@ -1110,12 +1134,15 @@ class PlayerAction {
         this._pointerUpAddingTurret = (eventData) => {
             if (this._selectedTurret) {
                 if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
-                    this._selectedTurret.isReady = true;
-                    this._selectedTurret.setDarkness(1);
+                    let newTurret = this._selectedTurret;
                     this._selectedTurret = undefined;
                     this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
                     this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
                     this._currentActionButton.classList.remove("selected");
+                    new LoadingPlane(newTurret.base.pos2D, 10, () => {
+                        newTurret.isReady = true;
+                        newTurret.setDarkness(1);
+                    }, this.main);
                 }
             }
         };

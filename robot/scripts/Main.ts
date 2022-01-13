@@ -88,69 +88,7 @@ class Main {
 		this.generateScene();
 		menu.showIngameMenu();
 
-		let test = new BABYLON.Mesh("test", this.scene);
-
-		let testMaterial = new BABYLON.StandardMaterial("test-material", this.scene);
-        testMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-green.png", this.scene);
-		testMaterial.diffuseTexture.hasAlpha = true;
-        testMaterial.specularColor.copyFromFloats(0, 0, 0);
-		testMaterial.alphaCutOff = 0.5
-
-		test.material = testMaterial;
-
-		test.position.x = 8;
-		test.position.z = - 2;
-		
-		let test2 = new BABYLON.Mesh("test2", this.scene);
-
-		let test2Material = new BABYLON.StandardMaterial("test2-material", this.scene);
-        test2Material.diffuseTexture = new BABYLON.Texture("assets/building-loader-gray.png", this.scene);
-		test2Material.diffuseTexture.hasAlpha = true;
-        test2Material.specularColor.copyFromFloats(0, 0, 0);
-		test2Material.alphaCutOff = 0.5
-
-		test2.material = test2Material;
-
-		test2.position.x = 8;
-		test2.position.z = - 2;
-
-		let a = 240 / 180 * Math.PI;
-		CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 0).applyToMesh(test);
-		CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 1).applyToMesh(test2);
-
-		let div = document.createElement("div");
-		let d = document.createElement("span");
-		d.classList.add("building-loader-digit");
-		div.appendChild(d);
-		let u = document.createElement("span");
-		u.classList.add("building-loader-digit");
-		div.appendChild(u);
-		let pc = document.createElement("span");
-		pc.classList.add("building-loader-digit");
-		pc.innerText = "%";
-		div.appendChild(pc);
-		div.classList.add("building-loader-value");
-		let p = this.worldPosToPixel(new BABYLON.Vector2(8, 0));
-		div.style.left = (p.x - 35).toFixed(0) + "px";
-		div.style.top = (p.y - 5).toFixed(0) + "px";
-		document.body.appendChild(div);
-
-		let percent = 0;
-		setInterval(
-			() => {
-				percent += 0.003;
-				
-				if (percent >= 1) {
-					percent = 0;
-				}
-				
-				CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, percent).applyToMesh(test);
-				CutPlane.CreateVerticalVertexData(2.5, 2.5, percent, 1).applyToMesh(test2);
-				d.innerText = (Math.floor(percent * 10)).toFixed(0);
-				u.innerText = (Math.floor(percent * 100) % 10).toFixed(0);
-			},
-			30
-		)
+		let loadingPlane = new LoadingPlane(new BABYLON.Vector2(5, -4), 3, () => { }, this);
 	}
 
 	public generateScene(): void {
