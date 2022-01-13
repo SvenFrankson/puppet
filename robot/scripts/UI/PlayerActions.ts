@@ -96,7 +96,7 @@ class PlayerAction {
                 let existingWallNode = this.main.gameObjects.find(
                     g => {
                         if (g instanceof WallNode) {
-                            if (g.isReady) {
+                            if (g != this._selectedWallNode1) {
                                 if (BABYLON.Vector2.DistanceSquared(world, g.sprite.pos2D) < 1.5 * 1.5) {
                                     return true;
                                 }
@@ -113,8 +113,6 @@ class PlayerAction {
                 else {
                     this._selectedWallNode1.sprite.posX = world.x;
                     this._selectedWallNode1.sprite.position.y = world.y;
-                    this._selectedWallNode1.isReady = true;
-                    this._selectedWallNode1.setDarkness(1);
                 }
                 
                 this._selectedWallNode2 = new WallNode(this.main);
@@ -129,7 +127,7 @@ class PlayerAction {
                 let existingWallNode = this.main.gameObjects.find(
                     g => {
                         if (g instanceof WallNode) {
-                            if (g.isReady && g != this._selectedWallNode1) {
+                            if (g != this._selectedWallNode1 && g != this._selectedWallNode2) {
                                 if (BABYLON.Vector2.DistanceSquared(world, g.sprite.pos2D) < 1.5 * 1.5) {
                                     return true;
                                 }
@@ -146,13 +144,26 @@ class PlayerAction {
                 else {
                     this._selectedWallNode2.sprite.posX = world.x;
                     this._selectedWallNode2.sprite.position.y = world.y;
-                    this._selectedWallNode2.isReady = true;
-                    this._selectedWallNode2.setDarkness(1);
                 }
 
                 this._selectedWall.node2 = this._selectedWallNode2;
-                this._selectedWall.refreshMesh();
-                this._selectedWall.setDarkness(1);
+
+                let newWall = this._selectedWall;
+                let newNode1 = this._selectedWallNode1;
+                let newNode2 = this._selectedWallNode2;
+
+                new LoadingPlane(
+                    newNode1.sprite.pos2D.add(newNode2.sprite.pos2D).scale(0.5),
+                    5,
+                    () => {
+                        newWall.setDarkness(1);
+                        newNode1.isReady = true;
+                        newNode1.setDarkness(1);
+                        newNode2.isReady = true;
+                        newNode2.setDarkness(1);
+                    },
+                    this.main
+                );
 
                 this._selectedWallNode1 = undefined;
                 this._selectedWallNode2 = undefined;
