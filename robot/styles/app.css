@@ -1,3 +1,24 @@
+@font-face {
+  font-family: "Orbitron Black";
+  src:    url("./fonts/Orbitron\ Black.otf") format("opentype"),
+          url("./fonts/Orbitron\ Black.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Orbitron Bold";
+  src:    url("./fonts/Orbitron\ Bold.otf") format("opentype"),
+          url("./fonts/Orbitron\ Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Orbitron Light";
+  src:    url("./fonts/Orbitron\ Light.otf") format("opentype"),
+          url("./fonts/Orbitron\ Light.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Orbitron Medium";
+  src:    url("./fonts/Orbitron\ Medium.otf") format("opentype"),
+          url("./fonts/Orbitron\ Medium.ttf") format("truetype");
+}
+
 html,
 body {
   overflow: hidden;
@@ -66,4 +87,29 @@ body {
   top: 0.25%;
   left: 0.1%;
   z-index: 1;
+}
+
+.building-loader-value {
+  position: fixed;
+  width: 95px;
+  height: 45px;
+  padding-left: 8px;
+  color: white;
+  text-align: left;
+  font-size: 35px;
+  z-index: 2;
+  font-family: "Orbitron Medium";
+  background-color: rgba(0, 0, 0, 50%);
+  border: 1px solid white;
+  border-radius: 3px;
+}
+
+.building-loader-digit {
+  display: inline-block;
+  text-align: right;
+  width: 26px;
+  color: white;
+  text-shadow: 
+      0 0 1px white,
+      0 0 2px white
 }

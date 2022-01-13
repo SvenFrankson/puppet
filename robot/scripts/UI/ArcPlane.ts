@@ -20,6 +20,14 @@ class ArcPlane {
             px /= py;
             py = 1;
         }
+        else if (px < - Math.SQRT2 * 0.5) {
+            py /= - px;
+            px = - 1;
+        }
+        else if (py < - Math.SQRT2 * 0.5) {
+            px /= - py;
+            py = - 1;
+        }
 
         let positions: number[] = [0, 0, 0, r * px, r * py, 0];
         let indices: number[] = [];

@@ -71,37 +71,42 @@ class Main {
         test.position.z = -2;
         let test2 = new BABYLON.Mesh("test2", this.scene);
         let test2Material = new BABYLON.StandardMaterial("test2-material", this.scene);
-        test2Material.diffuseTexture = new BABYLON.Texture("assets/building-loader-red.png", this.scene);
+        test2Material.diffuseTexture = new BABYLON.Texture("assets/building-loader-gray.png", this.scene);
         test2Material.diffuseTexture.hasAlpha = true;
         test2Material.specularColor.copyFromFloats(0, 0, 0);
         test2Material.alphaCutOff = 0.5;
         test2.material = test2Material;
         test2.position.x = 8;
         test2.position.z = -2;
-        let a = 0;
-        ArcPlane.CreateVertexData(1.25, 0, a).applyToMesh(test);
-        ArcPlane.CreateVertexData(1.25, a, 0).applyToMesh(test2);
+        let a = 240 / 180 * Math.PI;
+        CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 0).applyToMesh(test);
+        CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 1).applyToMesh(test2);
         let div = document.createElement("div");
-        div.innerText = "0";
-        div.style.position = "fixed";
-        div.style.width = "100px";
-        div.style.height = "50px";
-        div.style.color = "white";
-        div.style.textAlign = "center";
-        div.style.fontSize = "45px";
+        let d = document.createElement("span");
+        d.classList.add("building-loader-digit");
+        div.appendChild(d);
+        let u = document.createElement("span");
+        u.classList.add("building-loader-digit");
+        div.appendChild(u);
+        let pc = document.createElement("span");
+        pc.classList.add("building-loader-digit");
+        pc.innerText = "%";
+        div.appendChild(pc);
+        div.classList.add("building-loader-value");
         let p = this.worldPosToPixel(new BABYLON.Vector2(8, 0));
-        div.style.left = (p.x - 50).toFixed(0) + "px";
-        div.style.top = (p.y - 25).toFixed(0) + "px";
-        div.style.zIndex = "2";
+        div.style.left = (p.x - 35).toFixed(0) + "px";
+        div.style.top = (p.y - 5).toFixed(0) + "px";
         document.body.appendChild(div);
+        let percent = 0;
         setInterval(() => {
-            a += 5 * Math.PI / 180;
-            if (a > 2 * Math.PI) {
-                a = 0;
+            percent += 0.003;
+            if (percent >= 1) {
+                percent = 0;
             }
-            ArcPlane.CreateVertexData(1.25, 0, a).applyToMesh(test);
-            ArcPlane.CreateVertexData(1.25, a, 0).applyToMesh(test2);
-            div.innerText = ((a / (2 * Math.PI)) * 100).toFixed(0);
+            CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, percent).applyToMesh(test);
+            CutPlane.CreateVerticalVertexData(2.5, 2.5, percent, 1).applyToMesh(test2);
+            d.innerText = (Math.floor(percent * 10)).toFixed(0);
+            u.innerText = (Math.floor(percent * 100) % 10).toFixed(0);
         }, 30);
     }
     generateScene() {
@@ -604,6 +609,14 @@ class ArcPlane {
             px /= py;
             py = 1;
         }
+        else if (px < -Math.SQRT2 * 0.5) {
+            py /= -px;
+            px = -1;
+        }
+        else if (py < -Math.SQRT2 * 0.5) {
+            px /= -py;
+            py = -1;
+        }
         let positions = [0, 0, 0, r * px, r * py, 0];
         let indices = [];
         let uvs = [0.5, 0.5, px * 0.5 + 0.5, py * 0.5 + 0.5];
@@ -635,6 +648,23 @@ class ArcPlane {
             indices.push(l, 0, l - 1);
             l++;
         }
+        data.positions = positions;
+        data.indices = indices;
+        data.uvs = uvs;
+        return data;
+    }
+}
+class CutPlane {
+    static CreateVerticalVertexData(w, h, from, to) {
+        let data = new BABYLON.VertexData();
+        let positions = [];
+        let indices = [];
+        let uvs = [];
+        let ww = 0.5 * w;
+        let hh = 0.5 * h;
+        positions.push(-ww, -hh + h * from, 0, -ww, -hh + h * to, 0, ww, -hh + h * to, 0, ww, -hh + h * from, 0);
+        indices.push(0, 2, 1, 0, 3, 2);
+        uvs.push(0, from, 0, to, 1, to, 1, from);
         data.positions = positions;
         data.indices = indices;
         data.uvs = uvs;
