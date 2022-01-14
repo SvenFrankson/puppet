@@ -6,9 +6,9 @@ var COS30 = Math.cos(Math.PI / 6);
 class Main {
 
     public canvas: HTMLCanvasElement;
-	public camera: BABYLON.FreeCamera;
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
+	public cameraManager: CameraManager;
 	public gameObjects: GameObject[] = [];
 	public playerAction: PlayerAction;
 
@@ -24,41 +24,21 @@ class Main {
 	public ratio: number = 1;
 
 	public resize(): void {
-		this.resizeCamera();
-	}
-
-	public resizeCamera(): void {
-		let w = this.canvas.clientWidth;
-		let h = this.canvas.clientHeight;
-
-		let r = w / h;
-
-		if (r > 1) {
-			this.camera.orthoLeft = - 10 * r;
-			this.camera.orthoRight = 10 * r;
-			this.camera.orthoTop = 10;
-			this.camera.orthoBottom = - 10;
-		}
-		else {
-			this.camera.orthoLeft = - 10;
-			this.camera.orthoRight = 10;
-			this.camera.orthoTop = 10 / r;
-			this.camera.orthoBottom = - 10 / r;
-		}
+		this.cameraManager.resize();
 	}
 
 	public getPointerWorldPos(): BABYLON.Vector2 {
 		let pointerX = this.scene.pointerX / this.canvas.clientWidth;
 		let pointerY = 1 - this.scene.pointerY / this.canvas.clientHeight;
-		let worldX = this.camera.orthoLeft + pointerX * (this.camera.orthoRight - this.camera.orthoLeft);
-		let worldY = this.camera.orthoBottom + pointerY * (this.camera.orthoTop - this.camera.orthoBottom);
+		let worldX = this.cameraManager.camera.orthoLeft + pointerX * (this.cameraManager.camera.orthoRight - this.cameraManager.camera.orthoLeft);
+		let worldY = this.cameraManager.camera.orthoBottom + pointerY * (this.cameraManager.camera.orthoTop - this.cameraManager.camera.orthoBottom);
 		document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
 		return new BABYLON.Vector2(worldX, worldY);
 	}
 
 	public worldPosToPixel(w: BABYLON.Vector2): BABYLON.Vector2 {
-		let px = (w.x - this.camera.orthoLeft) / (this.camera.orthoRight - this.camera.orthoLeft);
-		let py = (w.y - this.camera.orthoBottom) / (this.camera.orthoTop - this.camera.orthoBottom);
+		let px = (w.x - this.cameraManager.camera.orthoLeft) / (this.cameraManager.camera.orthoRight - this.cameraManager.camera.orthoLeft);
+		let py = (w.y - this.cameraManager.camera.orthoBottom) / (this.cameraManager.camera.orthoTop - this.cameraManager.camera.orthoBottom);
 		return new BABYLON.Vector2(
 			px * this.canvas.clientWidth,
 			(1 - py) * this.canvas.clientHeight
@@ -69,8 +49,9 @@ class Main {
 		this.scene = new BABYLON.Scene(this.engine);
 		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
 
-		this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 10), this.scene);
-		this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+		this.cameraManager = new CameraManager(this);
+		this.cameraManager.initialize();
+
 		this.resize();
 
 		new BABYLON.DirectionalLight("light", BABYLON.Vector3.Forward(), this.scene);
@@ -79,8 +60,6 @@ class Main {
 			this.resize();
 		}
 
-		BABYLON.Engine.ShadersRepository = "./shaders/";
-
 		this.playerAction = new PlayerAction(this);
 
 		let menu = new Menu(this);
@@ -88,7 +67,46 @@ class Main {
 		this.generateScene();
 		menu.showIngameMenu();
 
-		let loadingPlane = new LoadingPlane(new BABYLON.Vector2(5, -4), 3, () => { }, this);
+		let ground = new BABYLON.Mesh("ground", this.scene);
+
+		let data = new BABYLON.VertexData();
+        
+        let positions: number[] = [];
+        let indices: number[] = [];
+        let uvs: number[] = [];
+
+        positions.push(
+            - 100, - 100, 0,
+            - 100, 100, 0,
+            100, 100, 0,
+            100, - 100, 0
+        );
+
+        indices.push(
+            0, 2, 1,
+            0, 3, 2
+        );
+
+        uvs.push(
+            0, 0,
+            0, 15,
+            15, 15,
+            15, 0
+        );
+
+        data.positions = positions;
+        data.indices = indices;
+        data.uvs = uvs;
+
+		data.applyToMesh(ground);
+
+		ground.position.z = 2;
+
+		let groundMaterial = new BABYLON.StandardMaterial("ground-material", this.scene);
+        groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground.png", this.scene);
+        groundMaterial.specularColor.copyFromFloats(0, 0, 0);
+		
+		ground.material = groundMaterial;
 	}
 
 	public generateScene(): void {
@@ -97,10 +115,11 @@ class Main {
 		turret.base.position.x = - 5;
 		turret.target = walker;
 
-		for (let i = 0; i < 20; i++) {
-			let rock = new Prop("rock_1", this);
-			rock.sprite.position.x = - 20 + 40 * Math.random();
-			rock.sprite.position.y = - 20 + 40 * Math.random();
+		for (let i = 0; i < 40; i++) {
+			let n = Math.floor(2 * Math.random()) + 1;
+			let rock = new Prop("rock_" + n.toFixed(0), this);
+			rock.sprite.position.x = - 40 + 80 * Math.random();
+			rock.sprite.position.y = - 40 + 80 * Math.random();
 			rock.sprite.rotation.z = 2 * Math.PI * Math.random();
 		}
 		
@@ -128,7 +147,6 @@ class Main {
 	
     public animate(): void {
         this.engine.runRenderLoop(() => {
-			this.resizeCamera();
 			this.scene.render();
         });
 

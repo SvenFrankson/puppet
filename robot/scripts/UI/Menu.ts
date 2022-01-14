@@ -2,6 +2,7 @@ class Menu {
 
     public mainMenuContainer: HTMLDivElement;
     public playMenuContainer: HTMLDivElement;
+    public creditMenuContainer: HTMLDivElement;
     public buildingMenuContainer: HTMLDivElement;
     public ingameMenuContainer: HTMLDivElement;
     public pauseMenuContainer: HTMLDivElement;
@@ -34,6 +35,9 @@ class Menu {
 		let mainCredit = SpacePanel.CreateSpacePanel();
 		mainCredit.addTitle2("CREDITS");
 		mainCredit.classList.add("menu-element-panel");
+        mainCredit.onpointerup = () => {
+            this.showCreditMenu();
+        }
 		
 		this.mainMenuContainer.appendChild(mainTitle);
 		this.mainMenuContainer.appendChild(mainPlay);
@@ -65,6 +69,32 @@ class Menu {
 		this.playMenuContainer.appendChild(playTitle);
 		this.playMenuContainer.appendChild(playTest);
 		this.playMenuContainer.appendChild(playBack);
+
+
+        this.creditMenuContainer = document.getElementById("credit-menu") as HTMLDivElement;
+
+        let creditTitle = SpacePanel.CreateSpacePanel();
+		creditTitle.addTitle1("MARS AT WAR");
+		creditTitle.classList.add("menu-title-panel");
+		
+		let creditCredit = SpacePanel.CreateSpacePanel();
+		creditCredit.addTitle2("CREDIT");
+		creditCredit.classList.add("menu-element-panel");
+        creditCredit.addTitle3("Code & Graphism by Sven Frankson");
+        creditCredit.addTitle3("Orbitron font by Matt McInerney");
+        creditCredit.addTitle3("Anurati font by Richard Emmeran");
+        creditCredit.addTitle3("Powered by BABYLONJS");
+		
+		let creditBack = SpacePanel.CreateSpacePanel();
+		creditBack.addTitle2("BACK");
+		creditBack.classList.add("menu-element-panel");
+        creditBack.onpointerup = () => {
+            this.showMainMenu();
+        }
+        
+		this.creditMenuContainer.appendChild(creditTitle);
+		this.creditMenuContainer.appendChild(creditCredit);
+		this.creditMenuContainer.appendChild(creditBack);
 
 
         this.buildingMenuContainer = document.getElementById("building-menu") as HTMLDivElement;
@@ -146,6 +176,7 @@ class Menu {
     public showMainMenu(): void {
         this.mainMenuContainer.style.display = "block";
         this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "none";
         this.buildingMenuContainer.style.display = "none";
         this.ingameMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "none";
@@ -154,14 +185,26 @@ class Menu {
     public showPlayMenu(): void {
         this.mainMenuContainer.style.display = "none";
         this.playMenuContainer.style.display = "block";
+        this.creditMenuContainer.style.display = "none";
         this.buildingMenuContainer.style.display = "none";
         this.ingameMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "none";
     }
 
+    public showCreditMenu(): void {
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "block";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
+    }
+
+
     public showIngameMenu(): void {
         this.mainMenuContainer.style.display = "none";
         this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "none";
         this.buildingMenuContainer.style.display = "block";
         this.ingameMenuContainer.style.display = "block";
         this.pauseMenuContainer.style.display = "none";
@@ -170,6 +213,7 @@ class Menu {
     public showPauseMenu(): void {
         this.mainMenuContainer.style.display = "none";
         this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "block";
     }
 }

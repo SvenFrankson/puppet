@@ -58,7 +58,7 @@ class LoadingPlane {
 		pc.innerText = "%";
 		this.valueElement.appendChild(pc);
 		this.valueElement.classList.add("building-loader-value");
-		let p = this.main.worldPosToPixel(pos2D);
+		let p = this.main.worldPosToPixel(this.pos2D);
 		this.valueElement.style.left = (p.x - 35).toFixed(0) + "px";
 		this.valueElement.style.top = (p.y - 5).toFixed(0) + "px";
 		document.body.appendChild(this.valueElement);
@@ -78,6 +78,11 @@ class LoadingPlane {
 
         let t = this._timer / this.duration;
         if (t < 1) {
+            
+            let p = this.main.worldPosToPixel(this.pos2D);
+            this.valueElement.style.left = (p.x - 35).toFixed(0) + "px";
+            this.valueElement.style.top = (p.y - 5).toFixed(0) + "px";
+
             CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, t).applyToMesh(this.greenSprite);
             CutPlane.CreateVerticalVertexData(2.5, 2.5, t, 1).applyToMesh(this.graySprite);
             this.decimalElement.innerText = (Math.floor(t * 10)).toFixed(0);

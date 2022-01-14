@@ -1,3 +1,82 @@
+class CameraManager {
+    constructor(main) {
+        this.main = main;
+        this.center = BABYLON.Vector2.Zero();
+        this.moveWhenPointerOnSide = false;
+        this.cameraMoveDistance = 40;
+        this.cameraSpeed = 10;
+        this._update = () => {
+            if (!this.moveWhenPointerOnSide) {
+                return;
+            }
+            let dt = this.main.engine.getDeltaTime() / 1000;
+            let pointerX = this.main.scene.pointerX;
+            let pointerY = this.main.scene.pointerY;
+            document.getElementById("debug-pointer-xy").innerText = pointerX + " : " + pointerY;
+            let w = this.main.canvas.clientWidth;
+            let h = this.main.canvas.clientHeight;
+            let distanceToEdge = Infinity;
+            distanceToEdge = Math.min(pointerX, distanceToEdge);
+            distanceToEdge = Math.min(pointerY, distanceToEdge);
+            distanceToEdge = Math.min(w - pointerX, distanceToEdge);
+            distanceToEdge = Math.min(h - pointerY, distanceToEdge);
+            if (distanceToEdge < this.cameraMoveDistance) {
+                let speed = this.cameraSpeed * (1 - distanceToEdge / this.cameraMoveDistance);
+                let dir = new BABYLON.Vector2(pointerX - w * 0.5, pointerY - h * 0.5).normalize();
+                this.moveCenter(dir.x * speed * dt, -dir.y * speed * dt);
+            }
+            /*
+            if (pointerX < this.cameraMoveDistance) {
+                dX = - this.cameraSpeed * dt * (1 - pointerX / this.cameraMoveDistance);
+            }
+            if (pointerX > w - this.cameraMoveDistance) {
+                let d = w - pointerX;
+                dX = this.cameraSpeed * dt * (1 - d / this.cameraMoveDistance);
+            }
+            if (pointerY < this.cameraMoveDistance) {
+                dY = this.cameraSpeed * dt * (1 - pointerY / this.cameraMoveDistance);
+            }
+            if (pointerY > h - this.cameraMoveDistance) {
+                let d = h - pointerY;
+                dY = - this.cameraSpeed * dt * (1 - d / this.cameraMoveDistance);
+            }
+            */
+        };
+    }
+    initialize() {
+        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, -10), this.main.scene);
+        this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+        this.main.canvas.onpointerleave = () => {
+            this.moveWhenPointerOnSide = false;
+        };
+        this.main.canvas.onpointerenter = () => {
+            this.moveWhenPointerOnSide = true;
+        };
+    }
+    resize() {
+        let w = this.main.canvas.clientWidth;
+        let h = this.main.canvas.clientHeight;
+        let r = w / h;
+        if (r > 1) {
+            this.camera.orthoLeft = this.center.x - 10 * r;
+            this.camera.orthoRight = this.center.x + 10 * r;
+            this.camera.orthoTop = this.center.y + 10;
+            this.camera.orthoBottom = this.center.y - 10;
+        }
+        else {
+            this.camera.orthoLeft = this.center.x - 10;
+            this.camera.orthoRight = this.center.x + 10;
+            this.camera.orthoTop = this.center.y + 10 / r;
+            this.camera.orthoBottom = this.center.y - 10 / r;
+        }
+    }
+    moveCenter(dX, dY) {
+        this.center.x += dX;
+        this.center.y += dY;
+        this.resize();
+    }
+}
 /// <reference path="../lib/babylon.d.ts"/>
 /// <reference path="../lib/babylon.gui.d.ts"/>
 var COS30 = Math.cos(Math.PI / 6);
@@ -12,65 +91,64 @@ class Main {
         await this.initializeScene();
     }
     resize() {
-        this.resizeCamera();
-    }
-    resizeCamera() {
-        let w = this.canvas.clientWidth;
-        let h = this.canvas.clientHeight;
-        let r = w / h;
-        if (r > 1) {
-            this.camera.orthoLeft = -10 * r;
-            this.camera.orthoRight = 10 * r;
-            this.camera.orthoTop = 10;
-            this.camera.orthoBottom = -10;
-        }
-        else {
-            this.camera.orthoLeft = -10;
-            this.camera.orthoRight = 10;
-            this.camera.orthoTop = 10 / r;
-            this.camera.orthoBottom = -10 / r;
-        }
+        this.cameraManager.resize();
     }
     getPointerWorldPos() {
         let pointerX = this.scene.pointerX / this.canvas.clientWidth;
         let pointerY = 1 - this.scene.pointerY / this.canvas.clientHeight;
-        let worldX = this.camera.orthoLeft + pointerX * (this.camera.orthoRight - this.camera.orthoLeft);
-        let worldY = this.camera.orthoBottom + pointerY * (this.camera.orthoTop - this.camera.orthoBottom);
+        let worldX = this.cameraManager.camera.orthoLeft + pointerX * (this.cameraManager.camera.orthoRight - this.cameraManager.camera.orthoLeft);
+        let worldY = this.cameraManager.camera.orthoBottom + pointerY * (this.cameraManager.camera.orthoTop - this.cameraManager.camera.orthoBottom);
         document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
         return new BABYLON.Vector2(worldX, worldY);
     }
     worldPosToPixel(w) {
-        let px = (w.x - this.camera.orthoLeft) / (this.camera.orthoRight - this.camera.orthoLeft);
-        let py = (w.y - this.camera.orthoBottom) / (this.camera.orthoTop - this.camera.orthoBottom);
+        let px = (w.x - this.cameraManager.camera.orthoLeft) / (this.cameraManager.camera.orthoRight - this.cameraManager.camera.orthoLeft);
+        let py = (w.y - this.cameraManager.camera.orthoBottom) / (this.cameraManager.camera.orthoTop - this.cameraManager.camera.orthoBottom);
         return new BABYLON.Vector2(px * this.canvas.clientWidth, (1 - py) * this.canvas.clientHeight);
     }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, -10), this.scene);
-        this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+        this.cameraManager = new CameraManager(this);
+        this.cameraManager.initialize();
         this.resize();
         new BABYLON.DirectionalLight("light", BABYLON.Vector3.Forward(), this.scene);
         window.onresize = () => {
             this.resize();
         };
-        BABYLON.Engine.ShadersRepository = "./shaders/";
         this.playerAction = new PlayerAction(this);
         let menu = new Menu(this);
         menu.initializeMenu();
         this.generateScene();
         menu.showIngameMenu();
-        let loadingPlane = new LoadingPlane(new BABYLON.Vector2(5, -4), 3, () => { }, this);
+        let ground = new BABYLON.Mesh("ground", this.scene);
+        let data = new BABYLON.VertexData();
+        let positions = [];
+        let indices = [];
+        let uvs = [];
+        positions.push(-100, -100, 0, -100, 100, 0, 100, 100, 0, 100, -100, 0);
+        indices.push(0, 2, 1, 0, 3, 2);
+        uvs.push(0, 0, 0, 15, 15, 15, 15, 0);
+        data.positions = positions;
+        data.indices = indices;
+        data.uvs = uvs;
+        data.applyToMesh(ground);
+        ground.position.z = 2;
+        let groundMaterial = new BABYLON.StandardMaterial("ground-material", this.scene);
+        groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground.png", this.scene);
+        groundMaterial.specularColor.copyFromFloats(0, 0, 0);
+        ground.material = groundMaterial;
     }
     generateScene() {
         let walker = new Walker(this);
         let turret = new Turret(this);
         turret.base.position.x = -5;
         turret.target = walker;
-        for (let i = 0; i < 20; i++) {
-            let rock = new Prop("rock_1", this);
-            rock.sprite.position.x = -20 + 40 * Math.random();
-            rock.sprite.position.y = -20 + 40 * Math.random();
+        for (let i = 0; i < 40; i++) {
+            let n = Math.floor(2 * Math.random()) + 1;
+            let rock = new Prop("rock_" + n.toFixed(0), this);
+            rock.sprite.position.x = -40 + 80 * Math.random();
+            rock.sprite.position.y = -40 + 80 * Math.random();
             rock.sprite.rotation.z = 2 * Math.PI * Math.random();
         }
         let wallNode1 = new WallNode(this);
@@ -92,7 +170,6 @@ class Main {
     }
     animate() {
         this.engine.runRenderLoop(() => {
-            this.resizeCamera();
             this.scene.render();
         });
         window.addEventListener("resize", () => {
@@ -635,6 +712,9 @@ class LoadingPlane {
             this._timer += this.main.engine.getDeltaTime() / 1000;
             let t = this._timer / this.duration;
             if (t < 1) {
+                let p = this.main.worldPosToPixel(this.pos2D);
+                this.valueElement.style.left = (p.x - 35).toFixed(0) + "px";
+                this.valueElement.style.top = (p.y - 5).toFixed(0) + "px";
                 CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, t).applyToMesh(this.greenSprite);
                 CutPlane.CreateVerticalVertexData(2.5, 2.5, t, 1).applyToMesh(this.graySprite);
                 this.decimalElement.innerText = (Math.floor(t * 10)).toFixed(0);
@@ -682,7 +762,7 @@ class LoadingPlane {
         pc.innerText = "%";
         this.valueElement.appendChild(pc);
         this.valueElement.classList.add("building-loader-value");
-        let p = this.main.worldPosToPixel(pos2D);
+        let p = this.main.worldPosToPixel(this.pos2D);
         this.valueElement.style.left = (p.x - 35).toFixed(0) + "px";
         this.valueElement.style.top = (p.y - 5).toFixed(0) + "px";
         document.body.appendChild(this.valueElement);
@@ -716,6 +796,9 @@ class Menu {
         let mainCredit = SpacePanel.CreateSpacePanel();
         mainCredit.addTitle2("CREDITS");
         mainCredit.classList.add("menu-element-panel");
+        mainCredit.onpointerup = () => {
+            this.showCreditMenu();
+        };
         this.mainMenuContainer.appendChild(mainTitle);
         this.mainMenuContainer.appendChild(mainPlay);
         this.mainMenuContainer.appendChild(mainOption);
@@ -740,6 +823,26 @@ class Menu {
         this.playMenuContainer.appendChild(playTitle);
         this.playMenuContainer.appendChild(playTest);
         this.playMenuContainer.appendChild(playBack);
+        this.creditMenuContainer = document.getElementById("credit-menu");
+        let creditTitle = SpacePanel.CreateSpacePanel();
+        creditTitle.addTitle1("MARS AT WAR");
+        creditTitle.classList.add("menu-title-panel");
+        let creditCredit = SpacePanel.CreateSpacePanel();
+        creditCredit.addTitle2("CREDIT");
+        creditCredit.classList.add("menu-element-panel");
+        creditCredit.addTitle3("Code & Graphism by Sven Frankson");
+        creditCredit.addTitle3("Orbitron font by Matt McInerney");
+        creditCredit.addTitle3("Anurati font by Richard Emmeran");
+        creditCredit.addTitle3("Powered by BABYLONJS");
+        let creditBack = SpacePanel.CreateSpacePanel();
+        creditBack.addTitle2("BACK");
+        creditBack.classList.add("menu-element-panel");
+        creditBack.onpointerup = () => {
+            this.showMainMenu();
+        };
+        this.creditMenuContainer.appendChild(creditTitle);
+        this.creditMenuContainer.appendChild(creditCredit);
+        this.creditMenuContainer.appendChild(creditBack);
         this.buildingMenuContainer = document.getElementById("building-menu");
         let buildingMenu = SpacePanel.CreateSpacePanel();
         buildingMenu.classList.add("building-menu");
@@ -799,6 +902,7 @@ class Menu {
     showMainMenu() {
         this.mainMenuContainer.style.display = "block";
         this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "none";
         this.buildingMenuContainer.style.display = "none";
         this.ingameMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "none";
@@ -806,6 +910,15 @@ class Menu {
     showPlayMenu() {
         this.mainMenuContainer.style.display = "none";
         this.playMenuContainer.style.display = "block";
+        this.creditMenuContainer.style.display = "none";
+        this.buildingMenuContainer.style.display = "none";
+        this.ingameMenuContainer.style.display = "none";
+        this.pauseMenuContainer.style.display = "none";
+    }
+    showCreditMenu() {
+        this.mainMenuContainer.style.display = "none";
+        this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "block";
         this.buildingMenuContainer.style.display = "none";
         this.ingameMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "none";
@@ -813,6 +926,7 @@ class Menu {
     showIngameMenu() {
         this.mainMenuContainer.style.display = "none";
         this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "none";
         this.buildingMenuContainer.style.display = "block";
         this.ingameMenuContainer.style.display = "block";
         this.pauseMenuContainer.style.display = "none";
@@ -820,6 +934,7 @@ class Menu {
     showPauseMenu() {
         this.mainMenuContainer.style.display = "none";
         this.playMenuContainer.style.display = "none";
+        this.creditMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "block";
     }
 }
