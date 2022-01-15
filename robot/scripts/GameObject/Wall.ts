@@ -2,7 +2,6 @@ class WallNode extends GameObject {
 
     public isReady: boolean;
 
-    public sprite: Sprite;
     public top: Sprite;
 
     public obstacle: Obstacle;
@@ -49,8 +48,6 @@ class WallNode extends GameObject {
 class Wall extends GameObject {
     
     public isReady: boolean;
-
-    public sprite: Sprite;
 
     public obstacle: Obstacle;
     

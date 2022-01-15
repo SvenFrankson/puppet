@@ -145,27 +145,27 @@ class Main {
     generateScene() {
         let walker = new Walker(this);
         let turret = new Turret(this);
-        turret.base.position.x = -5;
+        turret.posX = -5;
         turret.target = walker;
         turret.makeReady();
         for (let i = 0; i < 40; i++) {
             let n = Math.floor(2 * Math.random()) + 1;
             let rock = new Prop("rock_" + n.toFixed(0), this);
-            rock.sprite.position.x = -40 + 80 * Math.random();
-            rock.sprite.position.y = -40 + 80 * Math.random();
-            rock.sprite.rotation.z = 2 * Math.PI * Math.random();
+            rock.posX = -40 + 80 * Math.random();
+            rock.posY = -40 + 80 * Math.random();
+            rock.rot = 2 * Math.PI * Math.random();
         }
         let wallNode1 = new WallNode(this);
-        wallNode1.sprite.position.x = -4;
-        wallNode1.sprite.position.y = 5;
+        wallNode1.posX = -4;
+        wallNode1.posY = 5;
         wallNode1.makeReady();
         let wallNode2 = new WallNode(this);
-        wallNode2.sprite.position.x = 7;
-        wallNode2.sprite.position.y = 3;
+        wallNode2.posX = 7;
+        wallNode2.posY = 3;
         wallNode2.makeReady();
         let wallNode3 = new WallNode(this);
-        wallNode3.sprite.position.x = 6;
-        wallNode3.sprite.position.y = -4;
+        wallNode3.posX = 6;
+        wallNode3.posY = -4;
         wallNode3.makeReady();
         let wall1 = new Wall(wallNode1, wallNode2, this);
         wall1.makeReady();
@@ -196,6 +196,33 @@ class GameObject {
         this.main = main;
         this.isDisposed = false;
         main.gameObjects.push(this);
+    }
+    get pos2D() {
+        if (this.sprite) {
+            return this.sprite.pos2D;
+        }
+        if (!this._pos2D) {
+            this._pos2D = BABYLON.Vector2.Zero();
+        }
+        return this._pos2D;
+    }
+    get posX() {
+        return this.pos2D.x;
+    }
+    set posX(x) {
+        this.sprite.posX = x;
+    }
+    get posY() {
+        return this.pos2D.y;
+    }
+    set posY(y) {
+        this.sprite.posY = y;
+    }
+    get rot() {
+        return this.pos2D.y;
+    }
+    set rot(r) {
+        this.sprite.rot = r;
     }
     dispose() {
         this.isDisposed = true;
@@ -272,6 +299,12 @@ class Sprite extends BABYLON.Mesh {
     set posY(y) {
         this.position.y = y;
     }
+    get rot() {
+        return this.rotation.z;
+    }
+    set rot(r) {
+        this.rotation.z = r;
+    }
     refreshMesh(length) {
         let size = this.spriteMaterial.diffuseTexture.getBaseSize();
         let quadData;
@@ -307,7 +340,7 @@ class Turret extends GameObject {
                 }
             }
             if (this.target) {
-                let dirToTarget = new BABYLON.Vector2(this.target.body.posX - this.base.posX, this.target.body.posY - this.base.posY);
+                let dirToTarget = new BABYLON.Vector2(this.target.body.posX - this.sprite.posX, this.target.body.posY - this.sprite.posY);
                 let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
                 this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
                 let aligned = Math2D.AreEqualsCircular(this.body.rotation.z, targetA, Math.PI / 180);
@@ -323,12 +356,12 @@ class Turret extends GameObject {
                 }
             }
         };
-        this.base = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
-        this.base.height = 1;
+        this.sprite = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
+        this.sprite.height = 1;
         this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
         this.body.height = 3;
         this.body.position.z = -0.1;
-        this.body.parent = this.base;
+        this.body.parent = this.sprite;
         this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
         this.canon.height = 5;
         this.canon.posY = 0.6;
@@ -344,7 +377,7 @@ class Turret extends GameObject {
     dispose() {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-        this.base.dispose();
+        this.sprite.dispose();
         this.body.dispose();
         this.canon.dispose();
         this.top.dispose();
@@ -353,13 +386,13 @@ class Turret extends GameObject {
         this.isReady = true;
         this.setDarkness(1);
         if (!this.obstacle) {
-            this.obstacle = Obstacle.CreateRect(this.base.posX, this.base.posY, 2.6, 2.6, 0);
+            this.obstacle = Obstacle.CreateRect(this.sprite.posX, this.sprite.posY, 2.6, 2.6, 0);
             this.obstacle.shape.rotation2D = Math.PI / 4;
             NavGraphManager.AddObstacle(this.obstacle);
         }
     }
     setDarkness(d) {
-        this.base.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
@@ -1949,8 +1982,8 @@ class PlayerAction {
         this._updateAddingTurret = () => {
             if (this._selectedTurret) {
                 let world = this.main.getPointerWorldPos();
-                this._selectedTurret.base.posX = world.x;
-                this._selectedTurret.base.position.y = world.y;
+                this._selectedTurret.posX = world.x;
+                this._selectedTurret.posY = world.y;
             }
         };
         this._pointerUpAddingTurret = (eventData) => {
@@ -1961,7 +1994,7 @@ class PlayerAction {
                     this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
                     this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
                     this._currentActionButton.classList.remove("selected");
-                    new LoadingPlane(newTurret.base.pos2D, 10, () => {
+                    new LoadingPlane(newTurret.pos2D, 10, () => {
                         newTurret.makeReady();
                     }, this.main);
                 }
@@ -1970,14 +2003,14 @@ class PlayerAction {
         this._updateAddingWall = () => {
             if (this._selectedWallNode1 && !this._selectedWallNode2) {
                 let world = this.main.getPointerWorldPos();
-                this._selectedWallNode1.sprite.posX = world.x;
-                this._selectedWallNode1.sprite.position.y = world.y;
+                this._selectedWallNode1.posX = world.x;
+                this._selectedWallNode1.posY = world.y;
             }
             else if (this._selectedWallNode1 && this._selectedWallNode2 && this._selectedWall) {
                 let world = this.main.getPointerWorldPos();
-                if (this._selectedWallNode2.sprite.pos2D.x != world.x || this._selectedWallNode2.sprite.pos2D.y != world.y) {
-                    this._selectedWallNode2.sprite.posX = world.x;
-                    this._selectedWallNode2.sprite.position.y = world.y;
+                if (this._selectedWallNode2.pos2D.x != world.x || this._selectedWallNode2.pos2D.y != world.y) {
+                    this._selectedWallNode2.posX = world.x;
+                    this._selectedWallNode2.posY = world.y;
                     this._selectedWall.refreshMesh();
                 }
             }
@@ -2000,8 +2033,8 @@ class PlayerAction {
                         this._selectedWallNode1 = existingWallNode;
                     }
                     else {
-                        this._selectedWallNode1.sprite.posX = world.x;
-                        this._selectedWallNode1.sprite.position.y = world.y;
+                        this._selectedWallNode1.posX = world.x;
+                        this._selectedWallNode1.posY = world.y;
                     }
                     this._selectedWallNode2 = new WallNode(this.main);
                     this._selectedWallNode2.isReady = false;
@@ -2014,7 +2047,7 @@ class PlayerAction {
                     let existingWallNode = this.main.gameObjects.find(g => {
                         if (g instanceof WallNode) {
                             if (g != this._selectedWallNode1 && g != this._selectedWallNode2) {
-                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.pos2D) < 1.5 * 1.5) {
+                                if (BABYLON.Vector2.DistanceSquared(world, g.pos2D) < 1.5 * 1.5) {
                                     return true;
                                 }
                             }
@@ -2025,14 +2058,14 @@ class PlayerAction {
                         this._selectedWallNode2 = existingWallNode;
                     }
                     else {
-                        this._selectedWallNode2.sprite.posX = world.x;
-                        this._selectedWallNode2.sprite.position.y = world.y;
+                        this._selectedWallNode2.posX = world.x;
+                        this._selectedWallNode2.posY = world.y;
                     }
                     this._selectedWall.node2 = this._selectedWallNode2;
                     let newWall = this._selectedWall;
                     let newNode1 = this._selectedWallNode1;
                     let newNode2 = this._selectedWallNode2;
-                    new LoadingPlane(newNode1.sprite.pos2D.add(newNode2.sprite.pos2D).scale(0.5), 5, () => {
+                    new LoadingPlane(newNode1.pos2D.add(newNode2.pos2D).scale(0.5), 5, () => {
                         newWall.makeReady();
                         newNode1.makeReady();
                         newNode2.makeReady();

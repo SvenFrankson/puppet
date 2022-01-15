@@ -116,31 +116,31 @@ class Main {
 	public generateScene(): void {
 		let walker = new Walker(this);
 		let turret = new Turret(this);
-		turret.base.position.x = - 5;
+		turret.posX = - 5;
 		turret.target = walker;
 		turret.makeReady();
 
 		for (let i = 0; i < 40; i++) {
 			let n = Math.floor(2 * Math.random()) + 1;
 			let rock = new Prop("rock_" + n.toFixed(0), this);
-			rock.sprite.position.x = - 40 + 80 * Math.random();
-			rock.sprite.position.y = - 40 + 80 * Math.random();
-			rock.sprite.rotation.z = 2 * Math.PI * Math.random();
+			rock.posX = - 40 + 80 * Math.random();
+			rock.posY = - 40 + 80 * Math.random();
+			rock.rot = 2 * Math.PI * Math.random();
 		}
 		
 		let wallNode1 = new WallNode(this);
-		wallNode1.sprite.position.x = - 4;
-		wallNode1.sprite.position.y = 5;
+		wallNode1.posX = - 4;
+		wallNode1.posY = 5;
 		wallNode1.makeReady();
 		
 		let wallNode2 = new WallNode(this);
-		wallNode2.sprite.position.x = 7;
-		wallNode2.sprite.position.y = 3;
+		wallNode2.posX = 7;
+		wallNode2.posY = 3;
 		wallNode2.makeReady();
 		
 		let wallNode3 = new WallNode(this);
-		wallNode3.sprite.position.x = 6;
-		wallNode3.sprite.position.y = -4;
+		wallNode3.posX = 6;
+		wallNode3.posY = -4;
 		wallNode3.makeReady();
 
 		let wall1 = new Wall(wallNode1, wallNode2, this);

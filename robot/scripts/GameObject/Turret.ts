@@ -2,7 +2,6 @@ class Turret extends GameObject {
 
     public isReady: boolean = true;
 
-    public base: Sprite;
     public body: Sprite;
     public canon: Sprite;
     public top: Sprite;
@@ -16,13 +15,13 @@ class Turret extends GameObject {
     ) {
         super(main);
 
-        this.base = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
-        this.base.height = 1;
+        this.sprite = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
+        this.sprite.height = 1;
 
         this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
         this.body.height = 3;
         this.body.position.z = - 0.1;
-        this.body.parent = this.base;
+        this.body.parent = this.sprite;
 
         this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
         this.canon.height = 5;
@@ -43,7 +42,7 @@ class Turret extends GameObject {
     public dispose(): void {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-        this.base.dispose();
+        this.sprite.dispose();
         this.body.dispose();
         this.canon.dispose();
         this.top.dispose();
@@ -53,7 +52,7 @@ class Turret extends GameObject {
         this.isReady = true;
         this.setDarkness(1);
         if (!this.obstacle) {
-            this.obstacle = Obstacle.CreateRect(this.base.posX, this.base.posY, 2.6, 2.6, 0);
+            this.obstacle = Obstacle.CreateRect(this.sprite.posX, this.sprite.posY, 2.6, 2.6, 0);
             this.obstacle.shape.rotation2D = Math.PI / 4;
             NavGraphManager.AddObstacle(this.obstacle);
         }
@@ -76,8 +75,8 @@ class Turret extends GameObject {
 
         if (this.target) {
             let dirToTarget = new BABYLON.Vector2(
-                this.target.body.posX - this.base.posX,
-                this.target.body.posY - this.base.posY
+                this.target.body.posX - this.sprite.posX,
+                this.target.body.posY - this.sprite.posY
             );
             let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
             this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 *  Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
@@ -96,7 +95,7 @@ class Turret extends GameObject {
     }
 
     public setDarkness(d: number): void {
-        this.base.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+        this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);

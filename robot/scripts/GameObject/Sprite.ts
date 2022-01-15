@@ -31,6 +31,13 @@ class Sprite extends BABYLON.Mesh {
         this.position.y = y;
     }
 
+    public get rot(): number {
+        return this.rotation.z;
+    }
+    public set rot(r: number) {
+        this.rotation.z = r;
+    }
+
     constructor(
         name: string,
         url: string,

@@ -2,8 +2,6 @@
 
 class Prop extends GameObject {
 
-    public sprite: BABYLON.Mesh;
-
     constructor(
         public name: string,
         main: Main

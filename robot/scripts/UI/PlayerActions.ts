@@ -47,8 +47,8 @@ class PlayerAction {
     public _updateAddingTurret = () => {
         if (this._selectedTurret) {
             let world = this.main.getPointerWorldPos();
-            this._selectedTurret.base.posX = world.x;
-            this._selectedTurret.base.position.y = world.y;
+            this._selectedTurret.posX = world.x;
+            this._selectedTurret.posY = world.y;
         }
     }
 
@@ -61,7 +61,7 @@ class PlayerAction {
                 this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
                 this._currentActionButton.classList.remove("selected");
                 new LoadingPlane(
-                    newTurret.base.pos2D,
+                    newTurret.pos2D,
                     10,
                     () => {
                         newTurret.makeReady();
@@ -75,14 +75,14 @@ class PlayerAction {
     public _updateAddingWall = () => {
         if (this._selectedWallNode1 && !this._selectedWallNode2) {
             let world = this.main.getPointerWorldPos();
-            this._selectedWallNode1.sprite.posX = world.x;
-            this._selectedWallNode1.sprite.position.y = world.y;
+            this._selectedWallNode1.posX = world.x;
+            this._selectedWallNode1.posY = world.y;
         }
         else if (this._selectedWallNode1 && this._selectedWallNode2 && this._selectedWall) {
             let world = this.main.getPointerWorldPos();
-            if (this._selectedWallNode2.sprite.pos2D.x != world.x || this._selectedWallNode2.sprite.pos2D.y != world.y) {
-                this._selectedWallNode2.sprite.posX = world.x;
-                this._selectedWallNode2.sprite.position.y = world.y;
+            if (this._selectedWallNode2.pos2D.x != world.x || this._selectedWallNode2.pos2D.y != world.y) {
+                this._selectedWallNode2.posX = world.x;
+                this._selectedWallNode2.posY = world.y;
                 this._selectedWall.refreshMesh();
             }
         }
@@ -110,8 +110,8 @@ class PlayerAction {
                     this._selectedWallNode1 = existingWallNode;
                 }
                 else {
-                    this._selectedWallNode1.sprite.posX = world.x;
-                    this._selectedWallNode1.sprite.position.y = world.y;
+                    this._selectedWallNode1.posX = world.x;
+                    this._selectedWallNode1.posY = world.y;
                 }
                 
                 this._selectedWallNode2 = new WallNode(this.main);
@@ -127,7 +127,7 @@ class PlayerAction {
                     g => {
                         if (g instanceof WallNode) {
                             if (g != this._selectedWallNode1 && g != this._selectedWallNode2) {
-                                if (BABYLON.Vector2.DistanceSquared(world, g.sprite.pos2D) < 1.5 * 1.5) {
+                                if (BABYLON.Vector2.DistanceSquared(world, g.pos2D) < 1.5 * 1.5) {
                                     return true;
                                 }
                             }
@@ -141,8 +141,8 @@ class PlayerAction {
                     this._selectedWallNode2 = existingWallNode;
                 }
                 else {
-                    this._selectedWallNode2.sprite.posX = world.x;
-                    this._selectedWallNode2.sprite.position.y = world.y;
+                    this._selectedWallNode2.posX = world.x;
+                    this._selectedWallNode2.posY = world.y;
                 }
 
                 this._selectedWall.node2 = this._selectedWallNode2;
@@ -152,7 +152,7 @@ class PlayerAction {
                 let newNode2 = this._selectedWallNode2;
 
                 new LoadingPlane(
-                    newNode1.sprite.pos2D.add(newNode2.sprite.pos2D).scale(0.5),
+                    newNode1.pos2D.add(newNode2.pos2D).scale(0.5),
                     5,
                     () => {
                         newWall.makeReady();
