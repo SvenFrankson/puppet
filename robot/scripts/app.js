@@ -158,14 +158,19 @@ class Main {
         let wallNode1 = new WallNode(this);
         wallNode1.sprite.position.x = -4;
         wallNode1.sprite.position.y = 5;
+        wallNode1.makeReady();
         let wallNode2 = new WallNode(this);
         wallNode2.sprite.position.x = 7;
         wallNode2.sprite.position.y = 3;
+        wallNode2.makeReady();
         let wallNode3 = new WallNode(this);
         wallNode3.sprite.position.x = 6;
         wallNode3.sprite.position.y = -4;
+        wallNode3.makeReady();
         let wall1 = new Wall(wallNode1, wallNode2, this);
+        wall1.makeReady();
         let wall2 = new Wall(wallNode2, wallNode3, this);
+        wall2.makeReady();
     }
     disposeScene() {
         while (this.gameObjects.length > 0) {
@@ -348,9 +353,8 @@ class Turret extends GameObject {
         this.isReady = true;
         this.setDarkness(1);
         if (!this.obstacle) {
-            console.log("!");
-            this.obstacle = Obstacle.CreateHexagon(this.base.posX, this.base.posY, 2);
-            this.obstacle.shape.rotation2D = 0;
+            this.obstacle = Obstacle.CreateRect(this.base.posX, this.base.posY, 2.6, 2.6, 0);
+            this.obstacle.shape.rotation2D = Math.PI / 4;
             NavGraphManager.AddObstacle(this.obstacle);
         }
     }
@@ -580,7 +584,6 @@ class Walker extends GameObject {
 class WallNode extends GameObject {
     constructor(main) {
         super(main);
-        this.isReady = true;
         this.sprite = new Sprite("wall", "assets/wall_node_base.png", this.main.scene);
         this.sprite.position.z = 0;
         this.sprite.height = 1;
@@ -588,11 +591,22 @@ class WallNode extends GameObject {
         this.top.position.z = -0.2;
         this.top.parent = this.sprite;
         this.top.height = 5;
+        this.setDarkness(0.5);
     }
     dispose() {
         super.dispose();
         this.sprite.dispose();
         this.top.dispose();
+    }
+    makeReady() {
+        this.isReady = true;
+        this.setDarkness(1);
+        if (!this.obstacle) {
+            //this.obstacle = Obstacle.CreateHexagon(this.base.posX, this.base.posY, 2);
+            this.obstacle = Obstacle.CreateRect(this.sprite.posX, this.sprite.posY, 2, 2, 0);
+            this.obstacle.shape.rotation2D = Math.PI / 4;
+            NavGraphManager.AddObstacle(this.obstacle);
+        }
     }
     setDarkness(d) {
         this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
@@ -605,6 +619,16 @@ class Wall extends GameObject {
         this.node1 = node1;
         this.node2 = node2;
         this.refreshMesh();
+        this.setDarkness(0.5);
+    }
+    dispose() {
+        super.dispose();
+        this.sprite.dispose();
+    }
+    makeReady() {
+        this.isReady = true;
+        this.setDarkness(1);
+        this.refreshObstacle();
     }
     refreshMesh() {
         let n = this.node2.sprite.position.subtract(this.node1.sprite.position);
@@ -627,9 +651,16 @@ class Wall extends GameObject {
         this.sprite.position.y = this.node1.sprite.position.y;
         this.sprite.rotation.z = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), new BABYLON.Vector2(n.x, n.y));
     }
-    dispose() {
-        super.dispose();
-        this.sprite.dispose();
+    refreshObstacle() {
+        let c = this.node1.sprite.pos2D.add(this.node2.sprite.pos2D).scaleInPlace(0.5);
+        let n = this.node2.sprite.pos2D.subtract(this.node1.sprite.pos2D);
+        let l = n.length();
+        let a = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), n);
+        if (this.obstacle) {
+            NavGraphManager.RemoveObstacle(this.obstacle);
+        }
+        this.obstacle = Obstacle.CreateRect(c.x, c.y, l, 0.5, a);
+        NavGraphManager.AddObstacle(this.obstacle);
     }
     setDarkness(d) {
         this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
@@ -1931,8 +1962,7 @@ class PlayerAction {
                     this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
                     this._currentActionButton.classList.remove("selected");
                     new LoadingPlane(newTurret.base.pos2D, 10, () => {
-                        newTurret.isReady = true;
-                        newTurret.setDarkness(1);
+                        newTurret.makeReady();
                     }, this.main);
                 }
             }
@@ -2003,11 +2033,9 @@ class PlayerAction {
                     let newNode1 = this._selectedWallNode1;
                     let newNode2 = this._selectedWallNode2;
                     new LoadingPlane(newNode1.sprite.pos2D.add(newNode2.sprite.pos2D).scale(0.5), 5, () => {
-                        newWall.setDarkness(1);
-                        newNode1.isReady = true;
-                        newNode1.setDarkness(1);
-                        newNode2.isReady = true;
-                        newNode2.setDarkness(1);
+                        newWall.makeReady();
+                        newNode1.makeReady();
+                        newNode2.makeReady();
                     }, this.main);
                     this._selectedWallNode1 = undefined;
                     this._selectedWallNode2 = undefined;

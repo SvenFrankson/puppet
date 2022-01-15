@@ -53,9 +53,8 @@ class Turret extends GameObject {
         this.isReady = true;
         this.setDarkness(1);
         if (!this.obstacle) {
-            console.log("!");
-            this.obstacle = Obstacle.CreateHexagon(this.base.posX, this.base.posY, 2);
-            this.obstacle.shape.rotation2D = 0;
+            this.obstacle = Obstacle.CreateRect(this.base.posX, this.base.posY, 2.6, 2.6, 0);
+            this.obstacle.shape.rotation2D = Math.PI / 4;
             NavGraphManager.AddObstacle(this.obstacle);
         }
     }

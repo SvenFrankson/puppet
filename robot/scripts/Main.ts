@@ -131,17 +131,22 @@ class Main {
 		let wallNode1 = new WallNode(this);
 		wallNode1.sprite.position.x = - 4;
 		wallNode1.sprite.position.y = 5;
+		wallNode1.makeReady();
 		
 		let wallNode2 = new WallNode(this);
 		wallNode2.sprite.position.x = 7;
 		wallNode2.sprite.position.y = 3;
+		wallNode2.makeReady();
 		
 		let wallNode3 = new WallNode(this);
 		wallNode3.sprite.position.x = 6;
 		wallNode3.sprite.position.y = -4;
+		wallNode3.makeReady();
 
 		let wall1 = new Wall(wallNode1, wallNode2, this);
+		wall1.makeReady();
 		let wall2 = new Wall(wallNode2, wallNode3, this);
+		wall2.makeReady();
 	}
 
 	public disposeScene(): void {

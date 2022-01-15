@@ -64,8 +64,7 @@ class PlayerAction {
                     newTurret.base.pos2D,
                     10,
                     () => {
-                        newTurret.isReady = true;
-                        newTurret.setDarkness(1);
+                        newTurret.makeReady();
                     },
                     this.main
                 );
@@ -156,11 +155,9 @@ class PlayerAction {
                     newNode1.sprite.pos2D.add(newNode2.sprite.pos2D).scale(0.5),
                     5,
                     () => {
-                        newWall.setDarkness(1);
-                        newNode1.isReady = true;
-                        newNode1.setDarkness(1);
-                        newNode2.isReady = true;
-                        newNode2.setDarkness(1);
+                        newWall.makeReady();
+                        newNode1.makeReady();
+                        newNode2.makeReady();
                     },
                     this.main
                 );
