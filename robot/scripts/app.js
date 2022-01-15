@@ -128,14 +128,16 @@ class Main {
         let uvs = [];
         positions.push(-100, -100, 0, -100, 100, 0, 100, 100, 0, 100, -100, 0);
         indices.push(0, 2, 1, 0, 3, 2);
-        uvs.push(0, 0, 0, 15, 15, 15, 15, 0);
+        uvs.push(0, 0, 0, 7, 7, 7, 7, 0);
         data.positions = positions;
         data.indices = indices;
         data.uvs = uvs;
         data.applyToMesh(ground);
         ground.position.z = 2;
         let groundMaterial = new BABYLON.StandardMaterial("ground-material", this.scene);
-        groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground.png", this.scene);
+        groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground_2.png", this.scene);
+        groundMaterial.diffuseColor.copyFromFloats(0.83, 0.33, 0.1);
+        groundMaterial.diffuseColor = groundMaterial.diffuseColor.scale(1.4);
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
         ground.material = groundMaterial;
     }
