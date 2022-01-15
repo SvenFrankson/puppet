@@ -30,6 +30,7 @@ class NavGraphConsole {
                 return "SHOW";
             },
             () => {
+                console.log(this._navGraph.obstacles.length);
                 for (let i = 0; i < this._navGraph.obstacles.length; i++) {
                     let o = this._navGraph.obstacles[i];
                     if (o.isDisplayed()) {
@@ -59,8 +60,7 @@ class NavGraphConsole {
                 }
             }
         );
-        document.getElementById("space-panel-top-right-container").appendChild(this._panel);
-        this._panel.hide();
+        document.getElementById("navgraph-console-panel").appendChild(this._panel);
     }
 
     public disable() {

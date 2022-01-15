@@ -19,6 +19,7 @@ class Obstacle {
         return this._rotation2D;
     }
     public set rotation2D(v: number) {
+        console.log("?");
         this._rotation2D = v;
     }
     public shape: Shape;
@@ -103,13 +104,13 @@ class Obstacle {
         let colors: BABYLON.Color4[] = [];
         for (let i = 0; i < path.length; i++) {
             let p = path[i];
-            points.push(new BABYLON.Vector3(p.x, 0.2, p.y));
+            points.push(new BABYLON.Vector3(p.x, p.y, - 2));
             colors.push(new BABYLON.Color4(1, 0, 0, 1));
         }
+        console.log(path);
         points.push(points[0]);
         colors.push(new BABYLON.Color4(1, 0, 0, 1));
         this._devLineMesh = BABYLON.MeshBuilder.CreateLines("shape", { points: points, colors: colors }, scene);
-        this._devLineMesh.renderingGroupId = 1;
     }
     public hide(): void {
         if (this._devLineMesh) {

@@ -29,15 +29,6 @@ input[type=number]::-webkit-outer-spin-button {
     margin: 0; 
 }
 
-#space-panel-top-right-container {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    width: 350px;
-    margin: 0px;
-    padding: 0px;
-}
-
 space-panel {
     position: relative;
     display: block;

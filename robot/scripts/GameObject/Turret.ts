@@ -9,6 +9,8 @@ class Turret extends GameObject {
 
     public target: Walker;
 
+    public obstacle: Obstacle;
+
     constructor(
         main: Main
     ) {
@@ -32,6 +34,8 @@ class Turret extends GameObject {
         this.top.height = 5;
         this.top.position.z = - 0.2;
         this.top.parent = this.body;
+
+        this.setDarkness(0.5);
 		
         this.main.scene.onBeforeRenderObservable.add(this._update);
     }
@@ -43,6 +47,17 @@ class Turret extends GameObject {
         this.body.dispose();
         this.canon.dispose();
         this.top.dispose();
+    }
+
+    public makeReady(): void {
+        this.isReady = true;
+        this.setDarkness(1);
+        if (!this.obstacle) {
+            console.log("!");
+            this.obstacle = Obstacle.CreateHexagon(this.base.posX, this.base.posY, 2);
+            this.obstacle.shape.rotation2D = 0;
+            NavGraphManager.AddObstacle(this.obstacle);
+        }
     }
 
     private _t: number = 0;

@@ -170,6 +170,10 @@ class Menu {
 
         debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
 
+
+        let navGraphConsole = new NavGraphConsole(this.main.scene);
+        navGraphConsole.enable();
+
         this.showMainMenu();
     }
 

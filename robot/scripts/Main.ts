@@ -62,6 +62,8 @@ class Main {
 
 		this.playerAction = new PlayerAction(this);
 
+		let navgraphManager = new NavGraphManager(this);
+
 		let menu = new Menu(this);
 		menu.initializeMenu();
 		this.generateScene();
@@ -116,6 +118,7 @@ class Main {
 		let turret = new Turret(this);
 		turret.base.position.x = - 5;
 		turret.target = walker;
+		turret.makeReady();
 
 		for (let i = 0; i < 40; i++) {
 			let n = Math.floor(2 * Math.random()) + 1;

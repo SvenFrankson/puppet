@@ -81,6 +81,16 @@ body {
   z-index: 1;
 }
 
+
+#navgraph-console-panel {
+  display: block;
+  position: fixed;
+  top: 50%;
+  left: 0.1%;
+  width: 350px;
+  z-index: 1;
+}
+
 .debug-panel {
   display: block;
   position: fixed;

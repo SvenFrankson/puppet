@@ -117,6 +117,7 @@ class Main {
             this.resize();
         };
         this.playerAction = new PlayerAction(this);
+        let navgraphManager = new NavGraphManager(this);
         let menu = new Menu(this);
         menu.initializeMenu();
         this.generateScene();
@@ -146,6 +147,7 @@ class Main {
         let turret = new Turret(this);
         turret.base.position.x = -5;
         turret.target = walker;
+        turret.makeReady();
         for (let i = 0; i < 40; i++) {
             let n = Math.floor(2 * Math.random()) + 1;
             let rock = new Prop("rock_" + n.toFixed(0), this);
@@ -331,6 +333,7 @@ class Turret extends GameObject {
         this.top.height = 5;
         this.top.position.z = -0.2;
         this.top.parent = this.body;
+        this.setDarkness(0.5);
         this.main.scene.onBeforeRenderObservable.add(this._update);
     }
     dispose() {
@@ -340,6 +343,16 @@ class Turret extends GameObject {
         this.body.dispose();
         this.canon.dispose();
         this.top.dispose();
+    }
+    makeReady() {
+        this.isReady = true;
+        this.setDarkness(1);
+        if (!this.obstacle) {
+            console.log("!");
+            this.obstacle = Obstacle.CreateHexagon(this.base.posX, this.base.posY, 2);
+            this.obstacle.shape.rotation2D = 0;
+            NavGraphManager.AddObstacle(this.obstacle);
+        }
     }
     setDarkness(d) {
         this.base.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
@@ -917,6 +930,7 @@ class NavGraphConsole {
             }
             return "SHOW";
         }, () => {
+            console.log(this._navGraph.obstacles.length);
             for (let i = 0; i < this._navGraph.obstacles.length; i++) {
                 let o = this._navGraph.obstacles[i];
                 if (o.isDisplayed()) {
@@ -941,8 +955,7 @@ class NavGraphConsole {
                 this._navGraph.displayPath(this.scene);
             }
         });
-        document.getElementById("space-panel-top-right-container").appendChild(this._panel);
-        this._panel.hide();
+        document.getElementById("navgraph-console-panel").appendChild(this._panel);
     }
     disable() {
         this._panel.dispose();
@@ -1115,6 +1128,7 @@ class Obstacle {
         return this._rotation2D;
     }
     set rotation2D(v) {
+        console.log("?");
         this._rotation2D = v;
     }
     static CreateRectWithPosRotSource(posRotSource, w = 1, h = 1) {
@@ -1183,13 +1197,13 @@ class Obstacle {
         let colors = [];
         for (let i = 0; i < path.length; i++) {
             let p = path[i];
-            points.push(new BABYLON.Vector3(p.x, 0.2, p.y));
+            points.push(new BABYLON.Vector3(p.x, p.y, -2));
             colors.push(new BABYLON.Color4(1, 0, 0, 1));
         }
+        console.log(path);
         points.push(points[0]);
         colors.push(new BABYLON.Color4(1, 0, 0, 1));
         this._devLineMesh = BABYLON.MeshBuilder.CreateLines("shape", { points: points, colors: colors }, scene);
-        this._devLineMesh.renderingGroupId = 1;
     }
     hide() {
         if (this._devLineMesh) {
@@ -1573,6 +1587,8 @@ class Menu {
             this.showIngameMenu();
         };
         debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
+        let navGraphConsole = new NavGraphConsole(this.main.scene);
+        navGraphConsole.enable();
         this.showMainMenu();
     }
     showMainMenu() {
@@ -1684,22 +1700,6 @@ class SpacePanel extends HTMLElement {
             this._line.dispose();
         }
         document.body.removeChild(this);
-    }
-    show() {
-        this._toggleVisibilityInput.textContent = "^";
-        this._isVisible = true;
-        console.log("SHOW");
-        this._htmlLines.forEach((l) => {
-            l.style.display = "block";
-        });
-    }
-    hide() {
-        this._toggleVisibilityInput.textContent = "v";
-        this._isVisible = false;
-        console.log("HIDE");
-        this._htmlLines.forEach((l) => {
-            l.style.display = "none";
-        });
     }
     setTarget(mesh) {
         this.style.position = "fixed";

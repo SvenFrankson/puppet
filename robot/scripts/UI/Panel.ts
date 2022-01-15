@@ -56,6 +56,7 @@ class SpacePanel extends HTMLElement {
         document.body.removeChild(this);
     }
 
+    /*
     public show(): void {
         this._toggleVisibilityInput.textContent = "^";
         this._isVisible = true;
@@ -77,6 +78,7 @@ class SpacePanel extends HTMLElement {
             }
         )
     }
+    */
 
     private _line: BABYLON.LinesMesh;
     private _target: BABYLON.Mesh & IMeshWithGroundWidth;
