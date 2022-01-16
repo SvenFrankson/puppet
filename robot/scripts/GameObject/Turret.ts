@@ -75,8 +75,8 @@ class Turret extends GameObject {
 
         if (this.target) {
             let dirToTarget = new BABYLON.Vector2(
-                this.target.body.posX - this.sprite.posX,
-                this.target.body.posY - this.sprite.posY
+                this.target.sprite.posX - this.sprite.posX,
+                this.target.sprite.posY - this.sprite.posY
             );
             let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
             this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 *  Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);

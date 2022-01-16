@@ -135,6 +135,17 @@ class Math2D {
         return angle;
     }
 
+    public static AngularDistance(from: number, to: number): number {
+        let d = to - from;
+        while (d <= - Math.PI) {
+            d += 2 * Math.PI;
+        }
+        while (d > Math.PI) {
+            d -= 2 * Math.PI;
+        }
+        return d;
+    }
+
     public static Rotate(vector: BABYLON.Vector2, alpha: number): BABYLON.Vector2 {
         let v = vector.clone();
         Math2D.RotateInPlace(v, alpha);

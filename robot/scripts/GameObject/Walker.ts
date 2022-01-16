@@ -1,5 +1,13 @@
 class WalkerTarget extends BABYLON.Mesh {
 
+    private _pos2D: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+    public get pos2D(): BABYLON.Vector2 {
+        this._pos2D.x = this.position.x;
+        this._pos2D.y = this.position.y;
+
+        return this._pos2D;
+    }
+
     public targets: BABYLON.Mesh[] = [];
 
     constructor(
@@ -25,7 +33,6 @@ class Walker extends GameObject {
 
     public legCount: number = 2;
 
-    public body: Sprite;
     public arms: Sprite[] = [];
     public feet: Sprite[] = [];
 
@@ -34,6 +41,8 @@ class Walker extends GameObject {
     private get _inputDir(): number {
         return this._inputDirs.getLast();
     }
+
+    public currentPath: BABYLON.Vector2[];
 
     constructor(
         main: Main
@@ -47,7 +56,7 @@ class Walker extends GameObject {
 		robotBody.position.x = 5;
 		robotBody.position.y = 5;
         
-        this.body = robotBody;
+        this.sprite = robotBody;
 		
 		let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.main.scene);
         robotArm_L.height = 3;
@@ -130,7 +139,7 @@ class Walker extends GameObject {
     public dispose(): void {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-        this.body.dispose();
+        this.sprite.dispose();
         this.arms.forEach(a => {
             a.dispose();
         })
@@ -214,14 +223,14 @@ class Walker extends GameObject {
             this.target.rotation.z -= 2 * Math.PI;
         }
 
-        this.body.position.copyFrom(this.feet[0].position);
+        this.sprite.position.copyFrom(this.feet[0].position);
         for (let i = 1; i < this.legCount; i++) {
-            this.body.position.addInPlace(this.feet[i].position);
+            this.sprite.position.addInPlace(this.feet[i].position);
         }
-        this.body.position.scaleInPlace(1 / this.legCount);
-        this.body.position.x += Math.cos(1 * this._bodyT * Math.PI) * 0.1;
-        this.body.position.y += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
-        this.body.position.z = 0;
+        this.sprite.position.scaleInPlace(1 / this.legCount);
+        this.sprite.position.x += Math.cos(1 * this._bodyT * Math.PI) * 0.1;
+        this.sprite.position.y += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
+        this.sprite.position.z = 0;
 
         this.arms[0].rotation.z = Math.cos(1 * this._armT * Math.PI) * 0.15 - 0.3;
         this.arms[1].rotation.z = Math.cos(1.1 * this._armT * Math.PI) * 0.15 + 0.3;
@@ -233,7 +242,7 @@ class Walker extends GameObject {
         rightDir.normalize();
 
         let a = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), rightDir);
-        this.body.rotation.z = Math2D.LerpFromToCircular(a, this.target.rotation.z, 0.5);
+        this.sprite.rotation.z = Math2D.LerpFromToCircular(a, this.target.rotation.z, 0.5);
 
         if (this._movingLegCount <= 0) {
             let index = - 1;
@@ -251,6 +260,59 @@ class Walker extends GameObject {
                 this._movingLegCount++;
                 this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.z); 
             }
+        }
+        this.updatePath();
+    }
+
+    public nextDebugMesh: BABYLON.Mesh;
+
+    public updatePath(): void {
+        this.moveOnPath();
+        if (!this.currentPath || this.currentPath.length === 0) {
+            let rand = new BABYLON.Vector2(-30 + 60 * Math.random(), - 30 + 60 * Math.random());
+            let navGraph = NavGraphManager.GetForRadius(1);
+            navGraph.update();
+            this.currentPath = navGraph.computePathFromTo(this.pos2D, rand);
+        }
+    }
+
+    public moveOnPath(): void {
+        if (this.currentPath && this.currentPath.length > 0) {
+            let next = this.currentPath[0];
+            if (!this.nextDebugMesh) {
+                this.nextDebugMesh = BABYLON.MeshBuilder.CreateBox("next-debug-mesh", { size: 0.5 });
+            }
+            this.nextDebugMesh.position.x = next.x;
+            this.nextDebugMesh.position.y = next.y;
+            let distanceToNext = Math2D.Distance(this.target.pos2D, next);
+            if (distanceToNext <= 0.1) {
+                this.currentPath.splice(0, 1);
+                return this.moveOnPath();
+            }
+            let stepToNext = next.subtract(this.target.pos2D).normalize();
+            
+            let targetRot = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
+            let dRot = Math2D.AngularDistance(this.target.rotation.z, targetRot);
+            
+            this._inputDirs.remove(3);
+            this._inputDirs.remove(1);
+            if (Math.abs(dRot) < Math.PI / 4) {
+                this._inputDirs.push(3);
+            }
+            else if (Math.abs(dRot) > 3 * Math.PI / 4) {
+                this._inputDirs.push(1);
+            }
+            this._inputDirs.remove(4);
+            this._inputDirs.remove(5);
+            if (dRot < 0) {
+                this._inputDirs.push(5);
+            }
+            if (dRot > 0) {
+                this._inputDirs.push(4);
+            }
+
+            document.getElementById("distance-to-next").innerText = distanceToNext.toFixed(1) + (Math.random() > 0.5 ? " ." : "");
+            document.getElementById("target-rot").innerText = (this.target.rotation.z / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
         }
     }
 }

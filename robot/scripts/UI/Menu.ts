@@ -169,6 +169,8 @@ class Menu {
         }
 
         debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
+        debugPanel.addTitle3("distance to next").id = "distance-to-next";
+        debugPanel.addTitle3("target rot").id = "target-rot";
 
 
         let navGraphConsole = new NavGraphConsole(this.main.scene);
