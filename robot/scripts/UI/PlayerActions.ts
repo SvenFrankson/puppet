@@ -62,7 +62,7 @@ class PlayerAction {
                 this._currentActionButton.classList.remove("selected");
                 new LoadingPlane(
                     newTurret.pos2D,
-                    10,
+                    3,
                     () => {
                         newTurret.makeReady();
                     },
@@ -153,7 +153,7 @@ class PlayerAction {
 
                 new LoadingPlane(
                     newNode1.pos2D.add(newNode2.pos2D).scale(0.5),
-                    5,
+                    3,
                     () => {
                         newWall.makeReady();
                         newNode1.makeReady();
