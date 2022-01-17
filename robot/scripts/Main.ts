@@ -52,11 +52,9 @@ class Main {
 		this.cameraManager = new CameraManager(this);
 		this.cameraManager.initialize();
 
-		let light = new BABYLON.PointLight("light", new BABYLON.Vector3(20, 20, - 20), this.scene);
+		let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, - 1), this.scene);
 
 		this.resize();
-
-		new BABYLON.DirectionalLight("light", BABYLON.Vector3.Forward(), this.scene);
 
 		window.onresize = () => {
 			this.resize();

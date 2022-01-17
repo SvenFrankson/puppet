@@ -23,10 +23,10 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num triangles      :  40
 	processing begun of mesh:  base-details
 		WARNING: No materials have been assigned: 
-		num positions      :  355
-		num normals        :  355
+		num positions      :  350
+		num normals        :  350
 		num tangents       :  0
-		num uvs            :  710
+		num uvs            :  700
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  144
@@ -64,4 +64,4 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  comm-module
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.1077 secs
+elapsed time:  0 min, 0.0399 secs
