@@ -80,10 +80,10 @@ class Main {
         let uvs: number[] = [];
 
         positions.push(
-            - 100, - 100, 0,
-            - 100, 100, 0,
-            100, 100, 0,
-            100, - 100, 0
+            - 100, 0, - 100,
+            - 100, 0, 100,
+            100, 0, 100,
+            100, 0, - 100
         );
 
         indices.push(
@@ -126,7 +126,6 @@ class Main {
 					mesh.parent = root;
 					console.log(mesh.name);
 				}
-				root.rotation.x = - Math.PI / 2;
 			}
 		)
 	}

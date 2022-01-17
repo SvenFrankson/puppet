@@ -1,6 +1,6 @@
 class CutPlane {
 
-    public static CreateVerticalVertexData(w: number, h: number, from: number, to: number): BABYLON.VertexData {
+    public static CreateVerticalVertexData(w: number, h: number, from: number = 0, to: number = 1): BABYLON.VertexData {
         let data = new BABYLON.VertexData();
         
         let positions: number[] = [];

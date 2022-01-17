@@ -9,6 +9,7 @@ class CameraManager {
             if (!this.moveWhenPointerOnSide) {
                 return;
             }
+            this.camera.target.y = 0;
             let dt = this.main.engine.getDeltaTime() / 1000;
             let pointerX = this.main.scene.pointerX;
             let pointerY = this.main.scene.pointerY;
@@ -44,25 +45,24 @@ class CameraManager {
         };
     }
     initialize() {
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, -15), this.main.scene);
+        //this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 15), this.main.scene);
+        this.camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 8, 30, BABYLON.Vector3.Zero(), this.main.scene);
         this.camera.attachControl(this.main.canvas);
-        /*
-        this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-
         this.main.scene.onBeforeRenderObservable.add(this._update);
-
         this.main.canvas.onpointerleave = () => {
             this.moveWhenPointerOnSide = false;
-        }
+        };
         this.main.canvas.onpointerenter = () => {
             this.moveWhenPointerOnSide = true;
-        }
-        */
+        };
     }
     resize() {
+        /*
         let w = this.main.canvas.clientWidth;
         let h = this.main.canvas.clientHeight;
+
         let r = w / h;
+
         if (r > 1) {
             this.camera.orthoLeft = this.center.x - 10 * r;
             this.camera.orthoRight = this.center.x + 10 * r;
@@ -75,10 +75,11 @@ class CameraManager {
             this.camera.orthoTop = this.center.y + 10 / r;
             this.camera.orthoBottom = this.center.y - 10 / r;
         }
+        */
     }
     moveCenter(dX, dY) {
-        this.center.x += dX;
-        this.center.y += dY;
+        this.camera.target.x += dX;
+        this.camera.target.z += dY;
         this.resize();
     }
 }
@@ -133,7 +134,7 @@ class Main {
         let positions = [];
         let indices = [];
         let uvs = [];
-        positions.push(-100, -100, 0, -100, 100, 0, 100, 100, 0, 100, -100, 0);
+        positions.push(-100, 0, -100, -100, 0, 100, 100, 0, 100, 100, 0, -100);
         indices.push(0, 2, 1, 0, 3, 2);
         uvs.push(0, 0, 0, 7, 7, 7, 7, 0);
         data.positions = positions;
@@ -154,7 +155,6 @@ class Main {
                 mesh.parent = root;
                 console.log(mesh.name);
             }
-            root.rotation.x = -Math.PI / 2;
         });
     }
     generateScene() {
@@ -263,12 +263,12 @@ class Sprite extends BABYLON.Mesh {
         this._pos2D = BABYLON.Vector2.Zero();
         this._update = () => {
             this.shadowMesh.position.x = this.absolutePosition.x + 0.5 * this.height / 5;
-            this.shadowMesh.position.y = this.absolutePosition.y - 0.3 * this.height / 5;
-            this.shadowMesh.position.z = 1.1;
-            this.shadowMesh.rotation.z = this.rotation.z;
+            this.shadowMesh.position.z = this.absolutePosition.z - 0.3 * this.height / 5;
+            this.shadowMesh.position.y = Sprite.SHADOW_Y;
+            this.shadowMesh.rotation.y = this.rotation.y;
             let parent = this.parent;
             while (parent && parent instanceof BABYLON.Mesh) {
-                this.shadowMesh.rotation.z += parent.rotation.z;
+                this.shadowMesh.rotation.y += parent.rotation.y;
                 parent = parent.parent;
             }
         };
@@ -299,7 +299,7 @@ class Sprite extends BABYLON.Mesh {
     }
     get pos2D() {
         this._pos2D.x = this.position.x;
-        this._pos2D.y = this.position.y;
+        this._pos2D.y = this.position.z;
         return this._pos2D;
     }
     get posX() {
@@ -309,28 +309,33 @@ class Sprite extends BABYLON.Mesh {
         this.position.x = x;
     }
     get posY() {
-        return this.position.y;
+        return this.position.z;
     }
     set posY(y) {
-        this.position.y = y;
+        this.position.z = y;
     }
     get rot() {
-        return this.rotation.z;
+        return this.rotation.y;
     }
     set rot(r) {
-        this.rotation.z = r;
+        this.rotation.y = r;
     }
     refreshMesh(length) {
         let size = this.spriteMaterial.diffuseTexture.getBaseSize();
         let quadData;
         if (isFinite(length)) {
-            quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
+            quadData = SpriteUtils.CreatePlaneData(length, size.height / 100, new BABYLON.Vector4(0, 0, length / (size.width / 100), 1));
         }
         else {
             quadData = BABYLON.VertexData.CreatePlane({ width: size.width / 100, height: size.height / 100 });
+            quadData = SpriteUtils.CreatePlaneData(size.width / 100, size.height / 100);
         }
         quadData.applyToMesh(this);
+        if (this.position.y === 0) {
+            this.position.y = Sprite.QUAD_Y;
+        }
         quadData.applyToMesh(this.shadowMesh);
+        this.shadowMesh.position.y = Sprite.SHADOW_Y;
     }
     dispose(doNotRecurse, disposeMaterialAndTextures) {
         super.dispose(doNotRecurse, disposeMaterialAndTextures);
@@ -338,6 +343,9 @@ class Sprite extends BABYLON.Mesh {
         this.getScene().onBeforeRenderObservable.removeCallback(this._update);
     }
 }
+Sprite.SHADOW_Y = 0.1;
+Sprite.QUAD_Y = 0.2;
+Sprite.LEVEL_STEP = 0.1;
 class Turret extends GameObject {
     constructor(main) {
         super(main);
@@ -357,8 +365,8 @@ class Turret extends GameObject {
             if (this.target) {
                 let dirToTarget = new BABYLON.Vector2(this.target.sprite.posX - this.sprite.posX, this.target.sprite.posY - this.sprite.posY);
                 let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
-                this.body.rotation.z = Math2D.StepFromToCirular(this.body.rotation.z, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
-                let aligned = Math2D.AreEqualsCircular(this.body.rotation.z, targetA, Math.PI / 180);
+                this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
+                let aligned = Math2D.AreEqualsCircular(this.body.rotation.y, targetA, Math.PI / 180);
                 if (aligned) {
                     this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
                     this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
@@ -375,16 +383,16 @@ class Turret extends GameObject {
         this.sprite.height = 1;
         this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
         this.body.height = 3;
-        this.body.position.z = -0.1;
+        this.body.position.y = Sprite.LEVEL_STEP;
         this.body.parent = this.sprite;
         this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
         this.canon.height = 5;
         this.canon.posY = 0.6;
-        this.canon.position.z = -0.1;
+        this.canon.position.y = 2 * Sprite.LEVEL_STEP;
         this.canon.parent = this.body;
         this.top = new Sprite("turret-top", "assets/turret_top.png", this.main.scene);
         this.top.height = 5;
-        this.top.position.z = -0.2;
+        this.top.position.y = 3 * Sprite.LEVEL_STEP;
         this.top.parent = this.body;
         this.setDarkness(0.5);
         this.main.scene.onBeforeRenderObservable.add(this._update);
@@ -426,14 +434,14 @@ class WalkerTarget extends BABYLON.Mesh {
         for (let i = 0; i < walker.legCount; i++) {
             let target = new BABYLON.Mesh("target-" + i);
             target.position.x = positions[i].x;
-            target.position.y = positions[i].y;
+            target.position.z = positions[i].y;
             target.parent = this;
             this.targets[i] = target;
         }
     }
     get pos2D() {
         this._pos2D.x = this.position.x;
-        this._pos2D.y = this.position.y;
+        this._pos2D.y = this.position.z;
         return this._pos2D;
     }
 }
@@ -489,14 +497,14 @@ class Walker extends GameObject {
             if (this._inputDirs.contains(5)) {
                 rotateSpeed = -0.4;
             }
-            this.target.position.addInPlace(this.target.up.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
+            this.target.position.addInPlace(this.target.forward.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
             this.target.position.addInPlace(this.target.right.scale(sideSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
-            this.target.rotation.z += rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
-            while (this.target.rotation.z < 0) {
-                this.target.rotation.z += 2 * Math.PI;
+            this.target.rotation.y -= rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+            while (this.target.rotation.y < 0) {
+                this.target.rotation.y += 2 * Math.PI;
             }
-            while (this.target.rotation.z >= 2 * Math.PI) {
-                this.target.rotation.z -= 2 * Math.PI;
+            while (this.target.rotation.y >= 2 * Math.PI) {
+                this.target.rotation.y -= 2 * Math.PI;
             }
             this.sprite.position.copyFrom(this.feet[0].position);
             for (let i = 1; i < this.legCount; i++) {
@@ -504,14 +512,14 @@ class Walker extends GameObject {
             }
             this.sprite.position.scaleInPlace(1 / this.legCount);
             this.sprite.position.x += Math.cos(1 * this._bodyT * Math.PI) * 0.1;
-            this.sprite.position.y += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
-            this.sprite.position.z = 0;
-            this.arms[0].rotation.z = Math.cos(1 * this._armT * Math.PI) * 0.15 - 0.3;
-            this.arms[1].rotation.z = Math.cos(1.1 * this._armT * Math.PI) * 0.15 + 0.3;
-            let rightDir = new BABYLON.Vector2(this.feet[1].absolutePosition.x - this.feet[0].absolutePosition.x, this.feet[1].absolutePosition.y - this.feet[0].absolutePosition.y);
+            this.sprite.position.z += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
+            this.sprite.position.y = Sprite.QUAD_Y + Sprite.LEVEL_STEP;
+            this.arms[0].rotation.y = Math.cos(1 * this._armT * Math.PI) * 0.15 - 0.3;
+            this.arms[1].rotation.y = Math.cos(1.1 * this._armT * Math.PI) * 0.15 + 0.3;
+            let rightDir = new BABYLON.Vector2(this.feet[1].absolutePosition.x - this.feet[0].absolutePosition.x, this.feet[1].absolutePosition.z - this.feet[0].absolutePosition.z);
             rightDir.normalize();
             let a = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), rightDir);
-            this.sprite.rotation.z = Math2D.LerpFromToCircular(a, this.target.rotation.z, 0.5);
+            this.sprite.rotation.y = Math2D.LerpFromToCircular(-a, this.target.rotation.y, 0.5);
             if (this._movingLegCount <= 0) {
                 let index = -1;
                 let dist = 0;
@@ -526,7 +534,7 @@ class Walker extends GameObject {
                 }
                 if (dist > 0.1) {
                     this._movingLegCount++;
-                    this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.z);
+                    this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y);
                 }
             }
             this.updatePath();
@@ -535,34 +543,35 @@ class Walker extends GameObject {
         let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.main.scene);
         robotBody.height = 2;
         robotBody.position.x = 5;
-        robotBody.position.y = 5;
+        robotBody.position.z = 5;
+        robotBody.position.y = Sprite.QUAD_Y + Sprite.LEVEL_STEP;
         this.sprite = robotBody;
         let robotArm_L = new Sprite("robot-arm_L", "assets/robot_arm_L.png", this.main.scene);
         robotArm_L.height = 3;
         robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, -0.43, 0)));
         robotArm_L.position.x = -1.1;
-        robotArm_L.position.y = 0.7;
-        robotArm_L.position.z = -0.1;
+        robotArm_L.position.z = 0.7;
+        robotArm_L.position.y = Sprite.LEVEL_STEP;
         robotArm_L.parent = robotBody;
         let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.main.scene);
         robotArm_R.height = 3;
         robotArm_R.setPivotPoint((new BABYLON.Vector3(-0.48, -0.43, 0)));
         robotArm_R.position.x = 1.1;
-        robotArm_R.position.y = 0.7;
-        robotArm_R.position.z = -0.1;
+        robotArm_R.position.z = 0.7;
+        robotArm_R.position.y = Sprite.LEVEL_STEP;
         robotArm_R.parent = robotBody;
         let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.main.scene);
         robotFoot_L.height = 1;
         robotFoot_L.position.x = -1.1;
-        robotFoot_L.position.y = 0;
-        robotFoot_L.position.z = 0.1;
-        robotFoot_L.rotation.z = 0.3;
+        robotFoot_L.position.z = 0;
+        robotFoot_L.position.y = Sprite.QUAD_Y;
+        robotFoot_L.rotation.y = 0.3;
         let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.main.scene);
         robotFoot_R.height = 1;
         robotFoot_R.position.x = 1.1;
-        robotFoot_R.position.y = 0;
-        robotFoot_R.position.z = 0.1;
-        robotFoot_R.rotation.z = -0.3;
+        robotFoot_R.position.z = 0;
+        robotFoot_L.position.y = Sprite.QUAD_Y;
+        robotFoot_R.rotation.y = -0.3;
         this.feet = [robotFoot_L, robotFoot_R];
         this.arms = [robotArm_L, robotArm_R];
         this.main.scene.onBeforeRenderObservable.add(this._update);
@@ -625,7 +634,7 @@ class Walker extends GameObject {
         return new Promise(resolve => {
             this._movingLegs.push(legIndex);
             let origin = this.feet[legIndex].position.clone();
-            let originR = this.feet[legIndex].rotation.z;
+            let originR = this.feet[legIndex].rotation.y;
             let l = target.subtract(origin).length();
             let duration = Math.floor(l / 3);
             duration *= 0.5;
@@ -638,8 +647,9 @@ class Walker extends GameObject {
                 d = Math.min(d, 1);
                 this.feet[legIndex].position.copyFrom(origin.scale(1 - d).add(target.scale(d)));
                 this.feet[legIndex].height = 1 + 3 * Math.sin(Math.PI * d);
-                this.feet[legIndex].position.z = 0.1;
-                this.feet[legIndex].rotation.z = Math2D.LerpFromToCircular(originR, targetR, d);
+                this.feet[legIndex].position.y = Sprite.QUAD_Y;
+                ;
+                this.feet[legIndex].rotation.y = Math2D.LerpFromToCircular(originR, targetR, d);
                 if (d < 1) {
                     requestAnimationFrame(step);
                 }
@@ -668,15 +678,15 @@ class Walker extends GameObject {
                 this.nextDebugMesh = BABYLON.MeshBuilder.CreateBox("next-debug-mesh", { size: 0.5 });
             }
             this.nextDebugMesh.position.x = next.x;
-            this.nextDebugMesh.position.y = next.y;
+            this.nextDebugMesh.position.z = next.y;
             let distanceToNext = Math2D.Distance(this.target.pos2D, next);
             if (distanceToNext <= 1) {
                 this.currentPath.splice(0, 1);
                 return this.moveOnPath();
             }
             let stepToNext = next.subtract(this.target.pos2D).normalize();
-            let targetRot = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
-            let dRot = Math2D.AngularDistance(this.target.rotation.z, targetRot);
+            let targetRot = -Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
+            let dRot = -Math2D.AngularDistance(this.target.rotation.y, targetRot);
             let dRotFactor = Math.abs(dRot) / (Math.PI * 0.5);
             dRotFactor = Math.min(Math.max(1 - dRotFactor, 0), 1);
             this._inputForwardAxis = dRotFactor;
@@ -689,7 +699,7 @@ class Walker extends GameObject {
                 this._inputDirs.push(4);
             }
             document.getElementById("distance-to-next").innerText = distanceToNext.toFixed(1) + (Math.random() > 0.5 ? " ." : "");
-            document.getElementById("target-rot").innerText = (this.target.rotation.z / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
+            document.getElementById("target-rot").innerText = (this.target.rotation.y / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
         }
     }
 }
@@ -697,10 +707,9 @@ class WallNode extends GameObject {
     constructor(main) {
         super(main);
         this.sprite = new Sprite("wall", "assets/wall_node_base.png", this.main.scene);
-        this.sprite.position.z = 0;
         this.sprite.height = 1;
         this.top = new Sprite("wall-top", "assets/wall_top.png", this.main.scene);
-        this.top.position.z = -0.2;
+        this.top.position.y = Sprite.LEVEL_STEP;
         this.top.parent = this.sprite;
         this.top.height = 5;
         this.setDarkness(0.5);
@@ -758,10 +767,10 @@ class Wall extends GameObject {
             }
         }
         this.sprite.setPivotPoint(new BABYLON.Vector3(-l * 0.5, 0, 0));
-        this.sprite.position.z = -0.1;
+        this.sprite.position.y = Sprite.QUAD_Y + 0.5 * Sprite.LEVEL_STEP;
         this.sprite.position.x = this.node1.sprite.position.x + l * 0.5;
-        this.sprite.position.y = this.node1.sprite.position.y;
-        this.sprite.rotation.z = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), new BABYLON.Vector2(n.x, n.y));
+        this.sprite.position.z = this.node1.sprite.position.z;
+        this.sprite.rotation.y = -Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), new BABYLON.Vector2(n.x, n.z));
     }
     refreshObstacle() {
         let c = this.node1.sprite.pos2D.add(this.node2.sprite.pos2D).scaleInPlace(0.5);
@@ -1514,7 +1523,7 @@ class ArcPlane {
     }
 }
 class CutPlane {
-    static CreateVerticalVertexData(w, h, from, to) {
+    static CreateVerticalVertexData(w, h, from = 0, to = 1) {
         let data = new BABYLON.VertexData();
         let positions = [];
         let indices = [];
@@ -2640,7 +2649,8 @@ Math2D.AxisX = new BABYLON.Vector2(1, 0);
 Math2D.AxisY = new BABYLON.Vector2(0, 1);
 class SpriteUtils {
     static MakeShadow(sprite, w, h) {
-        let shadowSprite = BABYLON.MeshBuilder.CreatePlane(sprite.name + "-shadow", { width: w, height: h }, sprite.getScene());
+        let shadowSprite = new BABYLON.Mesh(sprite.name + "-shadow", sprite.getScene());
+        SpriteUtils.CreatePlaneData(w, h).applyToMesh(shadowSprite);
         shadowSprite.position.z = 1;
         let shadowSpriteMaterial = new BABYLON.StandardMaterial(sprite.material.name + "-shadow", sprite.getScene());
         let spriteMaterial = sprite.material;
@@ -2651,6 +2661,26 @@ class SpriteUtils {
         shadowSpriteMaterial.alphaCutOff = 0.1;
         shadowSprite.material = shadowSpriteMaterial;
         return shadowSprite;
+    }
+    static CreatePlaneData(w, h, inputUvs) {
+        let data = new BABYLON.VertexData();
+        let positions = [];
+        let indices = [];
+        let uvs = [];
+        let ww = 0.5 * w;
+        let hh = 0.5 * h;
+        positions.push(-ww, 0, -hh, -ww, 0, hh, ww, 0, hh, ww, 0, -hh);
+        indices.push(0, 2, 1, 0, 3, 2);
+        if (!inputUvs) {
+            uvs.push(0, 0, 0, 1, 1, 1, 1, 0);
+        }
+        else {
+            uvs.push(inputUvs.x, inputUvs.y, inputUvs.x, inputUvs.w, inputUvs.z, inputUvs.w, inputUvs.z, inputUvs.y);
+        }
+        data.positions = positions;
+        data.indices = indices;
+        data.uvs = uvs;
+        return data;
     }
 }
 class UniqueList {

@@ -3,7 +3,7 @@ class WalkerTarget extends BABYLON.Mesh {
     private _pos2D: BABYLON.Vector2 = BABYLON.Vector2.Zero();
     public get pos2D(): BABYLON.Vector2 {
         this._pos2D.x = this.position.x;
-        this._pos2D.y = this.position.y;
+        this._pos2D.y = this.position.z;
 
         return this._pos2D;
     }
@@ -22,7 +22,7 @@ class WalkerTarget extends BABYLON.Mesh {
         for (let i = 0; i < walker.legCount; i++) {
             let target = new BABYLON.Mesh("target-" + i);
             target.position.x = positions[i].x;
-            target.position.y = positions[i].y;
+            target.position.z = positions[i].y;
             target.parent = this;
             this.targets[i] = target;
         }
@@ -57,7 +57,8 @@ class Walker extends GameObject {
         let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.main.scene);
         robotBody.height = 2;
 		robotBody.position.x = 5;
-		robotBody.position.y = 5;
+		robotBody.position.z = 5;
+		robotBody.position.y = Sprite.QUAD_Y + Sprite.LEVEL_STEP;
         
         this.sprite = robotBody;
 		
@@ -65,31 +66,31 @@ class Walker extends GameObject {
         robotArm_L.height = 3;
 		robotArm_L.setPivotPoint((new BABYLON.Vector3(0.48, - 0.43, 0)));
 		robotArm_L.position.x = - 1.1;
-		robotArm_L.position.y = 0.7;
-		robotArm_L.position.z = - 0.1;
+		robotArm_L.position.z = 0.7;
+		robotArm_L.position.y = Sprite.LEVEL_STEP;
 		robotArm_L.parent = robotBody
 
 		let robotArm_R = new Sprite("robot-arm_R", "assets/robot_arm_R.png", this.main.scene);
         robotArm_R.height = 3;
 		robotArm_R.setPivotPoint((new BABYLON.Vector3(- 0.48, - 0.43, 0)));
 		robotArm_R.position.x = 1.1;
-		robotArm_R.position.y = 0.7;
-		robotArm_R.position.z = - 0.1;
+		robotArm_R.position.z = 0.7;
+		robotArm_R.position.y = Sprite.LEVEL_STEP;
 		robotArm_R.parent = robotBody
 
         let robotFoot_L = new Sprite("robot-foot_L", "assets/robot_foot_L.png", this.main.scene);
         robotFoot_L.height = 1;
 		robotFoot_L.position.x = - 1.1;
-		robotFoot_L.position.y = 0;
-		robotFoot_L.position.z = 0.1;
-		robotFoot_L.rotation.z = 0.3;
+		robotFoot_L.position.z = 0;
+		robotFoot_L.position.y = Sprite.QUAD_Y;
+		robotFoot_L.rotation.y = 0.3;
 
 		let robotFoot_R = new Sprite("robot-foot_R", "assets/robot_foot_R.png", this.main.scene);
         robotFoot_R.height = 1;
 		robotFoot_R.position.x = 1.1;
-		robotFoot_R.position.y = 0;
-		robotFoot_R.position.z = 0.1;
-		robotFoot_R.rotation.z = - 0.3;
+		robotFoot_R.position.z = 0;
+		robotFoot_L.position.y = Sprite.QUAD_Y;
+		robotFoot_R.rotation.y = - 0.3;
 
         this.feet = [robotFoot_L, robotFoot_R];
         this.arms = [robotArm_L, robotArm_R];
@@ -159,7 +160,7 @@ class Walker extends GameObject {
             resolve => {
                 this._movingLegs.push(legIndex);
                 let origin = this.feet[legIndex].position.clone();
-                let originR = this.feet[legIndex].rotation.z;
+                let originR = this.feet[legIndex].rotation.y;
                 let l = target.subtract(origin).length();
                 let duration = Math.floor(l / 3);
                 duration *= 0.5;
@@ -174,8 +175,8 @@ class Walker extends GameObject {
                         origin.scale(1 - d).add(target.scale(d))
                     );
                     this.feet[legIndex].height = 1 + 3 * Math.sin(Math.PI * d);
-                    this.feet[legIndex].position.z = 0.1;
-                    this.feet[legIndex].rotation.z = Math2D.LerpFromToCircular(originR, targetR, d);
+                    this.feet[legIndex].position.y = Sprite.QUAD_Y;;
+                    this.feet[legIndex].rotation.y = Math2D.LerpFromToCircular(originR, targetR, d);
                     if (d < 1) {
                         requestAnimationFrame(step);
                     }
@@ -234,15 +235,15 @@ class Walker extends GameObject {
             rotateSpeed = - 0.4;
         }
 
-        this.target.position.addInPlace(this.target.up.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
+        this.target.position.addInPlace(this.target.forward.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
         this.target.position.addInPlace(this.target.right.scale(sideSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
-        this.target.rotation.z += rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+        this.target.rotation.y -= rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
 
-        while (this.target.rotation.z < 0) {
-            this.target.rotation.z += 2 * Math.PI;
+        while (this.target.rotation.y < 0) {
+            this.target.rotation.y += 2 * Math.PI;
         }
-        while (this.target.rotation.z >= 2 * Math.PI) {
-            this.target.rotation.z -= 2 * Math.PI;
+        while (this.target.rotation.y >= 2 * Math.PI) {
+            this.target.rotation.y -= 2 * Math.PI;
         }
 
         this.sprite.position.copyFrom(this.feet[0].position);
@@ -251,20 +252,20 @@ class Walker extends GameObject {
         }
         this.sprite.position.scaleInPlace(1 / this.legCount);
         this.sprite.position.x += Math.cos(1 * this._bodyT * Math.PI) * 0.1;
-        this.sprite.position.y += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
-        this.sprite.position.z = 0;
+        this.sprite.position.z += Math.cos(1.1 * this._bodyT * Math.PI) * 0.1;
+        this.sprite.position.y = Sprite.QUAD_Y + Sprite.LEVEL_STEP;
 
-        this.arms[0].rotation.z = Math.cos(1 * this._armT * Math.PI) * 0.15 - 0.3;
-        this.arms[1].rotation.z = Math.cos(1.1 * this._armT * Math.PI) * 0.15 + 0.3;
+        this.arms[0].rotation.y = Math.cos(1 * this._armT * Math.PI) * 0.15 - 0.3;
+        this.arms[1].rotation.y = Math.cos(1.1 * this._armT * Math.PI) * 0.15 + 0.3;
         
         let rightDir = new BABYLON.Vector2(
             this.feet[1].absolutePosition.x - this.feet[0].absolutePosition.x,
-            this.feet[1].absolutePosition.y - this.feet[0].absolutePosition.y,
+            this.feet[1].absolutePosition.z - this.feet[0].absolutePosition.z,
         )
         rightDir.normalize();
 
         let a = Math2D.AngleFromTo(new BABYLON.Vector2(1, 0), rightDir);
-        this.sprite.rotation.z = Math2D.LerpFromToCircular(a, this.target.rotation.z, 0.5);
+        this.sprite.rotation.y = Math2D.LerpFromToCircular(- a, this.target.rotation.y, 0.5);
 
         if (this._movingLegCount <= 0) {
             let index = - 1;
@@ -280,7 +281,7 @@ class Walker extends GameObject {
             }
             if (dist > 0.1) {
                 this._movingLegCount++;
-                this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.z); 
+                this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y); 
             }
         }
         this.updatePath();
@@ -305,7 +306,7 @@ class Walker extends GameObject {
                 this.nextDebugMesh = BABYLON.MeshBuilder.CreateBox("next-debug-mesh", { size: 0.5 });
             }
             this.nextDebugMesh.position.x = next.x;
-            this.nextDebugMesh.position.y = next.y;
+            this.nextDebugMesh.position.z = next.y;
             let distanceToNext = Math2D.Distance(this.target.pos2D, next);
             if (distanceToNext <= 1) {
                 this.currentPath.splice(0, 1);
@@ -313,8 +314,8 @@ class Walker extends GameObject {
             }
             let stepToNext = next.subtract(this.target.pos2D).normalize();
             
-            let targetRot = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
-            let dRot = Math2D.AngularDistance(this.target.rotation.z, targetRot);
+            let targetRot = - Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
+            let dRot = - Math2D.AngularDistance(this.target.rotation.y, targetRot);
             
             let dRotFactor = Math.abs(dRot) / (Math.PI * 0.5);
             dRotFactor = Math.min(Math.max(1 - dRotFactor, 0), 1);
@@ -330,7 +331,7 @@ class Walker extends GameObject {
             }
 
             document.getElementById("distance-to-next").innerText = distanceToNext.toFixed(1) + (Math.random() > 0.5 ? " ." : "");
-            document.getElementById("target-rot").innerText = (this.target.rotation.z / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
+            document.getElementById("target-rot").innerText = (this.target.rotation.y / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
         }
     }
 }

@@ -1,5 +1,9 @@
 class Sprite extends BABYLON.Mesh {
 
+    public static SHADOW_Y: number = 0.1;
+    public static QUAD_Y: number = 0.2;
+    public static LEVEL_STEP: number = 0.1;
+
     public shadowMesh: BABYLON.Mesh;
     public height: number = 1;
 
@@ -12,7 +16,7 @@ class Sprite extends BABYLON.Mesh {
     private _pos2D: BABYLON.Vector2 = BABYLON.Vector2.Zero();
     public get pos2D(): BABYLON.Vector2 {
         this._pos2D.x = this.position.x;
-        this._pos2D.y = this.position.y;
+        this._pos2D.y = this.position.z;
 
         return this._pos2D;
     }
@@ -25,17 +29,17 @@ class Sprite extends BABYLON.Mesh {
     }
 
     public get posY(): number {
-        return this.position.y;
+        return this.position.z;
     }
     public set posY(y: number) {
-        this.position.y = y;
+        this.position.z = y;
     }
 
     public get rot(): number {
-        return this.rotation.z;
+        return this.rotation.y;
     }
     public set rot(r: number) {
-        this.rotation.z = r;
+        this.rotation.y = r;
     }
 
     constructor(
@@ -76,23 +80,28 @@ class Sprite extends BABYLON.Mesh {
         let size = this.spriteMaterial.diffuseTexture.getBaseSize();
         let quadData: BABYLON.VertexData;
         if (isFinite(length)) {
-            quadData = BABYLON.VertexData.CreatePlane({ width: length, height: size.height / 100, sideOrientation: 2, frontUVs: new BABYLON.Vector4(0, 0, length / (size.width / 100), 1) });
+            quadData = SpriteUtils.CreatePlaneData(length, size.height / 100, new BABYLON.Vector4(0, 0, length / (size.width / 100), 1));
         }
         else {
             quadData = BABYLON.VertexData.CreatePlane({ width: size.width / 100, height: size.height / 100 });
+            quadData = SpriteUtils.CreatePlaneData(size.width / 100, size.height / 100);
         }
         quadData.applyToMesh(this);
+        if (this.position.y === 0) {
+            this.position.y = Sprite.QUAD_Y;
+        }
         quadData.applyToMesh(this.shadowMesh);
+        this.shadowMesh.position.y = Sprite.SHADOW_Y;
     }
 
     private _update = () => {
         this.shadowMesh.position.x = this.absolutePosition.x + 0.5 * this.height / 5;
-        this.shadowMesh.position.y = this.absolutePosition.y - 0.3 * this.height / 5;
-        this.shadowMesh.position.z = 1.1;
-        this.shadowMesh.rotation.z = this.rotation.z;
+        this.shadowMesh.position.z = this.absolutePosition.z - 0.3 * this.height / 5;
+        this.shadowMesh.position.y = Sprite.SHADOW_Y;
+        this.shadowMesh.rotation.y = this.rotation.y;
         let parent = this.parent;
         while (parent && parent instanceof BABYLON.Mesh) {
-            this.shadowMesh.rotation.z += parent.rotation.z;
+            this.shadowMesh.rotation.y += parent.rotation.y;
             parent = parent.parent;
         }
     }
