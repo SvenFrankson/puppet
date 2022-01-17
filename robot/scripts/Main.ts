@@ -52,6 +52,8 @@ class Main {
 		this.cameraManager = new CameraManager(this);
 		this.cameraManager.initialize();
 
+		let light = new BABYLON.PointLight("light", new BABYLON.Vector3(20, 20, - 20), this.scene);
+
 		this.resize();
 
 		new BABYLON.DirectionalLight("light", BABYLON.Vector3.Forward(), this.scene);
@@ -111,6 +113,22 @@ class Main {
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
 		
 		ground.material = groundMaterial;
+
+		BABYLON.SceneLoader.ImportMesh(
+			"",
+			"assets/command-center.babylon",
+			"",
+			this.scene,
+			(meshes) => {
+				let root = new BABYLON.Mesh("root");
+				for (let i = 0; i < meshes.length; i++) {
+					let mesh = meshes[i];
+					mesh.parent = root;
+					console.log(mesh.name);
+				}
+				root.rotation.x = - Math.PI / 2;
+			}
+		)
 	}
 
 	public generateScene(): void {

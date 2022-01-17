@@ -13,7 +13,9 @@ class CameraManager {
     }
 
     public initialize(): void {
-		this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 10), this.main.scene);
+		this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 15), this.main.scene);
+        this.camera.attachControl(this.main.canvas);
+        /*
 		this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
 
         this.main.scene.onBeforeRenderObservable.add(this._update);
@@ -24,6 +26,7 @@ class CameraManager {
         this.main.canvas.onpointerenter = () => {
             this.moveWhenPointerOnSide = true;
         }
+        */
     }
 
 	public resize(): void {

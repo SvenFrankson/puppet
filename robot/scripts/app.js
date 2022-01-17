@@ -44,15 +44,20 @@ class CameraManager {
         };
     }
     initialize() {
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, -10), this.main.scene);
+        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, -15), this.main.scene);
+        this.camera.attachControl(this.main.canvas);
+        /*
         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+
         this.main.scene.onBeforeRenderObservable.add(this._update);
+
         this.main.canvas.onpointerleave = () => {
             this.moveWhenPointerOnSide = false;
-        };
+        }
         this.main.canvas.onpointerenter = () => {
             this.moveWhenPointerOnSide = true;
-        };
+        }
+        */
     }
     resize() {
         let w = this.main.canvas.clientWidth;
@@ -111,6 +116,7 @@ class Main {
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
         this.cameraManager = new CameraManager(this);
         this.cameraManager.initialize();
+        let light = new BABYLON.PointLight("light", new BABYLON.Vector3(20, 20, -20), this.scene);
         this.resize();
         new BABYLON.DirectionalLight("light", BABYLON.Vector3.Forward(), this.scene);
         window.onresize = () => {
@@ -141,6 +147,15 @@ class Main {
         groundMaterial.diffuseColor = groundMaterial.diffuseColor.scale(1.4);
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
         ground.material = groundMaterial;
+        BABYLON.SceneLoader.ImportMesh("", "assets/command-center.babylon", "", this.scene, (meshes) => {
+            let root = new BABYLON.Mesh("root");
+            for (let i = 0; i < meshes.length; i++) {
+                let mesh = meshes[i];
+                mesh.parent = root;
+                console.log(mesh.name);
+            }
+            root.rotation.x = -Math.PI / 2;
+        });
     }
     generateScene() {
         let walker = new Walker(this);
@@ -429,6 +444,9 @@ class Walker extends GameObject {
         this.arms = [];
         this.feet = [];
         this._inputDirs = new UniqueList();
+        this._inputForwardAxis = 0;
+        this._inputSideAxis = 0;
+        this._inputRotateAxis = 0;
         this._movingLegCount = 0;
         this._movingLegs = new UniqueList();
         this._bodyT = 0;
@@ -440,26 +458,40 @@ class Walker extends GameObject {
             this._armT += this._armSpeed * this.main.scene.getEngine().getDeltaTime() / 1000;
             this._bodySpeed = 1;
             this._armSpeed = 1;
+            let forwardSpeed = 0;
+            if (this._inputForwardAxis > 0) {
+                forwardSpeed = 3 * this._inputForwardAxis;
+                this._bodySpeed = 1 + 2 * this._inputForwardAxis;
+                this._armSpeed = 1 + 4 * this._inputForwardAxis;
+            }
+            else if (this._inputForwardAxis < 0) {
+                forwardSpeed = -1 * this._inputForwardAxis;
+            }
+            let rotateSpeed = this._inputRotateAxis * 0.4;
+            let sideSpeed = 2 * this._inputSideAxis;
             if (this._inputDirs.contains(0)) {
-                this.target.position.addInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
+                sideSpeed = 2;
             }
             if (this._inputDirs.contains(1)) {
-                this.target.position.subtractInPlace(this.target.up.scale(1 * this.main.scene.getEngine().getDeltaTime() / 1000));
+                forwardSpeed = -1;
             }
             if (this._inputDirs.contains(2)) {
-                this.target.position.subtractInPlace(this.target.right.scale(2 * this.main.scene.getEngine().getDeltaTime() / 1000));
+                sideSpeed = -2;
             }
             if (this._inputDirs.contains(3)) {
-                this.target.position.addInPlace(this.target.up.scale(3 * this.main.scene.getEngine().getDeltaTime() / 1000));
+                forwardSpeed = 3;
                 this._bodySpeed = 3;
                 this._armSpeed = 5;
             }
             if (this._inputDirs.contains(4)) {
-                this.target.rotation.z += 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+                rotateSpeed = 0.4;
             }
             if (this._inputDirs.contains(5)) {
-                this.target.rotation.z -= 0.4 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+                rotateSpeed = -0.4;
             }
+            this.target.position.addInPlace(this.target.up.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
+            this.target.position.addInPlace(this.target.right.scale(sideSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
+            this.target.rotation.z += rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
             while (this.target.rotation.z < 0) {
                 this.target.rotation.z += 2 * Math.PI;
             }
@@ -624,9 +656,9 @@ class Walker extends GameObject {
         this.moveOnPath();
         if (!this.currentPath || this.currentPath.length === 0) {
             let rand = new BABYLON.Vector2(-30 + 60 * Math.random(), -30 + 60 * Math.random());
-            let navGraph = NavGraphManager.GetForRadius(1);
+            let navGraph = NavGraphManager.GetForRadius(2);
             navGraph.update();
-            this.currentPath = navGraph.computePathFromTo(this.pos2D, rand);
+            this.currentPath = navGraph.computePathFromTo(this.target.pos2D, rand);
         }
     }
     moveOnPath() {
@@ -638,21 +670,16 @@ class Walker extends GameObject {
             this.nextDebugMesh.position.x = next.x;
             this.nextDebugMesh.position.y = next.y;
             let distanceToNext = Math2D.Distance(this.target.pos2D, next);
-            if (distanceToNext <= 0.1) {
+            if (distanceToNext <= 1) {
                 this.currentPath.splice(0, 1);
                 return this.moveOnPath();
             }
             let stepToNext = next.subtract(this.target.pos2D).normalize();
             let targetRot = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
             let dRot = Math2D.AngularDistance(this.target.rotation.z, targetRot);
-            this._inputDirs.remove(3);
-            this._inputDirs.remove(1);
-            if (Math.abs(dRot) < Math.PI / 4) {
-                this._inputDirs.push(3);
-            }
-            else if (Math.abs(dRot) > 3 * Math.PI / 4) {
-                this._inputDirs.push(1);
-            }
+            let dRotFactor = Math.abs(dRot) / (Math.PI * 0.5);
+            dRotFactor = Math.min(Math.max(1 - dRotFactor, 0), 1);
+            this._inputForwardAxis = dRotFactor;
             this._inputDirs.remove(4);
             this._inputDirs.remove(5);
             if (dRot < 0) {
@@ -2044,7 +2071,7 @@ class PlayerAction {
                     this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
                     this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
                     this._currentActionButton.classList.remove("selected");
-                    new LoadingPlane(newTurret.pos2D, 10, () => {
+                    new LoadingPlane(newTurret.pos2D, 3, () => {
                         newTurret.makeReady();
                     }, this.main);
                 }
@@ -2115,7 +2142,7 @@ class PlayerAction {
                     let newWall = this._selectedWall;
                     let newNode1 = this._selectedWallNode1;
                     let newNode2 = this._selectedWallNode2;
-                    new LoadingPlane(newNode1.pos2D.add(newNode2.pos2D).scale(0.5), 5, () => {
+                    new LoadingPlane(newNode1.pos2D.add(newNode2.pos2D).scale(0.5), 3, () => {
                         newWall.makeReady();
                         newNode1.makeReady();
                         newNode2.makeReady();
