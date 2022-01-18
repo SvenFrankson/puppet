@@ -11,6 +11,7 @@ class Main {
 	public cameraManager: CameraManager;
 	public gameObjects: GameObject[] = [];
 	public playerAction: PlayerAction;
+	public ground: BABYLON.Mesh;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -28,11 +29,14 @@ class Main {
 	}
 
 	public getPointerWorldPos(): BABYLON.Vector2 {
-		let pointerX = this.scene.pointerX / this.canvas.clientWidth;
-		let pointerY = 1 - this.scene.pointerY / this.canvas.clientHeight;
-		let worldX = this.cameraManager.camera.orthoLeft + pointerX * (this.cameraManager.camera.orthoRight - this.cameraManager.camera.orthoLeft);
-		let worldY = this.cameraManager.camera.orthoBottom + pointerY * (this.cameraManager.camera.orthoTop - this.cameraManager.camera.orthoBottom);
-		document.getElementById("debug-pointer-xy").innerText = (pointerX * 100).toFixed(1) + " : " + (pointerY * 100).toFixed(1);
+		let pick = this.scene.pick(this.scene.pointerX, this.scene.pointerY, m => { return m === this.ground; });
+		let worldX = 0;
+		let worldY = 0;
+		if (pick && pick.hit) {
+			worldX = pick.pickedPoint.x;
+			worldY = pick.pickedPoint.z;
+		}
+		document.getElementById("debug-pointer-xy").innerText = (worldX).toFixed(1) + " : " + (worldY).toFixed(1);
 		return new BABYLON.Vector2(worldX, worldY);
 	}
 
@@ -69,7 +73,7 @@ class Main {
 		this.generateScene();
 		menu.showIngameMenu();
 
-		let ground = new BABYLON.Mesh("ground", this.scene);
+		this.ground = new BABYLON.Mesh("ground", this.scene);
 
 		let data = new BABYLON.VertexData();
         
@@ -100,9 +104,7 @@ class Main {
         data.indices = indices;
         data.uvs = uvs;
 
-		data.applyToMesh(ground);
-
-		ground.position.z = 2;
+		data.applyToMesh(this.ground);
 
 		let groundMaterial = new BABYLON.StandardMaterial("ground-material", this.scene);
         groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground_2.png", this.scene);
@@ -110,7 +112,7 @@ class Main {
 		groundMaterial.diffuseColor = groundMaterial.diffuseColor.scale(1.4);
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
 		
-		ground.material = groundMaterial;
+		this.ground.material = groundMaterial;
 
 		BABYLON.SceneLoader.ImportMesh(
 			"",

@@ -66,7 +66,6 @@ class CameraManager {
         let pointerX = this.main.scene.pointerX;
         let pointerY = this.main.scene.pointerY;
 
-        document.getElementById("debug-pointer-xy").innerText = pointerX + " : " + pointerY;
 		let w = this.main.canvas.clientWidth;
 		let h = this.main.canvas.clientHeight;
 
