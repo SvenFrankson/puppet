@@ -11,10 +11,10 @@ class CutPlane {
         let hh = 0.5 * h;
 
         positions.push(
-            - ww, - hh + h * from, 0,
-            - ww, - hh + h * to, 0,
-            ww, - hh + h * to, 0,
-            ww, - hh + h * from, 0
+            - ww, 0, - hh + h * from,
+            - ww, 0, - hh + h * to,
+            ww, 0, - hh + h * to,
+            ww, 0, - hh + h * from
         );
 
         indices.push(

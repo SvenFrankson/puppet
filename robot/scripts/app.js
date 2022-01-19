@@ -3,8 +3,8 @@ class CameraManager {
         this.main = main;
         this.center = BABYLON.Vector2.Zero();
         this.moveWhenPointerOnSide = false;
-        this.cameraMoveDistance = 40;
-        this.cameraSpeed = 10;
+        this.cameraMoveDistance = 80;
+        this.cameraSpeed = 15;
         this._update = () => {
             if (!this.moveWhenPointerOnSide) {
                 return;
@@ -47,6 +47,10 @@ class CameraManager {
         //this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 15), this.main.scene);
         this.camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 8, 30, BABYLON.Vector3.Zero(), this.main.scene);
         this.camera.attachControl(this.main.canvas);
+        let noPostProcessCamera = new BABYLON.FreeCamera("no-post-process-camera", BABYLON.Vector3.Zero(), this.main.scene);
+        noPostProcessCamera.parent = this.camera;
+        noPostProcessCamera.layerMask = 0x10000000;
+        this.main.scene.activeCameras.push(this.camera, noPostProcessCamera);
         this.main.scene.onBeforeRenderObservable.add(this._update);
         this.main.canvas.onpointerleave = () => {
             this.moveWhenPointerOnSide = false;
@@ -468,12 +472,12 @@ class Walker extends GameObject {
             this._armSpeed = 1;
             let forwardSpeed = 0;
             if (this._inputForwardAxis > 0) {
-                forwardSpeed = 3 * this._inputForwardAxis;
+                forwardSpeed = 1 * this._inputForwardAxis;
                 this._bodySpeed = 1 + 2 * this._inputForwardAxis;
                 this._armSpeed = 1 + 4 * this._inputForwardAxis;
             }
             else if (this._inputForwardAxis < 0) {
-                forwardSpeed = -1 * this._inputForwardAxis;
+                forwardSpeed = -0.5 * this._inputForwardAxis;
             }
             let rotateSpeed = this._inputRotateAxis * 0.4;
             let sideSpeed = 2 * this._inputSideAxis;
@@ -481,13 +485,13 @@ class Walker extends GameObject {
                 sideSpeed = 2;
             }
             if (this._inputDirs.contains(1)) {
-                forwardSpeed = -1;
+                forwardSpeed = -0.5;
             }
             if (this._inputDirs.contains(2)) {
                 sideSpeed = -2;
             }
             if (this._inputDirs.contains(3)) {
-                forwardSpeed = 3;
+                forwardSpeed = 1;
                 this._bodySpeed = 3;
                 this._armSpeed = 5;
             }
@@ -1065,6 +1069,7 @@ class NavGraphConsole {
     }
     enable() {
         this._panel = SpacePanel.CreateSpacePanel();
+        this._panel.classList.add("navgraph-console-panel");
         this._panel.addTitle1("NAVGRAPH");
         this._panel.addTitle2("DEV CONSOLE");
         this._panel.addNumberInput("OFFSET", this._offset, (v) => {
@@ -1530,7 +1535,7 @@ class CutPlane {
         let uvs = [];
         let ww = 0.5 * w;
         let hh = 0.5 * h;
-        positions.push(-ww, -hh + h * from, 0, -ww, -hh + h * to, 0, ww, -hh + h * to, 0, ww, -hh + h * from, 0);
+        positions.push(-ww, 0, -hh + h * from, -ww, 0, -hh + h * to, ww, 0, -hh + h * to, ww, 0, -hh + h * from);
         indices.push(0, 2, 1, 0, 3, 2);
         uvs.push(0, from, 0, to, 1, to, 1, from);
         data.positions = positions;
@@ -1550,13 +1555,22 @@ class LoadingPlane {
             this._timer += this.main.engine.getDeltaTime() / 1000;
             let t = this._timer / this.duration;
             if (t < 1) {
-                let p = this.main.worldPosToPixel(this.pos2D);
-                this.valueElement.style.left = (p.x - 35).toFixed(0) + "px";
-                this.valueElement.style.top = (p.y - 5).toFixed(0) + "px";
                 CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, t).applyToMesh(this.greenSprite);
                 CutPlane.CreateVerticalVertexData(2.5, 2.5, t, 1).applyToMesh(this.graySprite);
-                this.decimalElement.innerText = (Math.floor(t * 10)).toFixed(0);
-                this.unitElement.innerText = (Math.floor(t * 100) % 10).toFixed(0);
+                let ctx = this.valueTexture.getContext();
+                ctx.clearRect(0, 0, 200, 100);
+                ctx.font = "65px Orbitron Medium";
+                ctx.textAlign = "right";
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = "black";
+                ctx.strokeText((Math.floor(t * 10)).toFixed(0), 70, 75);
+                ctx.strokeText((Math.floor(t * 100) % 10).toFixed(0), 125, 75);
+                ctx.strokeText("%", 190, 75);
+                ctx.fillStyle = "white";
+                ctx.fillText((Math.floor(t * 10)).toFixed(0), 70, 75);
+                ctx.fillText((Math.floor(t * 100) % 10).toFixed(0), 125, 75);
+                ctx.fillText("%", 190, 75);
+                this.valueTexture.update();
             }
             else {
                 this.dispose();
@@ -1566,6 +1580,8 @@ class LoadingPlane {
             }
         };
         this.greenSprite = new BABYLON.Mesh("green-sprite", this.main.scene);
+        this.greenSprite.renderingGroupId = 1;
+        this.greenSprite.layerMask = 0x10000000;
         let greenSpriteMaterial = new BABYLON.StandardMaterial("green-sprite-material", this.main.scene);
         greenSpriteMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-green.png", this.main.scene);
         greenSpriteMaterial.diffuseTexture.hasAlpha = true;
@@ -1573,9 +1589,11 @@ class LoadingPlane {
         greenSpriteMaterial.alphaCutOff = 0.5;
         this.greenSprite.material = greenSpriteMaterial;
         this.greenSprite.position.x = this.pos2D.x;
-        this.greenSprite.position.y = this.pos2D.y;
-        this.greenSprite.position.z = -2;
+        this.greenSprite.position.y = 0;
+        this.greenSprite.position.z = this.pos2D.y;
         this.graySprite = new BABYLON.Mesh("graySprite", this.main.scene);
+        this.graySprite.renderingGroupId = 1;
+        this.graySprite.layerMask = 0x10000000;
         let graySpriteMaterial = new BABYLON.StandardMaterial("graySprite-material", this.main.scene);
         graySpriteMaterial.diffuseTexture = new BABYLON.Texture("assets/building-loader-gray.png", this.main.scene);
         graySpriteMaterial.diffuseTexture.hasAlpha = true;
@@ -1583,33 +1601,30 @@ class LoadingPlane {
         graySpriteMaterial.alphaCutOff = 0.5;
         this.graySprite.material = graySpriteMaterial;
         this.graySprite.position.x = this.pos2D.x;
-        this.graySprite.position.y = this.pos2D.y;
-        this.graySprite.position.z = -2;
+        this.graySprite.position.y = 0;
+        this.graySprite.position.z = this.pos2D.y;
         let a = 240 / 180 * Math.PI;
         CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 0).applyToMesh(this.greenSprite);
         CutPlane.CreateVerticalVertexData(2.5, 2.5, 0, 1).applyToMesh(this.graySprite);
-        this.valueElement = document.createElement("div");
-        this.decimalElement = document.createElement("span");
-        this.decimalElement.classList.add("building-loader-digit");
-        this.valueElement.appendChild(this.decimalElement);
-        this.unitElement = document.createElement("span");
-        this.unitElement.classList.add("building-loader-digit");
-        this.valueElement.appendChild(this.unitElement);
-        let pc = document.createElement("span");
-        pc.classList.add("building-loader-digit");
-        pc.innerText = "%";
-        this.valueElement.appendChild(pc);
-        this.valueElement.classList.add("building-loader-value");
-        let p = this.main.worldPosToPixel(this.pos2D);
-        this.valueElement.style.left = (p.x - 35).toFixed(0) + "px";
-        this.valueElement.style.top = (p.y - 5).toFixed(0) + "px";
-        document.body.appendChild(this.valueElement);
         this.main.scene.onBeforeRenderObservable.add(this._update);
+        this.valueMesh = new BABYLON.Mesh("value-mesh");
+        this.valueMesh.renderingGroupId = 1;
+        this.valueMesh.layerMask = 0x10000000;
+        SpriteUtils.CreatePlaneData(2.5, 1.25).applyToMesh(this.valueMesh);
+        this.valueMesh.position.x = this.pos2D.x + 0.3;
+        this.valueMesh.position.y = 0;
+        this.valueMesh.position.z = this.pos2D.y - 0.3;
+        this.valueMaterial = new BABYLON.StandardMaterial("value-material", this.main.scene);
+        this.valueMaterial.alphaCutOff = 0.5;
+        this.valueTexture = new BABYLON.DynamicTexture("value-texture", { width: 200, height: 100 }, this.main.scene, true);
+        this.valueTexture.hasAlpha = true;
+        this.valueMaterial.diffuseTexture = this.valueTexture;
+        this.valueMesh.material = this.valueMaterial;
     }
     dispose() {
         this.graySprite.dispose();
         this.greenSprite.dispose();
-        document.body.removeChild(this.valueElement);
+        this.valueMesh.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
     }
 }

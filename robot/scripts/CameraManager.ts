@@ -3,8 +3,8 @@ class CameraManager {
     public center: BABYLON.Vector2 = BABYLON.Vector2.Zero();
 	public camera: BABYLON.ArcRotateCamera;
     public moveWhenPointerOnSide: boolean = false;
-    public cameraMoveDistance: number = 40;
-    public cameraSpeed: number = 10;
+    public cameraMoveDistance: number = 80;
+    public cameraSpeed: number = 15;
 
     constructor(
         public main: Main
@@ -16,6 +16,12 @@ class CameraManager {
 		//this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 15), this.main.scene);
 		this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 2, Math.PI / 8, 30, BABYLON.Vector3.Zero(), this.main.scene);
         this.camera.attachControl(this.main.canvas);
+
+        let noPostProcessCamera = new BABYLON.FreeCamera("no-post-process-camera", BABYLON.Vector3.Zero(), this.main.scene);
+		noPostProcessCamera.parent = this.camera;
+		noPostProcessCamera.layerMask = 0x10000000;
+		
+		this.main.scene.activeCameras.push(this.camera, noPostProcessCamera);
         
         this.main.scene.onBeforeRenderObservable.add(this._update);
 

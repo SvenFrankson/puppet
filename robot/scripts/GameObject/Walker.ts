@@ -203,12 +203,12 @@ class Walker extends GameObject {
 
         let forwardSpeed: number = 0;
         if (this._inputForwardAxis > 0) {
-            forwardSpeed = 3 * this._inputForwardAxis;
+            forwardSpeed = 1 * this._inputForwardAxis;
             this._bodySpeed = 1 + 2 * this._inputForwardAxis;
             this._armSpeed = 1 + 4 * this._inputForwardAxis;
         }
         else if (this._inputForwardAxis < 0) {
-            forwardSpeed = - 1 * this._inputForwardAxis;
+            forwardSpeed = - 0.5 * this._inputForwardAxis;
         }
 
         let rotateSpeed: number = this._inputRotateAxis * 0.4;
@@ -218,13 +218,13 @@ class Walker extends GameObject {
             sideSpeed = 2;
         }
         if (this._inputDirs.contains(1)) {
-            forwardSpeed = - 1;
+            forwardSpeed = - 0.5;
         }
         if (this._inputDirs.contains(2)) {
             sideSpeed = - 2;
         }
         if (this._inputDirs.contains(3)) {
-            forwardSpeed = 3;
+            forwardSpeed = 1;
             this._bodySpeed = 3;
             this._armSpeed = 5;
         }

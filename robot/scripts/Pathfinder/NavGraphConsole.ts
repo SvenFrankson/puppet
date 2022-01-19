@@ -10,6 +10,7 @@ class NavGraphConsole {
 
     public enable() {
         this._panel = SpacePanel.CreateSpacePanel();
+        this._panel.classList.add("navgraph-console-panel");
         this._panel.addTitle1("NAVGRAPH");
         this._panel.addTitle2("DEV CONSOLE");
         this._panel.addNumberInput(

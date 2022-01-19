@@ -82,12 +82,12 @@ body {
 }
 
 
-#navgraph-console-panel {
+.navgraph-console-panel {
   display: block;
   position: fixed;
-  top: 50%;
+  bottom: 0.25%;
   left: 0.1%;
-  width: 350px;
+  width: 25%;
   z-index: 1;
 }
 
