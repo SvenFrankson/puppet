@@ -278,10 +278,12 @@ class NavGraph {
             let colors: BABYLON.Color4[] = [];
             for (let i = 0; i < this.path.length; i++) {
                 let p = this.path[i];
-                points.push(new BABYLON.Vector3(p.x, p.y, 2.1));
+                points.push(new BABYLON.Vector3(p.x, 0, p.y));
                 colors.push(new BABYLON.Color4(0, 1, 0, 1));
             }
             this._devPathMesh = BABYLON.MeshBuilder.CreateLines("shape", { points: points, colors: colors }, scene);
+            this._devPathMesh.renderingGroupId = 1;
+            this._devPathMesh.layerMask = 0x10000000;
         }
     }
 

@@ -57,6 +57,7 @@ class Obstacle {
         let hexagon = new Obstacle();
         hexagon.shape = new Hexagon(radius);
         hexagon.shape.position2D = new BABYLON.Vector2(x, y);
+        hexagon.shape.rotation2D = 0;
         return hexagon;
     }
 
@@ -104,13 +105,15 @@ class Obstacle {
         let colors: BABYLON.Color4[] = [];
         for (let i = 0; i < path.length; i++) {
             let p = path[i];
-            points.push(new BABYLON.Vector3(p.x, p.y, - 2));
+            points.push(new BABYLON.Vector3(p.x, 0, p.y));
             colors.push(new BABYLON.Color4(1, 0, 0, 1));
         }
         console.log(path);
         points.push(points[0]);
         colors.push(new BABYLON.Color4(1, 0, 0, 1));
         this._devLineMesh = BABYLON.MeshBuilder.CreateLines("shape", { points: points, colors: colors }, scene);
+        this._devLineMesh.renderingGroupId = 1;
+        this._devLineMesh.layerMask = 0x10000000;
     }
     public hide(): void {
         if (this._devLineMesh) {

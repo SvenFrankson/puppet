@@ -152,14 +152,6 @@ class Main {
         groundMaterial.diffuseColor = groundMaterial.diffuseColor.scale(1.4);
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
         this.ground.material = groundMaterial;
-        BABYLON.SceneLoader.ImportMesh("", "assets/command-center.babylon", "", this.scene, (meshes) => {
-            let root = new BABYLON.Mesh("root");
-            for (let i = 0; i < meshes.length; i++) {
-                let mesh = meshes[i];
-                mesh.parent = root;
-                console.log(mesh.name);
-            }
-        });
     }
     generateScene() {
         let walker = new Walker(this);
@@ -183,13 +175,17 @@ class Main {
         wallNode2.posY = 3;
         wallNode2.makeReady();
         let wallNode3 = new WallNode(this);
-        wallNode3.posX = 6;
+        wallNode3.posX = 8;
         wallNode3.posY = -4;
         wallNode3.makeReady();
         let wall1 = new Wall(wallNode1, wallNode2, this);
         wall1.makeReady();
         let wall2 = new Wall(wallNode2, wallNode3, this);
         wall2.makeReady();
+        let commandCenter = new CommandCenter(this);
+        commandCenter.posX = 2;
+        commandCenter.posY = -5;
+        commandCenter.makeReady();
     }
     disposeScene() {
         while (this.gameObjects.length > 0) {
@@ -245,6 +241,56 @@ class GameObject {
     }
     dispose() {
         this.isDisposed = true;
+    }
+}
+/// <reference path="GameObject.ts"/>
+class Building extends GameObject {
+    constructor(main) {
+        super(main);
+        this.base = new BABYLON.Mesh("building", this.main.scene);
+    }
+    get pos2D() {
+        this._pos2D.x = this.base.position.x;
+        this._pos2D.y = this.base.position.z;
+        return this._pos2D;
+    }
+    get posX() {
+        return this.base.position.x;
+    }
+    set posX(x) {
+        this.base.position.x = x;
+    }
+    get posY() {
+        return this.base.position.z;
+    }
+    set posY(y) {
+        this.base.position.z = y;
+    }
+    makeReady() {
+        this.isReady = true;
+    }
+}
+class CommandCenter extends Building {
+    constructor(main) {
+        super(main);
+        BABYLON.SceneLoader.ImportMesh("", "assets/command-center.babylon", "", this.main.scene, (meshes) => {
+            for (let i = 0; i < meshes.length; i++) {
+                let mesh = meshes[i];
+                mesh.parent = this.base;
+                if (mesh instanceof BABYLON.Mesh) {
+                    mesh.instances.forEach((instancedMesh) => {
+                        instancedMesh.parent = this.base;
+                    });
+                }
+            }
+        });
+    }
+    makeReady() {
+        super.makeReady();
+        if (!this.obstacle) {
+            this.obstacle = Obstacle.CreateHexagon(this.posX, this.posY, 3);
+            NavGraphManager.AddObstacle(this.obstacle);
+        }
     }
 }
 /// <reference path="GameObject.ts"/>
@@ -1037,10 +1083,12 @@ class NavGraph {
             let colors = [];
             for (let i = 0; i < this.path.length; i++) {
                 let p = this.path[i];
-                points.push(new BABYLON.Vector3(p.x, p.y, 2.1));
+                points.push(new BABYLON.Vector3(p.x, 0, p.y));
                 colors.push(new BABYLON.Color4(0, 1, 0, 1));
             }
             this._devPathMesh = BABYLON.MeshBuilder.CreateLines("shape", { points: points, colors: colors }, scene);
+            this._devPathMesh.renderingGroupId = 1;
+            this._devPathMesh.layerMask = 0x10000000;
         }
     }
     hide() {
@@ -1309,6 +1357,7 @@ class Obstacle {
         let hexagon = new Obstacle();
         hexagon.shape = new Hexagon(radius);
         hexagon.shape.position2D = new BABYLON.Vector2(x, y);
+        hexagon.shape.rotation2D = 0;
         return hexagon;
     }
     static CreatePolygon(x, y, points) {
@@ -1350,13 +1399,15 @@ class Obstacle {
         let colors = [];
         for (let i = 0; i < path.length; i++) {
             let p = path[i];
-            points.push(new BABYLON.Vector3(p.x, p.y, -2));
+            points.push(new BABYLON.Vector3(p.x, 0, p.y));
             colors.push(new BABYLON.Color4(1, 0, 0, 1));
         }
         console.log(path);
         points.push(points[0]);
         colors.push(new BABYLON.Color4(1, 0, 0, 1));
         this._devLineMesh = BABYLON.MeshBuilder.CreateLines("shape", { points: points, colors: colors }, scene);
+        this._devLineMesh.renderingGroupId = 1;
+        this._devLineMesh.layerMask = 0x10000000;
     }
     hide() {
         if (this._devLineMesh) {

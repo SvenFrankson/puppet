@@ -113,21 +113,6 @@ class Main {
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
 		
 		this.ground.material = groundMaterial;
-
-		BABYLON.SceneLoader.ImportMesh(
-			"",
-			"assets/command-center.babylon",
-			"",
-			this.scene,
-			(meshes) => {
-				let root = new BABYLON.Mesh("root");
-				for (let i = 0; i < meshes.length; i++) {
-					let mesh = meshes[i];
-					mesh.parent = root;
-					console.log(mesh.name);
-				}
-			}
-		)
 	}
 
 	public generateScene(): void {
@@ -156,7 +141,7 @@ class Main {
 		wallNode2.makeReady();
 		
 		let wallNode3 = new WallNode(this);
-		wallNode3.posX = 6;
+		wallNode3.posX = 8;
 		wallNode3.posY = -4;
 		wallNode3.makeReady();
 
@@ -164,6 +149,11 @@ class Main {
 		wall1.makeReady();
 		let wall2 = new Wall(wallNode2, wallNode3, this);
 		wall2.makeReady();
+
+		let commandCenter = new CommandCenter(this);
+		commandCenter.posX = 2;
+		commandCenter.posY = - 5;
+		commandCenter.makeReady();
 	}
 
 	public disposeScene(): void {

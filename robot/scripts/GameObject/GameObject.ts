@@ -4,7 +4,7 @@ abstract class GameObject {
 
     public sprite: Sprite;
 
-    private _pos2D: BABYLON.Vector2;
+    protected _pos2D: BABYLON.Vector2;
     public get pos2D(): BABYLON.Vector2 {
         if (this.sprite) {
             return this.sprite.pos2D;
