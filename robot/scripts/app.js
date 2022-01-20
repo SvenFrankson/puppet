@@ -129,7 +129,7 @@ class Main {
             this.resize();
         };
         this.playerAction = new PlayerAction(this);
-        let navgraphManager = new NavGraphManager(this);
+        this.navGraphManager = new NavGraphManager(this);
         let menu = new Menu(this);
         menu.initializeMenu();
         this.generateScene();
@@ -282,10 +282,10 @@ class CommandCenter extends Building {
 class Beacon extends Building {
     constructor(main) {
         super(main);
-        this._t = 0;
+        this._t = Infinity;
         this._update = () => {
             this._t += this.main.engine.getDeltaTime() / 1000;
-            if (this._t > 3) {
+            if (this._t > 15) {
                 this._t = 0;
                 let walker = new Walker(this.main);
                 walker.target.posX = this.posX;
@@ -629,7 +629,20 @@ class Walker extends GameObject {
                     this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y);
                 }
             }
-            this.updatePath();
+            if (!this.currentPath || this.currentPath.length === 0) {
+                this._updatePath();
+            }
+            this.moveOnPath();
+        };
+        this._updatePath = () => {
+            if (!this.currentTarget) {
+                this.currentTarget = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
+            }
+            if (this.currentTarget) {
+                let navGraph = NavGraphManager.GetForRadius(2);
+                navGraph.update();
+                this.currentPath = navGraph.computePathFromTo(this.target.pos2D, this.currentTarget.pos2D);
+            }
         };
         this.target = new WalkerTarget(this);
         let robotBody = new Sprite("robot-body", "assets/robot_body_2.png", this.main.scene);
@@ -707,6 +720,7 @@ class Walker extends GameObject {
                 this._inputDirs.remove(5);
             }
         });
+        this.main.navGraphManager.onObstacleListUpdated.add(this._updatePath);
     }
     get _inputDir() {
         return this._inputDirs.getLast();
@@ -721,6 +735,7 @@ class Walker extends GameObject {
         this.feet.forEach(f => {
             f.dispose();
         });
+        this.main.navGraphManager.onObstacleListUpdated.removeCallback(this._updatePath);
     }
     async _moveLeg(legIndex, target, targetR) {
         return new Promise(resolve => {
@@ -753,17 +768,6 @@ class Walker extends GameObject {
             };
             step();
         });
-    }
-    updatePath() {
-        this.moveOnPath();
-        if (!this.currentPath || this.currentPath.length === 0) {
-            let building = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
-            if (building) {
-                let navGraph = NavGraphManager.GetForRadius(2);
-                navGraph.update();
-                this.currentPath = navGraph.computePathFromTo(this.target.pos2D, building.pos2D);
-            }
-        }
     }
     moveOnPath() {
         if (this.currentPath && this.currentPath.length > 0) {
@@ -1214,6 +1218,7 @@ class NavGraphManager {
         this._navGraphZero = new NavGraph(this.main);
         this._navGraphZero.offset = 0;
         this._navGraphs.set(0, this._navGraphZero);
+        this.onObstacleListUpdated = new BABYLON.Observable();
     }
     static GetForRadius(radius) {
         return NavGraphManager.Instance.getForOffset(radius);
@@ -1243,6 +1248,7 @@ class NavGraphManager {
         this._navGraphs.forEach((navGraph) => {
             navGraph.obstacles.push(obstacle);
         });
+        this.onObstacleListUpdated.notifyObservers();
     }
     static RemoveObstacle(obstacle) {
         return NavGraphManager.Instance.removeObstacle(obstacle);
@@ -1254,6 +1260,7 @@ class NavGraphManager {
                 navGraph.obstacles.splice(index, 1);
             }
         });
+        this.onObstacleListUpdated.notifyObservers();
     }
 }
 class NavGraphLink {

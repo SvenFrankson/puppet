@@ -80,7 +80,7 @@ class CommandCenter extends Building {
 
 class Beacon extends Building {
 
-    private _t: number = 0;
+    private _t: number = Infinity;
 
     constructor(main: Main) {
         super(main);
@@ -109,7 +109,7 @@ class Beacon extends Building {
 
     public _update = () => {
         this._t += this.main.engine.getDeltaTime() / 1000;
-        if (this._t > 3) {
+        if (this._t > 15) {
             this._t = 0;
             let walker = new Walker(this.main);
             walker.target.posX = this.posX;

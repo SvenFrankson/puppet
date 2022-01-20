@@ -70,6 +70,8 @@ class Walker extends GameObject {
 
     public currentPath: BABYLON.Vector2[];
 
+    public currentTarget: GameObject;
+
     constructor(
         main: Main
     ) {
@@ -161,6 +163,8 @@ class Walker extends GameObject {
                 this._inputDirs.remove(5);
             }
         });
+
+        this.main.navGraphManager.onObstacleListUpdated.add(this._updatePath);
     }
 
     public dispose(): void {
@@ -173,6 +177,7 @@ class Walker extends GameObject {
         this.feet.forEach(f => {
             f.dispose();
         })
+        this.main.navGraphManager.onObstacleListUpdated.removeCallback(this._updatePath);
     }
 
     private _movingLegCount: number = 0;
@@ -307,20 +312,22 @@ class Walker extends GameObject {
                 this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y); 
             }
         }
-        this.updatePath();
+        if (!this.currentPath || this.currentPath.length === 0) {
+            this._updatePath();
+        }
+        this.moveOnPath();
     }
 
     public nextDebugMesh: BABYLON.Mesh;
 
-    public updatePath(): void {
-        this.moveOnPath();
-        if (!this.currentPath || this.currentPath.length === 0) {
-            let building = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
-            if (building) {
-                let navGraph = NavGraphManager.GetForRadius(2);
-                navGraph.update();
-                this.currentPath = navGraph.computePathFromTo(this.target.pos2D, building.pos2D);
-            }
+    private _updatePath = () => {
+        if (!this.currentTarget) {
+            this.currentTarget = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
+        }
+        if (this.currentTarget) {
+            let navGraph = NavGraphManager.GetForRadius(2);
+            navGraph.update();
+            this.currentPath = navGraph.computePathFromTo(this.target.pos2D, this.currentTarget.pos2D);
         }
     }
 

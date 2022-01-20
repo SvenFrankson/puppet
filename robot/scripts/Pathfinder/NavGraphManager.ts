@@ -5,6 +5,8 @@ class NavGraphManager {
     private _navGraphZero: NavGraph;
     private _navGraphs: Map<number, NavGraph>;
 
+    public onObstacleListUpdated: BABYLON.Observable<void>;
+
     constructor(
         public main: Main
     ) {
@@ -13,6 +15,7 @@ class NavGraphManager {
         this._navGraphZero = new NavGraph(this.main);
         this._navGraphZero.offset = 0;
         this._navGraphs.set(0, this._navGraphZero);
+        this.onObstacleListUpdated = new BABYLON.Observable<void>();
     }
 
     public static GetForRadius(radius: number): NavGraph {
@@ -48,6 +51,7 @@ class NavGraphManager {
                 navGraph.obstacles.push(obstacle);
             }
         )
+        this.onObstacleListUpdated.notifyObservers();
     }
 
     public static RemoveObstacle(obstacle: Obstacle): void {
@@ -63,5 +67,6 @@ class NavGraphManager {
                 }
             }
         )
+        this.onObstacleListUpdated.notifyObservers();
     }
 }

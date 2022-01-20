@@ -12,6 +12,7 @@ class Main {
 	public gameObjects: GameObject[] = [];
 	public playerAction: PlayerAction;
 	public ground: BABYLON.Mesh;
+	public navGraphManager: NavGraphManager;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -66,7 +67,7 @@ class Main {
 
 		this.playerAction = new PlayerAction(this);
 
-		let navgraphManager = new NavGraphManager(this);
+		this.navGraphManager = new NavGraphManager(this);
 
 		let menu = new Menu(this);
 		menu.initializeMenu();
