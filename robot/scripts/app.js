@@ -154,11 +154,6 @@ class Main {
         this.ground.material = groundMaterial;
     }
     generateScene() {
-        let walker = new Walker(this);
-        let turret = new Turret(this);
-        turret.posX = -5;
-        turret.target = walker;
-        turret.makeReady();
         for (let i = 0; i < 40; i++) {
             let n = Math.floor(2 * Math.random()) + 1;
             let rock = new Prop("rock_" + n.toFixed(0), this);
@@ -166,26 +161,14 @@ class Main {
             rock.posY = -40 + 80 * Math.random();
             rock.rot = 2 * Math.PI * Math.random();
         }
-        let wallNode1 = new WallNode(this);
-        wallNode1.posX = -4;
-        wallNode1.posY = 5;
-        wallNode1.makeReady();
-        let wallNode2 = new WallNode(this);
-        wallNode2.posX = 7;
-        wallNode2.posY = 3;
-        wallNode2.makeReady();
-        let wallNode3 = new WallNode(this);
-        wallNode3.posX = 8;
-        wallNode3.posY = -4;
-        wallNode3.makeReady();
-        let wall1 = new Wall(wallNode1, wallNode2, this);
-        wall1.makeReady();
-        let wall2 = new Wall(wallNode2, wallNode3, this);
-        wall2.makeReady();
         let commandCenter = new CommandCenter(this);
-        commandCenter.posX = 2;
+        commandCenter.posX = -15;
         commandCenter.posY = -5;
         commandCenter.makeReady();
+        let beacon = new Beacon(this);
+        beacon.posX = 15;
+        beacon.posY = 5;
+        beacon.makeReady();
     }
     disposeScene() {
         while (this.gameObjects.length > 0) {
@@ -234,7 +217,7 @@ class GameObject {
         this.sprite.posY = y;
     }
     get rot() {
-        return this.pos2D.y;
+        return this.sprite.rot;
     }
     set rot(r) {
         this.sprite.rot = r;
@@ -250,6 +233,9 @@ class Building extends GameObject {
         this.base = new BABYLON.Mesh("building", this.main.scene);
     }
     get pos2D() {
+        if (!this._pos2D) {
+            this._pos2D = BABYLON.Vector2.Zero();
+        }
         this._pos2D.x = this.base.position.x;
         this._pos2D.y = this.base.position.z;
         return this._pos2D;
@@ -289,6 +275,44 @@ class CommandCenter extends Building {
         super.makeReady();
         if (!this.obstacle) {
             this.obstacle = Obstacle.CreateHexagon(this.posX, this.posY, 3);
+            NavGraphManager.AddObstacle(this.obstacle);
+        }
+    }
+}
+class Beacon extends Building {
+    constructor(main) {
+        super(main);
+        this._t = 0;
+        this._update = () => {
+            this._t += this.main.engine.getDeltaTime() / 1000;
+            if (this._t > 3) {
+                this._t = 0;
+                let walker = new Walker(this.main);
+                walker.target.posX = this.posX;
+                walker.target.posY = this.posY;
+            }
+        };
+        BABYLON.SceneLoader.ImportMesh("", "assets/beacon.babylon", "", this.main.scene, (meshes) => {
+            for (let i = 0; i < meshes.length; i++) {
+                let mesh = meshes[i];
+                mesh.parent = this.base;
+                if (mesh instanceof BABYLON.Mesh) {
+                    mesh.instances.forEach((instancedMesh) => {
+                        instancedMesh.parent = this.base;
+                    });
+                }
+            }
+        });
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    dispose() {
+        super.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
+    makeReady() {
+        super.makeReady();
+        if (!this.obstacle) {
+            this.obstacle = Obstacle.CreateRect(this.posX, this.posY, 1.5, 1.5);
             NavGraphManager.AddObstacle(this.obstacle);
         }
     }
@@ -493,6 +517,24 @@ class WalkerTarget extends BABYLON.Mesh {
         this._pos2D.x = this.position.x;
         this._pos2D.y = this.position.z;
         return this._pos2D;
+    }
+    get posX() {
+        return this.position.x;
+    }
+    set posX(x) {
+        this.position.x = x;
+    }
+    get posY() {
+        return this.position.z;
+    }
+    set posY(y) {
+        this.position.z = y;
+    }
+    get rot() {
+        return this.rotation.y;
+    }
+    set rot(r) {
+        this.rotation.y = r;
     }
 }
 class Walker extends GameObject {
@@ -715,10 +757,12 @@ class Walker extends GameObject {
     updatePath() {
         this.moveOnPath();
         if (!this.currentPath || this.currentPath.length === 0) {
-            let rand = new BABYLON.Vector2(-30 + 60 * Math.random(), -30 + 60 * Math.random());
-            let navGraph = NavGraphManager.GetForRadius(2);
-            navGraph.update();
-            this.currentPath = navGraph.computePathFromTo(this.target.pos2D, rand);
+            let building = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
+            if (building) {
+                let navGraph = NavGraphManager.GetForRadius(2);
+                navGraph.update();
+                this.currentPath = navGraph.computePathFromTo(this.target.pos2D, building.pos2D);
+            }
         }
     }
     moveOnPath() {

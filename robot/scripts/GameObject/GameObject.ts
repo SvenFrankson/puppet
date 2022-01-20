@@ -30,7 +30,7 @@ abstract class GameObject {
     }
 
     public get rot(): number {
-        return this.pos2D.y;
+        return this.sprite.rot;
     }
     public set rot(r: number) {
         this.sprite.rot = r;

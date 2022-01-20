@@ -8,6 +8,29 @@ class WalkerTarget extends BABYLON.Mesh {
         return this._pos2D;
     }
 
+    public get posX(): number {
+        return this.position.x;
+    }
+
+    public set posX(x: number) {
+        this.position.x = x;
+    }
+
+    public get posY(): number {
+        return this.position.z;
+    }
+
+    public set posY(y: number) {
+        this.position.z = y;
+    }
+
+    public get rot(): number {
+        return this.rotation.y;
+    }
+    public set rot(r: number) {
+        this.rotation.y = r;
+    }
+
     public targets: BABYLON.Mesh[] = [];
 
     constructor(
@@ -292,10 +315,12 @@ class Walker extends GameObject {
     public updatePath(): void {
         this.moveOnPath();
         if (!this.currentPath || this.currentPath.length === 0) {
-            let rand = new BABYLON.Vector2(-30 + 60 * Math.random(), - 30 + 60 * Math.random());
-            let navGraph = NavGraphManager.GetForRadius(2);
-            navGraph.update();
-            this.currentPath = navGraph.computePathFromTo(this.target.pos2D, rand);
+            let building = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
+            if (building) {
+                let navGraph = NavGraphManager.GetForRadius(2);
+                navGraph.update();
+                this.currentPath = navGraph.computePathFromTo(this.target.pos2D, building.pos2D);
+            }
         }
     }
 
