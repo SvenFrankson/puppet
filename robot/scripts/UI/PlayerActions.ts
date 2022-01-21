@@ -1,3 +1,9 @@
+enum PlayerActionType {
+    None,
+    AddTurret,
+    AddWall
+}
+
 class PlayerAction {
 
     public _selectedTurret: Turret;
@@ -6,7 +12,8 @@ class PlayerAction {
     public _selectedWallNode2: WallNode;
     public _selectedWall: Wall;
 
-    public _currentActionButton: HTMLInputElement;
+    public currentActionType: PlayerActionType = PlayerActionType.None;
+    public currentActionButton: HTMLInputElement;
 
     constructor(
         public main: Main
@@ -19,8 +26,9 @@ class PlayerAction {
             return;
         }
 
-        this._currentActionButton = actionButton;
-        this._currentActionButton.classList.add("selected");
+        this.currentActionType = PlayerActionType.AddTurret;
+        this.currentActionButton = actionButton;
+        this.currentActionButton.classList.add("selected");
         
         this._selectedTurret = new Turret(this.main);
         this._selectedTurret.isReady = false;
@@ -29,13 +37,25 @@ class PlayerAction {
         this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret)
     }
 
+    public cancelAddTurret(): void {
+        if (this._selectedTurret) {
+            this._selectedTurret.dispose();
+            this._selectedTurret = undefined;
+        }
+        this.currentActionType = PlayerActionType.None;
+        this.currentActionButton.classList.remove("selected");
+        this.currentActionButton = undefined;
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
+        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret)
+    }
+
     public addWall(actionButton: HTMLInputElement): void {
         if (this._selectedWallNode1 || this._selectedWallNode2) {
             return;
         }
 
-        this._currentActionButton = actionButton;
-        this._currentActionButton.classList.add("selected");
+        this.currentActionButton = actionButton;
+        this.currentActionButton.classList.add("selected");
 
         this._selectedWallNode1 = new WallNode(this.main);
         this._selectedWallNode1.isReady = false;
@@ -55,19 +75,23 @@ class PlayerAction {
     public _pointerUpAddingTurret = (eventData: BABYLON.PointerInfo) => {
         if (this._selectedTurret) {
             if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
-                let newTurret = this._selectedTurret;
-                this._selectedTurret = undefined;
-                this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-                this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
-                this._currentActionButton.classList.remove("selected");
-                new LoadingPlane(
-                    newTurret.pos2D,
-                    3,
-                    () => {
-                        newTurret.makeReady();
-                    },
-                    this.main
-                );
+                if (this.main.game.pay(100)) {
+                    let newTurret = this._selectedTurret;
+                    this._selectedTurret = undefined;
+                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
+                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                    this.currentActionType = PlayerActionType.None;
+                    this.currentActionButton.classList.remove("selected");
+                    this.currentActionButton = undefined;
+                    new LoadingPlane(
+                        newTurret.pos2D,
+                        3,
+                        () => {
+                            newTurret.makeReady();
+                        },
+                        this.main
+                    );
+                }
             }
         }
     }
@@ -147,28 +171,32 @@ class PlayerAction {
 
                 this._selectedWall.node2 = this._selectedWallNode2;
 
-                let newWall = this._selectedWall;
-                let newNode1 = this._selectedWallNode1;
-                let newNode2 = this._selectedWallNode2;
-
-                new LoadingPlane(
-                    newNode1.pos2D.add(newNode2.pos2D).scale(0.5),
-                    3,
-                    () => {
-                        newWall.makeReady();
-                        newNode1.makeReady();
-                        newNode2.makeReady();
-                    },
-                    this.main
-                );
-
-                this._selectedWallNode1 = undefined;
-                this._selectedWallNode2 = undefined;
-                this._selectedWall = undefined;
-                
-                this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingWall);
-                this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingWall);
-                this._currentActionButton.classList.remove("selected");
+                let l = BABYLON.Vector2.Distance(this._selectedWallNode1.pos2D, this._selectedWallNode2.pos2D);
+                let cost = 25 + Math.ceil(l * 5);
+                if (this.main.game.pay(cost)) {
+                    let newWall = this._selectedWall;
+                    let newNode1 = this._selectedWallNode1;
+                    let newNode2 = this._selectedWallNode2;
+    
+                    new LoadingPlane(
+                        newNode1.pos2D.add(newNode2.pos2D).scale(0.5),
+                        3,
+                        () => {
+                            newWall.makeReady();
+                            newNode1.makeReady();
+                            newNode2.makeReady();
+                        },
+                        this.main
+                    );
+    
+                    this._selectedWallNode1 = undefined;
+                    this._selectedWallNode2 = undefined;
+                    this._selectedWall = undefined;
+                    
+                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingWall);
+                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingWall);
+                    this.currentActionButton.classList.remove("selected");
+                }
             }
         }
     }

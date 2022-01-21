@@ -5,6 +5,7 @@ class Menu {
     public creditMenuContainer: HTMLDivElement;
     public buildingMenuContainer: HTMLDivElement;
     public ingameMenuContainer: HTMLDivElement;
+    private _goldElement: HTMLElement;
     public pauseMenuContainer: HTMLDivElement;
     public debugContainer: HTMLDivElement;
 
@@ -110,7 +111,14 @@ class Menu {
         let buildingButtons = buildingMenu.addSquareButtons(
             ["TOWER", "WALL"],
             [
-                () => { this.main.playerAction.addTurret(buildingButtons[0]); },
+                () => {
+                    if (this.main.playerAction.currentActionType === PlayerActionType.AddTurret) {
+                        this.main.playerAction.cancelAddTurret();
+                    }
+                    else {
+                        this.main.playerAction.addTurret(buildingButtons[0]);
+                    }
+                },
                 () => { this.main.playerAction.addWall(buildingButtons[1]); }
             ]
         );
@@ -133,7 +141,7 @@ class Menu {
         ingameMenu.addLargeButton("MENU", () => {
             this.showPauseMenu();
         });
-        ingameMenu.addTitle3("740");
+        this._goldElement = ingameMenu.addTitle3("740");
         
 		this.ingameMenuContainer.appendChild(ingameMenu);
 
@@ -221,5 +229,9 @@ class Menu {
         this.playMenuContainer.style.display = "none";
         this.creditMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "block";
+    }
+
+    public setGold(v: number): void {
+        this._goldElement.innerText = v.toFixed(0);
     }
 }

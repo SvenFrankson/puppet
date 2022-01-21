@@ -86,6 +86,33 @@ class CameraManager {
         this.resize();
     }
 }
+class Game {
+    constructor(main) {
+        this.main = main;
+        this.gold = 0;
+        this._update = () => {
+        };
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    pay(amount) {
+        if (this.canPay(amount)) {
+            this.gold -= amount;
+            this.main.menu.setGold(this.gold);
+            return true;
+        }
+        return false;
+    }
+    canPay(amount) {
+        if (amount <= this.gold) {
+            return true;
+        }
+        return false;
+    }
+    credit(amount) {
+        this.gold += amount;
+        this.main.menu.setGold(this.gold);
+    }
+}
 /// <reference path="../lib/babylon.d.ts"/>
 /// <reference path="../lib/babylon.gui.d.ts"/>
 var COS30 = Math.cos(Math.PI / 6);
@@ -121,6 +148,12 @@ class Main {
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
+        this.navGraphManager = new NavGraphManager(this);
+        this.playerAction = new PlayerAction(this);
+        this.menu = new Menu(this);
+        this.menu.initializeMenu();
+        this.generateScene();
+        this.menu.showIngameMenu();
         this.cameraManager = new CameraManager(this);
         this.cameraManager.initialize();
         let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, -1), this.scene);
@@ -128,12 +161,8 @@ class Main {
         window.onresize = () => {
             this.resize();
         };
-        this.playerAction = new PlayerAction(this);
-        this.navGraphManager = new NavGraphManager(this);
-        let menu = new Menu(this);
-        menu.initializeMenu();
-        this.generateScene();
-        menu.showIngameMenu();
+        this.game = new Game(this);
+        this.game.credit(300);
         this.ground = new BABYLON.Mesh("ground", this.scene);
         let data = new BABYLON.VertexData();
         let positions = [];
@@ -289,7 +318,7 @@ class Beacon extends Building {
         this._t = Infinity;
         this._update = () => {
             this._t += this.main.engine.getDeltaTime() / 1000;
-            if (this._t > 15) {
+            if (this._t > 5) {
                 this._t = 0;
                 let walker = new Walker(this.main);
                 walker.forcePosRot(this.posX, this.posY, -Math.PI / 2);
@@ -491,6 +520,8 @@ class Turret extends GameObject {
         return new Promise(resolve => {
             let duration = 0.5;
             let t = 0;
+            let bullets = [];
+            let bulletsCount = 5;
             let step = () => {
                 t += this.main.scene.getEngine().getDeltaTime() / 1000;
                 let d = t / duration;
@@ -499,6 +530,18 @@ class Turret extends GameObject {
                     this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
                     this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
                     this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
+                    if (d * bulletsCount > bullets.length) {
+                        let p0 = this.canon.absolutePosition.clone();
+                        p0.y = 1;
+                        let p1 = this.target.pos2D;
+                        let bullet = BABYLON.MeshBuilder.CreateLines("bullet", {
+                            points: [p0, new BABYLON.Vector3(p1.x, 1, p1.y)]
+                        });
+                        bullets.push(bullet);
+                        setTimeout(() => {
+                            bullet.dispose();
+                        }, 0.3);
+                    }
                     requestAnimationFrame(step);
                 }
                 else {
@@ -840,6 +883,7 @@ class Walker extends GameObject {
     wound(n) {
         this.hitpoint -= n;
         if (this.hitpoint <= 0) {
+            this.main.game.credit(10);
             this.dispose();
         }
     }
@@ -1856,7 +1900,14 @@ class Menu {
         }
         */
         let buildingButtons = buildingMenu.addSquareButtons(["TOWER", "WALL"], [
-            () => { this.main.playerAction.addTurret(buildingButtons[0]); },
+            () => {
+                if (this.main.playerAction.currentActionType === PlayerActionType.AddTurret) {
+                    this.main.playerAction.cancelAddTurret();
+                }
+                else {
+                    this.main.playerAction.addTurret(buildingButtons[0]);
+                }
+            },
             () => { this.main.playerAction.addWall(buildingButtons[1]); }
         ]);
         buildingButtons[0].style.backgroundImage = "url(assets/icons/tower.png)";
@@ -1874,7 +1925,7 @@ class Menu {
         ingameMenu.addLargeButton("MENU", () => {
             this.showPauseMenu();
         });
-        ingameMenu.addTitle3("740");
+        this._goldElement = ingameMenu.addTitle3("740");
         this.ingameMenuContainer.appendChild(ingameMenu);
         this.pauseMenuContainer = document.getElementById("pause-menu");
         let pauseResume = SpacePanel.CreateSpacePanel();
@@ -1943,6 +1994,9 @@ class Menu {
         this.playMenuContainer.style.display = "none";
         this.creditMenuContainer.style.display = "none";
         this.pauseMenuContainer.style.display = "block";
+    }
+    setGold(v) {
+        this._goldElement.innerText = v.toFixed(0);
     }
 }
 class SpacePanel extends HTMLElement {
@@ -2227,9 +2281,16 @@ class SpacePanelLabel extends HTMLElement {
     }
 }
 window.customElements.define("space-panel-label", SpacePanelLabel);
+var PlayerActionType;
+(function (PlayerActionType) {
+    PlayerActionType[PlayerActionType["None"] = 0] = "None";
+    PlayerActionType[PlayerActionType["AddTurret"] = 1] = "AddTurret";
+    PlayerActionType[PlayerActionType["AddWall"] = 2] = "AddWall";
+})(PlayerActionType || (PlayerActionType = {}));
 class PlayerAction {
     constructor(main) {
         this.main = main;
+        this.currentActionType = PlayerActionType.None;
         this._updateAddingTurret = () => {
             if (this._selectedTurret) {
                 let world = this.main.getPointerWorldPos();
@@ -2240,14 +2301,18 @@ class PlayerAction {
         this._pointerUpAddingTurret = (eventData) => {
             if (this._selectedTurret) {
                 if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
-                    let newTurret = this._selectedTurret;
-                    this._selectedTurret = undefined;
-                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
-                    this._currentActionButton.classList.remove("selected");
-                    new LoadingPlane(newTurret.pos2D, 3, () => {
-                        newTurret.makeReady();
-                    }, this.main);
+                    if (this.main.game.pay(100)) {
+                        let newTurret = this._selectedTurret;
+                        this._selectedTurret = undefined;
+                        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
+                        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                        this.currentActionType = PlayerActionType.None;
+                        this.currentActionButton.classList.remove("selected");
+                        this.currentActionButton = undefined;
+                        new LoadingPlane(newTurret.pos2D, 3, () => {
+                            newTurret.makeReady();
+                        }, this.main);
+                    }
                 }
             }
         };
@@ -2313,20 +2378,24 @@ class PlayerAction {
                         this._selectedWallNode2.posY = world.y;
                     }
                     this._selectedWall.node2 = this._selectedWallNode2;
-                    let newWall = this._selectedWall;
-                    let newNode1 = this._selectedWallNode1;
-                    let newNode2 = this._selectedWallNode2;
-                    new LoadingPlane(newNode1.pos2D.add(newNode2.pos2D).scale(0.5), 3, () => {
-                        newWall.makeReady();
-                        newNode1.makeReady();
-                        newNode2.makeReady();
-                    }, this.main);
-                    this._selectedWallNode1 = undefined;
-                    this._selectedWallNode2 = undefined;
-                    this._selectedWall = undefined;
-                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingWall);
-                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingWall);
-                    this._currentActionButton.classList.remove("selected");
+                    let l = BABYLON.Vector2.Distance(this._selectedWallNode1.pos2D, this._selectedWallNode2.pos2D);
+                    let cost = 25 + Math.ceil(l * 5);
+                    if (this.main.game.pay(cost)) {
+                        let newWall = this._selectedWall;
+                        let newNode1 = this._selectedWallNode1;
+                        let newNode2 = this._selectedWallNode2;
+                        new LoadingPlane(newNode1.pos2D.add(newNode2.pos2D).scale(0.5), 3, () => {
+                            newWall.makeReady();
+                            newNode1.makeReady();
+                            newNode2.makeReady();
+                        }, this.main);
+                        this._selectedWallNode1 = undefined;
+                        this._selectedWallNode2 = undefined;
+                        this._selectedWall = undefined;
+                        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingWall);
+                        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingWall);
+                        this.currentActionButton.classList.remove("selected");
+                    }
                 }
             }
         };
@@ -2335,20 +2404,32 @@ class PlayerAction {
         if (this._selectedTurret) {
             return;
         }
-        this._currentActionButton = actionButton;
-        this._currentActionButton.classList.add("selected");
+        this.currentActionType = PlayerActionType.AddTurret;
+        this.currentActionButton = actionButton;
+        this.currentActionButton.classList.add("selected");
         this._selectedTurret = new Turret(this.main);
         this._selectedTurret.isReady = false;
         this._selectedTurret.setDarkness(0.5);
         this.main.scene.onBeforeRenderObservable.add(this._updateAddingTurret);
         this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret);
     }
+    cancelAddTurret() {
+        if (this._selectedTurret) {
+            this._selectedTurret.dispose();
+            this._selectedTurret = undefined;
+        }
+        this.currentActionType = PlayerActionType.None;
+        this.currentActionButton.classList.remove("selected");
+        this.currentActionButton = undefined;
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
+        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+    }
     addWall(actionButton) {
         if (this._selectedWallNode1 || this._selectedWallNode2) {
             return;
         }
-        this._currentActionButton = actionButton;
-        this._currentActionButton.classList.add("selected");
+        this.currentActionButton = actionButton;
+        this.currentActionButton.classList.add("selected");
         this._selectedWallNode1 = new WallNode(this.main);
         this._selectedWallNode1.isReady = false;
         this._selectedWallNode1.setDarkness(0.5);

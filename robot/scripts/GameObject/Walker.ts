@@ -386,6 +386,7 @@ class Walker extends GameObject {
     public wound(n: number): void {
         this.hitpoint -= n;
         if (this.hitpoint <= 0) {
+            this.main.game.credit(10);
             this.dispose();
         }
     }

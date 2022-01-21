@@ -104,6 +104,8 @@ class Turret extends GameObject {
             resolve => {
                 let duration = 0.5;
                 let t = 0;
+                let bullets: BABYLON.Mesh[] = [];
+                let bulletsCount: number = 5;
                 let step = () => {
                     t += this.main.scene.getEngine().getDeltaTime() / 1000;
                     let d = t / duration;
@@ -112,6 +114,26 @@ class Turret extends GameObject {
                         this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
                         this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
                         this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
+                        
+                        if (d * bulletsCount > bullets.length) {
+                            let p0: BABYLON.Vector3 = this.canon.absolutePosition.clone();
+                            p0.y = 1;
+                            let p1: BABYLON.Vector2 = this.target.pos2D;
+                            let bullet = BABYLON.MeshBuilder.CreateLines(
+                                "bullet",
+                                {
+                                    points: [p0, new BABYLON.Vector3(p1.x, 1, p1.y)]
+                                }
+                            )
+                            bullets.push(bullet);
+                            setTimeout(
+                                () => {
+                                    bullet.dispose();
+                                },
+                                0.3
+                            );
+                        }
+
                         requestAnimationFrame(step);
                     }
                     else {

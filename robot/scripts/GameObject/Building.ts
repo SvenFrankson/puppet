@@ -109,7 +109,7 @@ class Beacon extends Building {
 
     public _update = () => {
         this._t += this.main.engine.getDeltaTime() / 1000;
-        if (this._t > 15) {
+        if (this._t > 5) {
             this._t = 0;
             let walker = new Walker(this.main);
             walker.forcePosRot(this.posX, this.posY, - Math.PI / 2);

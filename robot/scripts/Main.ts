@@ -13,6 +13,8 @@ class Main {
 	public playerAction: PlayerAction;
 	public ground: BABYLON.Mesh;
 	public navGraphManager: NavGraphManager;
+	public game: Game;
+	public menu: Menu;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -54,6 +56,15 @@ class Main {
 		this.scene = new BABYLON.Scene(this.engine);
 		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
 
+		this.navGraphManager = new NavGraphManager(this);
+
+		this.playerAction = new PlayerAction(this);
+
+		this.menu = new Menu(this);
+		this.menu.initializeMenu();
+		this.generateScene();
+		this.menu.showIngameMenu();
+
 		this.cameraManager = new CameraManager(this);
 		this.cameraManager.initialize();
 
@@ -65,14 +76,8 @@ class Main {
 			this.resize();
 		}
 
-		this.playerAction = new PlayerAction(this);
-
-		this.navGraphManager = new NavGraphManager(this);
-
-		let menu = new Menu(this);
-		menu.initializeMenu();
-		this.generateScene();
-		menu.showIngameMenu();
+		this.game = new Game(this);
+		this.game.credit(300);
 
 		this.ground = new BABYLON.Mesh("ground", this.scene);
 
