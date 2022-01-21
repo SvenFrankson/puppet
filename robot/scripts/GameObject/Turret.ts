@@ -10,6 +10,9 @@ class Turret extends GameObject {
 
     public obstacle: Obstacle;
 
+    public cooldown: number = 1;
+    public counter: number = 0;
+
     constructor(
         main: Main
     ) {
@@ -64,8 +67,13 @@ class Turret extends GameObject {
             return;
         }
 
-        this._t += this.main.scene.getEngine().getDeltaTime() / 1000;
+        this._t += this.main.engine.getDeltaTime() / 1000;
+        this.counter -= this.main.engine.getDeltaTime() / 1000;
         
+        if (this.target && this.target.isDisposed) {
+            this.target = undefined;
+        }
+
         if (!this.target) {
             let walker = this.main.gameObjects.find(g => { return g instanceof Walker; }) as Walker;
             if (walker) {
@@ -78,20 +86,44 @@ class Turret extends GameObject {
                 this.target.sprite.posX - this.sprite.posX,
                 this.target.sprite.posY - this.sprite.posY
             );
-            let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
-            this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, targetA, 1 / 30 * 2 *  Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
+            let targetA = - Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
+            this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, targetA, 1 / 10 * 2 *  Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
             let aligned = Math2D.AreEqualsCircular(this.body.rotation.y, targetA, Math.PI / 180);
             if (aligned) {
-                this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
-                this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
-                this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
-            }
-            else {
-                this.canon.posY = 0.6;
-                this.body.posX = 0;
-                this.body.posY = 0;
+                if (this.counter < 0) {
+                    this.target.wound(1);
+                    this.counter = this.cooldown;
+                    this._shoot();
+                }
             }
         }
+    }
+
+    private async _shoot(): Promise<void> {
+        return new Promise<void>(
+            resolve => {
+                let duration = 0.5;
+                let t = 0;
+                let step = () => {
+                    t += this.main.scene.getEngine().getDeltaTime() / 1000;
+                    let d = t / duration;
+                    d = Math.min(d, 1);
+                    if (d < 1) {
+                        this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
+                        this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
+                        this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
+                        requestAnimationFrame(step);
+                    }
+                    else {
+                        this.canon.posY = 0.6;
+                        this.body.posX = 0;
+                        this.body.posY = 0;
+                        resolve();
+                    }
+                }
+                step();
+            }
+        )
     }
 
     public setDarkness(d: number): void {

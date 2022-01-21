@@ -224,6 +224,10 @@ class GameObject {
     }
     dispose() {
         this.isDisposed = true;
+        let index = this.main.gameObjects.indexOf(this);
+        if (index != -1) {
+            this.main.gameObjects.splice(index, 1);
+        }
     }
 }
 /// <reference path="GameObject.ts"/>
@@ -424,12 +428,18 @@ class Turret extends GameObject {
     constructor(main) {
         super(main);
         this.isReady = true;
+        this.cooldown = 1;
+        this.counter = 0;
         this._t = 0;
         this._update = () => {
             if (!this.isReady) {
                 return;
             }
-            this._t += this.main.scene.getEngine().getDeltaTime() / 1000;
+            this._t += this.main.engine.getDeltaTime() / 1000;
+            this.counter -= this.main.engine.getDeltaTime() / 1000;
+            if (this.target && this.target.isDisposed) {
+                this.target = undefined;
+            }
             if (!this.target) {
                 let walker = this.main.gameObjects.find(g => { return g instanceof Walker; });
                 if (walker) {
@@ -438,18 +448,15 @@ class Turret extends GameObject {
             }
             if (this.target) {
                 let dirToTarget = new BABYLON.Vector2(this.target.sprite.posX - this.sprite.posX, this.target.sprite.posY - this.sprite.posY);
-                let targetA = Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
-                this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, targetA, 1 / 30 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
+                let targetA = -Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
+                this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, targetA, 1 / 10 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
                 let aligned = Math2D.AreEqualsCircular(this.body.rotation.y, targetA, Math.PI / 180);
                 if (aligned) {
-                    this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
-                    this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
-                    this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
-                }
-                else {
-                    this.canon.posY = 0.6;
-                    this.body.posX = 0;
-                    this.body.posY = 0;
+                    if (this.counter < 0) {
+                        this.target.wound(1);
+                        this.counter = this.cooldown;
+                        this._shoot();
+                    }
                 }
             }
         };
@@ -488,6 +495,30 @@ class Turret extends GameObject {
             NavGraphManager.AddObstacle(this.obstacle);
         }
     }
+    async _shoot() {
+        return new Promise(resolve => {
+            let duration = 0.5;
+            let t = 0;
+            let step = () => {
+                t += this.main.scene.getEngine().getDeltaTime() / 1000;
+                let d = t / duration;
+                d = Math.min(d, 1);
+                if (d < 1) {
+                    this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
+                    this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
+                    this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
+                    requestAnimationFrame(step);
+                }
+                else {
+                    this.canon.posY = 0.6;
+                    this.body.posX = 0;
+                    this.body.posY = 0;
+                    resolve();
+                }
+            };
+            step();
+        });
+    }
     setDarkness(d) {
         this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
@@ -523,12 +554,16 @@ class WalkerTarget extends BABYLON.Mesh {
     }
     set posX(x) {
         this.position.x = x;
+        this.walker.feet[0].posX = x + 0.1;
+        this.walker.feet[1].posX = x - 0.1;
     }
     get posY() {
         return this.position.z;
     }
     set posY(y) {
         this.position.z = y;
+        this.walker.feet[0].posY = y + 0.1;
+        this.walker.feet[1].posY = y - 0.1;
     }
     get rot() {
         return this.rotation.y;
@@ -547,6 +582,8 @@ class Walker extends GameObject {
         this._inputForwardAxis = 0;
         this._inputSideAxis = 0;
         this._inputRotateAxis = 0;
+        this.hitpoint = 10;
+        this.hitpointMax = 10;
         this._movingLegCount = 0;
         this._movingLegs = new UniqueList();
         this._bodyT = 0;
@@ -798,6 +835,12 @@ class Walker extends GameObject {
             }
             document.getElementById("distance-to-next").innerText = distanceToNext.toFixed(1) + (Math.random() > 0.5 ? " ." : "");
             document.getElementById("target-rot").innerText = (this.target.rotation.y / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
+        }
+    }
+    wound(n) {
+        this.hitpoint -= n;
+        if (this.hitpoint <= 0) {
+            this.dispose();
         }
     }
 }

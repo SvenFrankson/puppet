@@ -44,5 +44,9 @@ abstract class GameObject {
 
     public dispose(): void {
         this.isDisposed = true;
+        let index = this.main.gameObjects.indexOf(this);
+        if (index != - 1) {
+            this.main.gameObjects.splice(index, 1);
+        }
     }
 }

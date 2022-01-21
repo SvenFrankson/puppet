@@ -14,6 +14,8 @@ class WalkerTarget extends BABYLON.Mesh {
 
     public set posX(x: number) {
         this.position.x = x;
+        this.walker.feet[0].posX = x + 0.1;
+        this.walker.feet[1].posX = x - 0.1;
     }
 
     public get posY(): number {
@@ -22,6 +24,8 @@ class WalkerTarget extends BABYLON.Mesh {
 
     public set posY(y: number) {
         this.position.z = y;
+        this.walker.feet[0].posY = y + 0.1;
+        this.walker.feet[1].posY = y - 0.1;
     }
 
     public get rot(): number {
@@ -71,6 +75,9 @@ class Walker extends GameObject {
     public currentPath: BABYLON.Vector2[];
 
     public currentTarget: GameObject;
+
+    public hitpoint: number = 10;
+    public hitpointMax: number = 10;
 
     constructor(
         main: Main
@@ -364,6 +371,13 @@ class Walker extends GameObject {
 
             document.getElementById("distance-to-next").innerText = distanceToNext.toFixed(1) + (Math.random() > 0.5 ? " ." : "");
             document.getElementById("target-rot").innerText = (this.target.rotation.y / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
+        }
+    }
+
+    public wound(n: number): void {
+        this.hitpoint -= n;
+        if (this.hitpoint <= 0) {
+            this.dispose();
         }
     }
 }
