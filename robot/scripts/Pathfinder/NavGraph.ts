@@ -244,6 +244,9 @@ class NavGraph {
 
     public displayGraph(scene: BABYLON.Scene): void {
         console.log("DISPLAY GRAPH");
+        if (!this.points) {
+            return;
+        }
         this.hideGraph();
         this._devGraphMesh = new BABYLON.TransformNode("dev-graph-mesh");
         for (let i = 0; i < this.points.length; i++) {
@@ -255,8 +258,8 @@ class NavGraph {
                         "line",
                         { 
                             points: [
-                                new BABYLON.Vector3(p.position.x, p.position.y, 2),
-                                new BABYLON.Vector3(p2.position.x, p2.position.y, 2)
+                                new BABYLON.Vector3(p.position.x, 0, p.position.y),
+                                new BABYLON.Vector3(p2.position.x, 0, p2.position.y)
                             ],
                             colors: [
                                 new BABYLON.Color4(0, 0, 1, 1),
@@ -265,6 +268,8 @@ class NavGraph {
                         },
                         scene
                     );
+                    devGraphMesh.renderingGroupId = 1;
+                    devGraphMesh.layerMask = 0x10000000;
                     devGraphMesh.parent = this._devGraphMesh;
                 }
             }

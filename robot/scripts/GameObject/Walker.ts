@@ -14,8 +14,6 @@ class WalkerTarget extends BABYLON.Mesh {
 
     public set posX(x: number) {
         this.position.x = x;
-        this.walker.feet[0].posX = x + 0.1;
-        this.walker.feet[1].posX = x - 0.1;
     }
 
     public get posY(): number {
@@ -24,8 +22,6 @@ class WalkerTarget extends BABYLON.Mesh {
 
     public set posY(y: number) {
         this.position.z = y;
-        this.walker.feet[0].posY = y + 0.1;
-        this.walker.feet[1].posY = y - 0.1;
     }
 
     public get rot(): number {
@@ -185,6 +181,19 @@ class Walker extends GameObject {
             f.dispose();
         })
         this.main.navGraphManager.onObstacleListUpdated.removeCallback(this._updatePath);
+    }
+
+    public forcePosRot(x: number, y: number, r: number): void {
+        let right = new BABYLON.Vector2(Math.cos(- r), Math.sin(- r));
+        this.target.posX = x;
+        this.target.posY = y;
+        this.target.rot = r;
+        this.feet[0].posX = x - right.x * 1.1;
+        this.feet[0].posY = y - right.y * 1.1;
+        this.feet[0].rot = r;
+        this.feet[1].posX = x + right.x * 1.1;
+        this.feet[1].posY = y + right.y * 1.1;
+        this.feet[1].rot = r;
     }
 
     private _movingLegCount: number = 0;

@@ -112,21 +112,12 @@ class Beacon extends Building {
         if (this._t > 15) {
             this._t = 0;
             let walker = new Walker(this.main);
-            walker.target.posX = this.posX;
-            walker.target.posY = this.posY;
+            walker.forcePosRot(this.posX, this.posY, - Math.PI / 2);
         }
     }
 
     public dispose(): void {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-    }
-
-    public makeReady(): void {
-        super.makeReady();
-        if (!this.obstacle) {
-            this.obstacle = Obstacle.CreateRect(this.posX, this.posY, 1.5, 1.5);
-            NavGraphManager.AddObstacle(this.obstacle);
-        }
     }
 }

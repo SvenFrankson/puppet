@@ -292,8 +292,7 @@ class Beacon extends Building {
             if (this._t > 15) {
                 this._t = 0;
                 let walker = new Walker(this.main);
-                walker.target.posX = this.posX;
-                walker.target.posY = this.posY;
+                walker.forcePosRot(this.posX, this.posY, -Math.PI / 2);
             }
         };
         BABYLON.SceneLoader.ImportMesh("", "assets/beacon.babylon", "", this.main.scene, (meshes) => {
@@ -312,13 +311,6 @@ class Beacon extends Building {
     dispose() {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-    }
-    makeReady() {
-        super.makeReady();
-        if (!this.obstacle) {
-            this.obstacle = Obstacle.CreateRect(this.posX, this.posY, 1.5, 1.5);
-            NavGraphManager.AddObstacle(this.obstacle);
-        }
     }
 }
 /// <reference path="GameObject.ts"/>
@@ -554,16 +546,12 @@ class WalkerTarget extends BABYLON.Mesh {
     }
     set posX(x) {
         this.position.x = x;
-        this.walker.feet[0].posX = x + 0.1;
-        this.walker.feet[1].posX = x - 0.1;
     }
     get posY() {
         return this.position.z;
     }
     set posY(y) {
         this.position.z = y;
-        this.walker.feet[0].posY = y + 0.1;
-        this.walker.feet[1].posY = y - 0.1;
     }
     get rot() {
         return this.rotation.y;
@@ -773,6 +761,18 @@ class Walker extends GameObject {
             f.dispose();
         });
         this.main.navGraphManager.onObstacleListUpdated.removeCallback(this._updatePath);
+    }
+    forcePosRot(x, y, r) {
+        let right = new BABYLON.Vector2(Math.cos(-r), Math.sin(-r));
+        this.target.posX = x;
+        this.target.posY = y;
+        this.target.rot = r;
+        this.feet[0].posX = x - right.x * 1.1;
+        this.feet[0].posY = y - right.y * 1.1;
+        this.feet[0].rot = r;
+        this.feet[1].posX = x + right.x * 1.1;
+        this.feet[1].posY = y + right.y * 1.1;
+        this.feet[1].rot = r;
     }
     async _moveLeg(legIndex, target, targetR) {
         return new Promise(resolve => {
@@ -1145,6 +1145,9 @@ class NavGraph {
     }
     displayGraph(scene) {
         console.log("DISPLAY GRAPH");
+        if (!this.points) {
+            return;
+        }
         this.hideGraph();
         this._devGraphMesh = new BABYLON.TransformNode("dev-graph-mesh");
         for (let i = 0; i < this.points.length; i++) {
@@ -1154,14 +1157,16 @@ class NavGraph {
                 if (p.index < p2.index) {
                     let devGraphMesh = BABYLON.MeshBuilder.CreateLines("line", {
                         points: [
-                            new BABYLON.Vector3(p.position.x, p.position.y, 2),
-                            new BABYLON.Vector3(p2.position.x, p2.position.y, 2)
+                            new BABYLON.Vector3(p.position.x, 0, p.position.y),
+                            new BABYLON.Vector3(p2.position.x, 0, p2.position.y)
                         ],
                         colors: [
                             new BABYLON.Color4(0, 0, 1, 1),
                             new BABYLON.Color4(0, 0, 1, 1)
                         ]
                     }, scene);
+                    devGraphMesh.renderingGroupId = 1;
+                    devGraphMesh.layerMask = 0x10000000;
                     devGraphMesh.parent = this._devGraphMesh;
                 }
             }
