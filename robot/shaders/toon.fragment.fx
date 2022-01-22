@@ -1,36 +1,71 @@
 precision highp float;
 
 // Lights
-varying vec2 positionS;
 varying vec3 vPositionW;
 varying vec3 vNormalW;
 varying vec4 vColor;
 varying vec2 vUV;
 
 // Refs
-uniform sampler2D pencil_texture;
+uniform sampler2D textureSampler;
 uniform vec3 lightInvDirW;
 
 void main(void) {
-    
-    float intensity = texture2D(pencil_texture, positionS * vec2(4.)).r;
-    vec4 color = vec4(1.) * (1. - intensity) + vColor * intensity;
+    float ToonThresholds[5];
+    ToonThresholds[0] = 0.8;
+    ToonThresholds[1] = 0.6;
+    ToonThresholds[2] = 0.4;
+    ToonThresholds[3] = 0.1;
+    ToonThresholds[4] = - 0.4;
 
-    float f = vNormalW.y;
-    vec2 pencil = vec2(cos(positionS.x * 2. * 3.14), sin(positionS.y * 2. * 3.14));
-    vec2 n2 = vec2(vNormalW.x, vNormalW.z);
-    float threshold = 0.2 + 0.8 * abs(dot(n2, pencil));
-    if (f < threshold) {
-        color = vec4(vec3(0.1), 1.);
+    float ToonBrightnessLevels[6];
+    ToonBrightnessLevels[0] = 1.0;
+    ToonBrightnessLevels[1] = 0.84;
+    ToonBrightnessLevels[2] = 0.68;
+    ToonBrightnessLevels[3] = 0.52;
+    ToonBrightnessLevels[4] = 0.36;
+    ToonBrightnessLevels[5] = 0.2;
+
+    // diffuse
+    float ndl = dot(vNormalW, lightInvDirW);
+
+    float a = vColor.a;
+    vec4 color = vColor;
+
+    if (ndl > ToonThresholds[0])
+    {
+        color *= ToonBrightnessLevels[0];
     }
-    else if (f < threshold + 0.2) {
-        float d = (f - threshold) / 0.2;
-        color = color * d + vec4(0.1) * (1. - d);
-        color.a = 1.;
+    else if (ndl > ToonThresholds[1])
+    {
+        color *= ToonBrightnessLevels[1];
     }
-    else {
-        color.a = 0.9;
+    else if (ndl > ToonThresholds[2])
+    {
+        color *= ToonBrightnessLevels[2];
     }
+    else if (ndl > ToonThresholds[3])
+    {
+        color *= ToonBrightnessLevels[3];
+    }
+    else if (ndl > ToonThresholds[4])
+    {
+        color *= ToonBrightnessLevels[4];
+    }
+    else
+    {
+        color *= ToonBrightnessLevels[5];
+    }
+
+    /*
+    if (abs(vPositionW.x - round(vPositionW.x)) < 0.005) {
+        color = vec3(0.);
+    }
+    if (abs(vPositionW.z - round(vPositionW.z)) < 0.005) {
+        color = vec3(0.);
+    }
+    */
     
-    gl_FragColor = color;
+    //gl_FragColor = vec4(color.rgb, a);
+    gl_FragColor = vec4(1., 0.5, 0.3, a);
 }

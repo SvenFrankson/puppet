@@ -157,6 +157,7 @@ class Main {
         this.cameraManager = new CameraManager(this);
         this.cameraManager.initialize();
         let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, -1), this.scene);
+        BABYLON.Engine.ShadersRepository = "./shaders/";
         this.resize();
         window.onresize = () => {
             this.resize();
@@ -300,6 +301,18 @@ class CommandCenter extends Building {
                     mesh.instances.forEach((instancedMesh) => {
                         instancedMesh.parent = this.base;
                     });
+                }
+                if (mesh.material instanceof BABYLON.PBRBaseMaterial) {
+                    let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                    mesh.material = toonMaterial;
+                }
+                else if (mesh.material instanceof BABYLON.MultiMaterial) {
+                    let newSubmaterials = [];
+                    mesh.material.subMaterials.forEach((m, i) => {
+                        let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                        newSubmaterials.push(toonMaterial);
+                    });
+                    mesh.material.subMaterials = newSubmaterials;
                 }
             }
         });
@@ -445,6 +458,18 @@ class Sprite extends BABYLON.Mesh {
 Sprite.SHADOW_Y = 0.1;
 Sprite.QUAD_Y = 0.2;
 Sprite.LEVEL_STEP = 0.1;
+class ToonMaterial extends BABYLON.ShaderMaterial {
+    constructor(name, transparent, scene) {
+        super(name, scene, {
+            vertex: "toon",
+            fragment: "toon",
+        }, {
+            attributes: ["position", "normal", "uv", "color"],
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
+            needAlphaBlending: true
+        });
+    }
+}
 class Turret extends GameObject {
     constructor(main) {
         super(main);

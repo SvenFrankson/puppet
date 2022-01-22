@@ -69,6 +69,8 @@ class Main {
 		this.cameraManager.initialize();
 
 		let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, - 1), this.scene);
+		
+		BABYLON.Engine.ShadersRepository = "./shaders/";
 
 		this.resize();
 
