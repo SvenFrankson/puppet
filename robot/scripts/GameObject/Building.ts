@@ -64,6 +64,21 @@ class CommandCenter extends Building {
                             }
                         )
                     }
+                    if (mesh.material instanceof BABYLON.PBRMaterial) {
+                        console.log(mesh.material);
+                        let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                        toonMaterial.setColor(mesh.material.albedoColor);
+                        mesh.material = toonMaterial;
+                    }
+                    else if (mesh.material instanceof BABYLON.MultiMaterial) {
+                        let newSubmaterials: BABYLON.Material[] = [];
+                        mesh.material.subMaterials.forEach((m, i) => {
+                            let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                            toonMaterial.setColor((m as BABYLON.PBRMaterial).albedoColor);
+                            newSubmaterials.push(toonMaterial);
+                        })
+                        mesh.material.subMaterials = newSubmaterials;
+                    }
 				}
 			}
 		)

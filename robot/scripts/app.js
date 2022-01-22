@@ -302,14 +302,17 @@ class CommandCenter extends Building {
                         instancedMesh.parent = this.base;
                     });
                 }
-                if (mesh.material instanceof BABYLON.PBRBaseMaterial) {
+                if (mesh.material instanceof BABYLON.PBRMaterial) {
+                    console.log(mesh.material);
                     let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                    toonMaterial.setColor(mesh.material.albedoColor);
                     mesh.material = toonMaterial;
                 }
                 else if (mesh.material instanceof BABYLON.MultiMaterial) {
                     let newSubmaterials = [];
                     mesh.material.subMaterials.forEach((m, i) => {
                         let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                        toonMaterial.setColor(m.albedoColor);
                         newSubmaterials.push(toonMaterial);
                     });
                     mesh.material.subMaterials = newSubmaterials;
@@ -465,9 +468,12 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
             fragment: "toon",
         }, {
             attributes: ["position", "normal", "uv", "color"],
-            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "mColor"],
             needAlphaBlending: true
         });
+    }
+    setColor(color) {
+        this.setColor3("mColor", color);
     }
 }
 class Turret extends GameObject {

@@ -10,9 +10,13 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
             },
             {
                 attributes: ["position", "normal", "uv", "color"],
-                uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
+                uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "mColor"],
                 needAlphaBlending: true
             }
         );
+    }
+
+    public setColor(color: BABYLON.Color3): void {
+        this.setColor3("mColor", color);
     }
 }
