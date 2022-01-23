@@ -304,7 +304,11 @@ class CommandCenter extends Building {
                 }
                 if (mesh.material instanceof BABYLON.PBRMaterial) {
                     console.log(mesh.material);
-                    let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                    let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                    if (mesh.material.name === "EnergyCellMaterial") {
+                        console.log("!");
+                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+                    }
                     toonMaterial.setColor(mesh.material.albedoColor);
                     mesh.material = toonMaterial;
                 }
@@ -468,8 +472,10 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
             fragment: "toon",
         }, {
             attributes: ["position", "normal", "uv", "color"],
-            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"]
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
+            samplers: ["colorTexture"]
         });
+        this.setTexture("colorTexture", new BABYLON.Texture("assets/empty.png", scene));
         this.setVector3("lightInvDirW", (new BABYLON.Vector3(-1, 1, -1)).normalize());
     }
     setColor(color) {

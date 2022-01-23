@@ -66,7 +66,11 @@ class CommandCenter extends Building {
                     }
                     if (mesh.material instanceof BABYLON.PBRMaterial) {
                         console.log(mesh.material);
-                        let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                        if (mesh.material.name === "EnergyCellMaterial") {
+                            console.log("!");
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+                        }
                         toonMaterial.setColor(mesh.material.albedoColor);
                         mesh.material = toonMaterial;
                     }

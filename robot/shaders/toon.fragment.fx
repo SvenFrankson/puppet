@@ -7,7 +7,7 @@ varying vec4 vColor;
 varying vec2 vUV;
 
 // Refs
-uniform sampler2D textureSampler;
+uniform sampler2D colorTexture;
 uniform vec3 lightInvDirW;
 uniform vec3 mColor;
 
@@ -30,7 +30,8 @@ void main(void) {
     // diffuse
     float ndl = dot(vNormalW, lightInvDirW);
 
-    vec4 color = vec4(mColor, 1.);
+    //vec4 color = vec4(mColor, 1.);
+    vec4 color = texture2D(colorTexture, vUV) * vec4(mColor, 1.);
 
     if (ndl > ToonThresholds[0])
     {

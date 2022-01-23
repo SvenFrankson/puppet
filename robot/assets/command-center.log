@@ -32,70 +32,21 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  144
-	processing begun of mesh:  energy-cell
-		mesh is an instance of :  base-shell.  Processing halted.
 	processing begun of mesh:  energy-cell-1
-		processing begun of material:  Concrete
-		processing begun of material:  Steel
-		registered as also a user of material:  Concrete
-		registered as also a user of material:  Steel
-		processing begun of multimaterial:  command_center.Multimaterial#1
-		num positions      :  184
-		num normals        :  184
+		processing begun of material:  EnergyCellMaterial
+		num positions      :  152
+		num normals        :  152
 		num tangents       :  0
-		num uvs            :  368
+		num uvs            :  304
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  116
-		WARNING: # of 0 area faces found:  8
-	processing begun of mesh:  energy-cell-4
-		processing begun of material:  Concrete
-		processing begun of material:  Steel
-		registered as also a user of material:  Concrete
-		registered as also a user of material:  Steel
-		processing begun of multimaterial:  command_center.Multimaterial#2
-		num positions      :  184
-		num normals        :  184
-		num tangents       :  0
-		num uvs            :  368
-		num uvs2           :  0
-		num colors         :  0
-		num triangles      :  116
-		WARNING: # of 0 area faces found:  8
-	processing begun of mesh:  energy-cell-3
-		processing begun of material:  Concrete
-		processing begun of material:  Steel
-		registered as also a user of material:  Concrete
-		registered as also a user of material:  Steel
-		processing begun of multimaterial:  command_center.Multimaterial#3
-		num positions      :  184
-		num normals        :  184
-		num tangents       :  0
-		num uvs            :  368
-		num uvs2           :  0
-		num colors         :  0
-		num triangles      :  116
-		WARNING: # of 0 area faces found:  8
-	processing begun of mesh:  energy-cell-2
-		processing begun of material:  Concrete
-		processing begun of material:  Steel
-		registered as also a user of material:  Concrete
-		registered as also a user of material:  Steel
-		processing begun of multimaterial:  command_center.Multimaterial#4
-		num positions      :  184
-		num normals        :  184
-		num tangents       :  0
-		num uvs            :  368
-		num uvs2           :  0
-		num colors         :  0
-		num triangles      :  116
-		WARNING: # of 0 area faces found:  8
+		num triangles      :  100
 	processing begun of mesh:  comm-module
 		processing begun of material:  Concrete
 		processing begun of material:  Steel
 		registered as also a user of material:  Concrete
 		registered as also a user of material:  Steel
-		processing begun of multimaterial:  command_center.Multimaterial#5
+		processing begun of multimaterial:  command_center.Multimaterial#1
 		num positions      :  581
 		num normals        :  581
 		num tangents       :  0
@@ -103,14 +54,44 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  226
+	processing begun of mesh:  energy-cell-1.001
+		processing begun of material:  EnergyCellMaterial
+		registered as also a user of material:  EnergyCellMaterial
+		num positions      :  152
+		num normals        :  152
+		num tangents       :  0
+		num uvs            :  304
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  100
+	processing begun of mesh:  energy-cell-1.002
+		processing begun of material:  EnergyCellMaterial
+		registered as also a user of material:  EnergyCellMaterial
+		num positions      :  152
+		num normals        :  152
+		num tangents       :  0
+		num uvs            :  304
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  100
+	processing begun of mesh:  energy-cell-1.003
+		processing begun of material:  EnergyCellMaterial
+		registered as also a user of material:  EnergyCellMaterial
+		num positions      :  152
+		num normals        :  152
+		num tangents       :  0
+		num uvs            :  304
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  100
 ========= Writing of JSON file started =========
 	writing mesh:  base-shell
 	writing mesh:  base-details
 	writing mesh:  energy-cell-1
-	writing mesh:  energy-cell-4
-	writing mesh:  energy-cell-3
-	writing mesh:  energy-cell-2
 	writing mesh:  comm-module
+	writing mesh:  energy-cell-1.001
+	writing mesh:  energy-cell-1.002
+	writing mesh:  energy-cell-1.003
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.1351 secs
+elapsed time:  0 min, 0.0568 secs
