@@ -50,7 +50,7 @@ class CameraManager {
         let noPostProcessCamera = new BABYLON.FreeCamera("no-post-process-camera", BABYLON.Vector3.Zero(), this.main.scene);
         noPostProcessCamera.parent = this.camera;
         noPostProcessCamera.layerMask = 0x10000000;
-        this.main.scene.activeCameras.push(this.camera, noPostProcessCamera);
+        this.main.scene.activeCameras = [this.camera, noPostProcessCamera];
         this.main.scene.onBeforeRenderObservable.add(this._update);
         this.main.canvas.onpointerleave = () => {
             this.moveWhenPointerOnSide = false;
@@ -468,9 +468,9 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
             fragment: "toon",
         }, {
             attributes: ["position", "normal", "uv", "color"],
-            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "mColor"],
-            needAlphaBlending: true
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"]
         });
+        this.setVector3("lightInvDirW", (new BABYLON.Vector3(-1, 1, -1)).normalize());
     }
     setColor(color) {
         this.setColor3("mColor", color);

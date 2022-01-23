@@ -21,7 +21,7 @@ class CameraManager {
 		noPostProcessCamera.parent = this.camera;
 		noPostProcessCamera.layerMask = 0x10000000;
 		
-		this.main.scene.activeCameras.push(this.camera, noPostProcessCamera);
+		this.main.scene.activeCameras = [this.camera, noPostProcessCamera];
         
         this.main.scene.onBeforeRenderObservable.add(this._update);
 

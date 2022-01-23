@@ -32,7 +32,6 @@ void main(void) {
 
     vec4 color = vec4(mColor, 1.);
 
-    /*
     if (ndl > ToonThresholds[0])
     {
         color *= ToonBrightnessLevels[0];
@@ -57,7 +56,6 @@ void main(void) {
     {
         color *= ToonBrightnessLevels[5];
     }
-    */
 
     /*
     if (abs(vPositionW.x - round(vPositionW.x)) < 0.005) {
