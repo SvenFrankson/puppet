@@ -68,8 +68,10 @@ class CommandCenter extends Building {
                         console.log(mesh.material);
                         let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                         if (mesh.material.name === "EnergyCellMaterial") {
-                            console.log("!");
                             toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+                        }
+                        if (mesh.material.name === "CommandCenterMaterial") {
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/command-center-texture.png", this.main.scene));
                         }
                         toonMaterial.setColor(mesh.material.albedoColor);
                         mesh.material = toonMaterial;
@@ -126,10 +128,15 @@ class Beacon extends Building {
         this.main.scene.onBeforeRenderObservable.add(this._update);
     }
 
+    private _n: number = 0;
     public _update = () => {
+        if (this._n > 5) {
+            return;
+        }
         this._t += this.main.engine.getDeltaTime() / 1000;
         if (this._t > 5) {
             this._t = 0;
+            this._n++;
             let walker = new Walker(this.main);
             walker.forcePosRot(this.posX, this.posY, - Math.PI / 2);
         }

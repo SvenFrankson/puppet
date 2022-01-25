@@ -45,8 +45,81 @@ class CameraManager {
     }
     initialize() {
         //this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, - 15), this.main.scene);
-        this.camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 8, 30, BABYLON.Vector3.Zero(), this.main.scene);
+        this.camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 4, 30, BABYLON.Vector3.Zero(), this.main.scene);
         this.camera.attachControl(this.main.canvas);
+        BABYLON.Effect.ShadersStore["EdgeFragmentShader"] = `
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+			varying vec2 vUV;
+			uniform sampler2D textureSampler;
+			uniform sampler2D depthSampler;
+			uniform float 		width;
+			uniform float 		height;
+			void make_kernel_color(inout vec4 n[9], sampler2D tex, vec2 coord)
+			{
+				float w = 1.0 / width;
+				float h = 1.0 / height;
+				n[0] = texture2D(tex, coord + vec2( -w, -h));
+				n[1] = texture2D(tex, coord + vec2(0.0, -h));
+				n[2] = texture2D(tex, coord + vec2(  w, -h));
+				n[3] = texture2D(tex, coord + vec2( -w, 0.0));
+				n[4] = texture2D(tex, coord);
+				n[5] = texture2D(tex, coord + vec2(  w, 0.0));
+				n[6] = texture2D(tex, coord + vec2( -w, h));
+				n[7] = texture2D(tex, coord + vec2(0.0, h));
+				n[8] = texture2D(tex, coord + vec2(  w, h));
+			}
+			void make_kernel_depth(inout float n[9], sampler2D tex, vec2 coord)
+			{
+				float w = 1.0 / width;
+				float h = 1.0 / height;
+				n[0] = texture2D(tex, coord + vec2( -w, -h)).r;
+				n[1] = texture2D(tex, coord + vec2(0.0, -h)).r;
+				n[2] = texture2D(tex, coord + vec2(  w, -h)).r;
+				n[3] = texture2D(tex, coord + vec2( -w, 0.0)).r;
+				n[4] = texture2D(tex, coord).r;
+				n[5] = texture2D(tex, coord + vec2(  w, 0.0)).r;
+				n[6] = texture2D(tex, coord + vec2( -w, h)).r;
+				n[7] = texture2D(tex, coord + vec2(0.0, h)).r;
+				n[8] = texture2D(tex, coord + vec2(  w, h)).r;
+			}
+			void main(void) 
+			{
+				vec4 d = texture2D(depthSampler, vUV);
+				float depth = d.r * (2000.0 - 0.2) + 0.2;
+				
+				float nD[9];
+				make_kernel_depth( nD, depthSampler, vUV );
+				float sobel_depth_edge_h = nD[2] + (2.0*nD[5]) + nD[8] - (nD[0] + (2.0*nD[3]) + nD[6]);
+				float sobel_depth_edge_v = nD[0] + (2.0*nD[1]) + nD[2] - (nD[6] + (2.0*nD[7]) + nD[8]);
+				float sobel_depth = sqrt((sobel_depth_edge_h * sobel_depth_edge_h) + (sobel_depth_edge_v * sobel_depth_edge_v));
+				float thresholdDepth = 0.002;
+
+				vec4 n[9];
+				make_kernel_color( n, textureSampler, vUV );
+				vec4 sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
+				vec4 sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
+				vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
+				float threshold = 0.3;
+				
+				gl_FragColor = vec4(n[4]) * 0.5;
+				gl_FragColor.a = 1.0;
+				if (sobel_depth < thresholdDepth || depth > 1000.) {
+					if (max(sobel.r, max(sobel.g, sobel.b)) < threshold) {
+						gl_FragColor = n[4];
+					}
+				}
+			}
+        `;
+        BABYLON.Engine.ShadersRepository = "./shaders/";
+        let depthMap = this.main.scene.enableDepthRenderer(this.camera).getDepthMap();
+        let postProcess = new BABYLON.PostProcess("Edge", "Edge", ["width", "height"], ["depthSampler"], 1, this.camera);
+        postProcess.onApply = (effect) => {
+            effect.setTexture("depthSampler", depthMap);
+            effect.setFloat("width", this.main.engine.getRenderWidth());
+            effect.setFloat("height", this.main.engine.getRenderHeight());
+        };
         let noPostProcessCamera = new BABYLON.FreeCamera("no-post-process-camera", BABYLON.Vector3.Zero(), this.main.scene);
         noPostProcessCamera.parent = this.camera;
         noPostProcessCamera.layerMask = 0x10000000;
@@ -156,6 +229,7 @@ class Main {
         this.menu.showIngameMenu();
         this.cameraManager = new CameraManager(this);
         this.cameraManager.initialize();
+        this.cameraManager.moveCenter(-15, -5);
         let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, -1), this.scene);
         BABYLON.Engine.ShadersRepository = "./shaders/";
         this.resize();
@@ -177,7 +251,7 @@ class Main {
         data.uvs = uvs;
         data.applyToMesh(this.ground);
         let groundMaterial = new BABYLON.StandardMaterial("ground-material", this.scene);
-        groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground_2.png", this.scene);
+        //groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground_2.png", this.scene);
         groundMaterial.diffuseColor.copyFromFloats(0.83, 0.33, 0.1);
         groundMaterial.diffuseColor = groundMaterial.diffuseColor.scale(1.4);
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
@@ -306,8 +380,10 @@ class CommandCenter extends Building {
                     console.log(mesh.material);
                     let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                     if (mesh.material.name === "EnergyCellMaterial") {
-                        console.log("!");
                         toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+                    }
+                    if (mesh.material.name === "CommandCenterMaterial") {
+                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/command-center-texture.png", this.main.scene));
                     }
                     toonMaterial.setColor(mesh.material.albedoColor);
                     mesh.material = toonMaterial;
@@ -336,10 +412,15 @@ class Beacon extends Building {
     constructor(main) {
         super(main);
         this._t = Infinity;
+        this._n = 0;
         this._update = () => {
+            if (this._n > 5) {
+                return;
+            }
             this._t += this.main.engine.getDeltaTime() / 1000;
             if (this._t > 5) {
                 this._t = 0;
+                this._n++;
                 let walker = new Walker(this.main);
                 walker.forcePosRot(this.posX, this.posY, -Math.PI / 2);
             }

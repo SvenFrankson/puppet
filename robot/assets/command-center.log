@@ -12,26 +12,15 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		Texture directory   :  C:\Users\svent\Documents\Sven Frankson\puppet\robot\assets\
 	Python World class constructor completed
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
-	processing begun of mesh:  base-shell
-		processing begun of material:  Shell
-		num positions      :  120
-		num normals        :  120
+	processing begun of mesh:  command-center
+		processing begun of material:  CommandCenterMaterial
+		num positions      :  460
+		num normals        :  460
 		num tangents       :  0
-		num uvs            :  240
+		num uvs            :  920
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  40
-	processing begun of mesh:  base-details
-		processing begun of material:  Concrete
-		processing begun of material:  Steel
-		processing begun of multimaterial:  command_center.Multimaterial#0
-		num positions      :  351
-		num normals        :  351
-		num tangents       :  0
-		num uvs            :  702
-		num uvs2           :  0
-		num colors         :  0
-		num triangles      :  144
+		num triangles      :  194
 	processing begun of mesh:  energy-cell-1
 		processing begun of material:  EnergyCellMaterial
 		num positions      :  152
@@ -44,9 +33,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	processing begun of mesh:  comm-module
 		processing begun of material:  Concrete
 		processing begun of material:  Steel
-		registered as also a user of material:  Concrete
-		registered as also a user of material:  Steel
-		processing begun of multimaterial:  command_center.Multimaterial#1
+		processing begun of multimaterial:  command_center.Multimaterial#0
 		num positions      :  581
 		num normals        :  581
 		num tangents       :  0
@@ -85,8 +72,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num colors         :  0
 		num triangles      :  100
 ========= Writing of JSON file started =========
-	writing mesh:  base-shell
-	writing mesh:  base-details
+	writing mesh:  command-center
 	writing mesh:  energy-cell-1
 	writing mesh:  comm-module
 	writing mesh:  energy-cell-1.001
@@ -94,4 +80,4 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  energy-cell-1.003
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0568 secs
+elapsed time:  0 min, 0.0529 secs

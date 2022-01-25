@@ -67,6 +67,7 @@ class Main {
 
 		this.cameraManager = new CameraManager(this);
 		this.cameraManager.initialize();
+		this.cameraManager.moveCenter(- 15, - 5);
 
 		let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, - 1), this.scene);
 		
@@ -115,7 +116,7 @@ class Main {
 		data.applyToMesh(this.ground);
 
 		let groundMaterial = new BABYLON.StandardMaterial("ground-material", this.scene);
-        groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground_2.png", this.scene);
+        //groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground_2.png", this.scene);
 		groundMaterial.diffuseColor.copyFromFloats(0.83, 0.33, 0.1);
 		groundMaterial.diffuseColor = groundMaterial.diffuseColor.scale(1.4);
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
