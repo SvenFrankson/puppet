@@ -229,7 +229,7 @@ class Main {
         this.menu.showIngameMenu();
         this.cameraManager = new CameraManager(this);
         this.cameraManager.initialize();
-        this.cameraManager.moveCenter(-15, -5);
+        //this.cameraManager.moveCenter(- 15, - 5);
         let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, -1), this.scene);
         BABYLON.Engine.ShadersRepository = "./shaders/";
         this.resize();
@@ -269,10 +269,13 @@ class Main {
         commandCenter.posX = -15;
         commandCenter.posY = -5;
         commandCenter.makeReady();
+        /*
         let beacon = new Beacon(this);
         beacon.posX = 15;
         beacon.posY = 5;
         beacon.makeReady();
+        */
+        let robot = new Robot(this);
     }
     disposeScene() {
         while (this.gameObjects.length > 0) {
@@ -454,6 +457,25 @@ class Prop extends GameObject {
     dispose() {
         super.dispose();
         this.sprite.dispose();
+    }
+}
+class Robot extends GameObject {
+    constructor(main) {
+        super(main);
+        BABYLON.SceneLoader.ImportMesh("", "assets/robot.babylon", "", this.main.scene, (meshes) => {
+            for (let i = 0; i < meshes.length; i++) {
+                let mesh = meshes[i];
+                if (mesh.material instanceof BABYLON.PBRMaterial) {
+                    console.log(mesh.material);
+                    let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                    if (mesh.material.name === "RobotMaterial") {
+                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/robot-texture.png", this.main.scene));
+                    }
+                    toonMaterial.setColor(mesh.material.albedoColor);
+                    mesh.material = toonMaterial;
+                }
+            }
+        });
     }
 }
 class Sprite extends BABYLON.Mesh {

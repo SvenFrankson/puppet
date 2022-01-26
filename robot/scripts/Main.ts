@@ -67,7 +67,7 @@ class Main {
 
 		this.cameraManager = new CameraManager(this);
 		this.cameraManager.initialize();
-		this.cameraManager.moveCenter(- 15, - 5);
+		//this.cameraManager.moveCenter(- 15, - 5);
 
 		let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, - 1), this.scene);
 		
@@ -138,10 +138,14 @@ class Main {
 		commandCenter.posY = - 5;
 		commandCenter.makeReady();
 
+		/*
 		let beacon = new Beacon(this);
 		beacon.posX = 15;
 		beacon.posY = 5;
 		beacon.makeReady();
+		*/
+
+		let robot = new Robot(this);
 	}
 
 	public disposeScene(): void {
