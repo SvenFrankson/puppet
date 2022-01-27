@@ -9,7 +9,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		Vert Color Precision:  3
 		Mat Weight Precision:  2
 		Keep Z-up r-handed  :  no
-		Texture directory   :  C:\Users\svent\Documents\Sven Frankson\puppet\robot\assets\
+		Texture directory   :  C:\Users\svent\Documents\Sven Frankson\puppet\robot\work\
 	Python World class constructor completed
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
 	processing begun of mesh:  foot-left
@@ -24,20 +24,20 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	processing begun of mesh:  body
 		processing begun of material:  RobotMaterial
 		registered as also a user of material:  RobotMaterial
-		num positions      :  397
-		num normals        :  397
+		num positions      :  695
+		num normals        :  695
 		num tangents       :  0
-		num uvs            :  794
+		num uvs            :  1390
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  250
 	processing begun of mesh:  head
 		processing begun of material:  RobotMaterial
 		registered as also a user of material:  RobotMaterial
-		num positions      :  304
-		num normals        :  304
+		num positions      :  852
+		num normals        :  852
 		num tangents       :  0
-		num uvs            :  608
+		num uvs            :  1704
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  316
@@ -62,8 +62,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num colors         :  0
 		num triangles      :  50
 	processing begun of mesh:  hand-left
-		processing begun of material:  RobotMaterial
-		registered as also a user of material:  RobotMaterial
+		WARNING: No materials have been assigned: 
 		num positions      :  170
 		num normals        :  170
 		num tangents       :  0
@@ -84,10 +83,10 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	processing begun of mesh:  leg-right
 		processing begun of material:  RobotMaterial
 		registered as also a user of material:  RobotMaterial
-		num positions      :  159
-		num normals        :  159
+		num positions      :  162
+		num normals        :  162
 		num tangents       :  0
-		num uvs            :  318
+		num uvs            :  324
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  70
@@ -104,46 +103,45 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	processing begun of mesh:  arm-left
 		processing begun of material:  RobotMaterial
 		registered as also a user of material:  RobotMaterial
-		num positions      :  161
-		num normals        :  161
+		num positions      :  162
+		num normals        :  162
 		num tangents       :  0
-		num uvs            :  322
+		num uvs            :  324
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  70
 	processing begun of mesh:  upper-arm-left
 		processing begun of material:  RobotMaterial
 		registered as also a user of material:  RobotMaterial
-		num positions      :  127
-		num normals        :  127
+		num positions      :  125
+		num normals        :  125
 		num tangents       :  0
-		num uvs            :  254
+		num uvs            :  250
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  50
 	processing begun of mesh:  upper-arm-right
 		processing begun of material:  RobotMaterial
 		registered as also a user of material:  RobotMaterial
-		num positions      :  126
-		num normals        :  126
+		num positions      :  125
+		num normals        :  125
 		num tangents       :  0
-		num uvs            :  252
+		num uvs            :  250
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  50
 	processing begun of mesh:  arm-right
 		processing begun of material:  RobotMaterial
 		registered as also a user of material:  RobotMaterial
-		num positions      :  158
-		num normals        :  158
+		num positions      :  162
+		num normals        :  162
 		num tangents       :  0
-		num uvs            :  316
+		num uvs            :  324
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  70
 	processing begun of mesh:  hand-right
-		processing begun of material:  RobotMaterial
-		registered as also a user of material:  RobotMaterial
+		WARNING: No materials have been assigned: 
 		num positions      :  170
 		num normals        :  170
 		num tangents       :  0
@@ -168,4 +166,4 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  hand-right
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.1062 secs
+elapsed time:  0 min, 0.1205 secs

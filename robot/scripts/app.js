@@ -463,6 +463,66 @@ class Robot extends GameObject {
     constructor(main) {
         super(main);
         BABYLON.SceneLoader.ImportMesh("", "assets/robot.babylon", "", this.main.scene, (meshes) => {
+            this.head = meshes.find(m => { return m.name === "head"; });
+            this.body = meshes.find(m => { return m.name === "body"; });
+            this.feet = [
+                meshes.find(m => { return m.name === "foot-right"; }),
+                meshes.find(m => { return m.name === "foot-left"; })
+            ];
+            this.legs = [
+                meshes.find(m => { return m.name === "leg-right"; }),
+                meshes.find(m => { return m.name === "leg-left"; })
+            ];
+            this.upperLegs = [
+                meshes.find(m => { return m.name === "upper-leg-right"; }),
+                meshes.find(m => { return m.name === "upper-leg-left"; })
+            ];
+            this.upperLegsRoot = [
+                new BABYLON.Mesh("upper-leg-root-0"),
+                new BABYLON.Mesh("upper-leg-root-1"),
+            ];
+            this.upperLegsRoot[0].position.copyFrom(this.upperLegs[0].position);
+            this.upperLegsRoot[0].parent = this.body;
+            this.upperLegsRoot[1].position.copyFrom(this.upperLegs[1].position);
+            this.upperLegsRoot[1].parent = this.body;
+            this.upperLegs[0].parent = undefined;
+            this.upperLegs[1].parent = undefined;
+            this.hands = [
+                meshes.find(m => { return m.name === "hand-right"; }),
+                meshes.find(m => { return m.name === "hand-left"; })
+            ];
+            this.arms = [
+                meshes.find(m => { return m.name === "arm-right"; }),
+                meshes.find(m => { return m.name === "arm-left"; })
+            ];
+            this.upperArms = [
+                meshes.find(m => { return m.name === "upper-arm-right"; }),
+                meshes.find(m => { return m.name === "upper-arm-left"; })
+            ];
+            this.upperArmsRoot = [
+                new BABYLON.Mesh("upper-arm-root-0"),
+                new BABYLON.Mesh("upper-arm-root-1"),
+            ];
+            this.upperArmsRoot[0].position.copyFrom(this.upperArms[0].position);
+            this.upperArmsRoot[0].parent = this.body;
+            this.upperArmsRoot[1].position.copyFrom(this.upperArms[1].position);
+            this.upperArmsRoot[1].parent = this.body;
+            this.upperArms[0].parent = undefined;
+            this.upperArms[1].parent = undefined;
+            setInterval(() => {
+                this.upperArms[0].position.copyFrom(this.upperArmsRoot[0].absolutePosition);
+                this.upperArms[0].lookAt(this.arms[0].absolutePosition);
+                this.upperArms[1].position.copyFrom(this.upperArmsRoot[1].absolutePosition);
+                this.upperArms[1].lookAt(this.arms[1].absolutePosition);
+                this.arms[0].lookAt(this.hands[0].absolutePosition);
+                this.arms[1].lookAt(this.hands[1].absolutePosition);
+                this.upperLegs[0].position.copyFrom(this.upperLegsRoot[0].absolutePosition);
+                this.upperLegs[0].lookAt(this.legs[0].absolutePosition);
+                this.upperLegs[1].position.copyFrom(this.upperLegsRoot[1].absolutePosition);
+                this.upperLegs[1].lookAt(this.legs[1].absolutePosition);
+                this.legs[0].lookAt(this.feet[0].absolutePosition);
+                this.legs[1].lookAt(this.feet[1].absolutePosition);
+            }, 100);
             for (let i = 0; i < meshes.length; i++) {
                 let mesh = meshes[i];
                 if (mesh.material instanceof BABYLON.PBRMaterial) {
