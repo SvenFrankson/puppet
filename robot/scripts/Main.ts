@@ -134,8 +134,8 @@ class Main {
 		}
 
 		let commandCenter = new CommandCenter(this);
-		commandCenter.posX = - 15;
-		commandCenter.posY = - 5;
+		commandCenter.posX = - 30;
+		commandCenter.posY = - 30;
 		commandCenter.makeReady();
 
 		/*
