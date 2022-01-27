@@ -39,8 +39,8 @@ class RobotTarget extends BABYLON.Mesh {
         super("target");
 
         let positions: BABYLON.Vector2[] = [
-            new BABYLON.Vector2(1, 0),
-            new BABYLON.Vector2(- 1, 0)
+            new BABYLON.Vector2(0.8, 0),
+            new BABYLON.Vector2(- 0.8, 0)
         ]
         for (let i = 0; i < 2; i++) {
             let target = new BABYLON.Mesh("target-" + i);
@@ -176,7 +176,14 @@ class Robot extends GameObject {
                     this.feet[legIndex].position.copyFrom(
                         origin.scale(1 - d).add(target.scale(d))
                     );
+                    if (legIndex === 0) {
+                        this.feet[legIndex].position.addInPlace(this.target.right.scale(1 * Math.sin(Math.PI * d)));
+                    }
+                    else {
+                        this.feet[legIndex].position.addInPlace(this.target.right.scale(- 1 * Math.sin(Math.PI * d)));
+                    }
                     this.feet[legIndex].position.y = 0.35 + 0.65 * Math.sin(Math.PI * d);
+                    this.feet[legIndex].rotation.x = Math.PI / 10 * Math.sin(Math.PI * d);
                     this.feet[legIndex].rotation.y = Math2D.LerpFromToCircular(originR, targetR, d);
                     if (d < 1) {
                         requestAnimationFrame(step);
@@ -317,21 +324,47 @@ class Robot extends GameObject {
     }
 
     private _bodyVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
+    private _handVelocities: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
     public _updateMesh = () => {
         let dt = this.main.engine.getDeltaTime() / 1000;
 
         let targetBody = this.feet[0].absolutePosition.add(this.feet[1].absolutePosition).scaleInPlace(0.5);
-        targetBody.y += 1.5;
+        targetBody.addInPlace(this.body.forward.scale(0.5));
+        targetBody.y += 1.8;
 
         let fBody = targetBody.subtract(this.body.position);
-        this._bodyVelocity.addInPlace(fBody.scaleInPlace(dt));
-        this._bodyVelocity.scaleInPlace(0.95);
+        this._bodyVelocity.addInPlace(fBody.scaleInPlace(0.5 * dt));
+        this._bodyVelocity.scaleInPlace(0.97);
         this.body.position.addInPlace(this._bodyVelocity);
 
-        this.body.rotation.x = (this.body.position.y - 1.5) * Math.PI / 6;
-        this.body.rotation.y = this.target.rotation.y;
+        let dot = BABYLON.Vector3.Dot(this.feet[1].position.subtract(this.feet[0].position).normalize(), this.body.forward);
+        let dy = this.feet[0].position.y - this.feet[1].position.y;
 
-        this.head.rotation.x = - this.body.rotation.x;
+        let targetRotX = (this.body.position.y - 1.8) * Math.PI / 10;
+        this.body.rotation.x = Math2D.LerpFromToCircular(this.body.rotation.x, targetRotX, 0.1);
+        this.body.rotation.y = this.target.rotation.y + dot * Math.PI / 10;
+        this.body.rotation.z = dy * Math.PI / 10;
+
+        targetRotX = - this.body.rotation.x;
+        this.head.position.copyFrom(this.body.position);
+        this.head.position.addInPlace(this.body.forward.scale(1.1));
+        this.head.rotation.copyFrom(this.body.rotation);
+        this.head.rotation.x = Math2D.LerpFromToCircular(this.head.rotation.x, targetRotX, 0.3);
+
+        let handTargets = [this.body.position.clone(), this.body.position.clone()];
+        handTargets[0].addInPlace(this.body.right.scale(1.5));
+        handTargets[0].addInPlace(this.body.up.scale(- 1));
+        handTargets[0].addInPlace(this.body.forward.scale(1 + 1 * dot));
+        handTargets[1].addInPlace(this.body.right.scale(- 1.5));
+        handTargets[1].addInPlace(this.body.up.scale(- 1));
+        handTargets[1].addInPlace(this.body.forward.scale(1 - 1 * dot));
+
+        for (let i = 0; i < 2; i++) {
+            let fHand = handTargets[i].subtract(this.hands[i].position);
+            this._handVelocities[i].addInPlace(fHand.scaleInPlace(2 * dt));
+            this._handVelocities[i].scaleInPlace(0.97);
+            this.hands[i].position.addInPlace(this._handVelocities[i]);
+        }
 
         let kneeTargets = [this.body.position.clone(), this.body.position.clone()];
         kneeTargets[0].addInPlace(this.body.forward.scale(-5));
@@ -351,21 +384,13 @@ class Robot extends GameObject {
         let upperArmLength = 0.72;
         let armLength = 0.77;
 
-        this.hands[0].position.copyFrom(this.body.position);
-        this.hands[0].position.addInPlace(this.body.right.scale(1.5));
-        this.hands[0].position.addInPlace(this.body.up.scale(- 1));
-        this.hands[0].position.addInPlace(this.body.forward.scale(1));
-        
-        this.hands[1].position.copyFrom(this.body.position);
-        this.hands[1].position.addInPlace(this.body.right.scale(- 1.5));
-        this.hands[1].position.addInPlace(this.body.up.scale(- 1));
-        this.hands[1].position.addInPlace(this.body.forward.scale(1));
+        this.body.computeWorldMatrix(true);
 
         for (let i = 0; i < 2; i++) {
             let k = kneeTargets[i];
             let h = this.upperLegsRoot[i].absolutePosition; 
             let f = this.feet[i].position;
-            for (let n = 0; n < 3; n++) {
+            for (let n = 0; n < 6; n++) {
                 let hk = k.subtract(h).normalize().scale(upperLegLength);
                 k = h.add(hk);
                 
@@ -391,7 +416,7 @@ class Robot extends GameObject {
             let e = elbowTargets[i];
             let s = this.upperArmsRoot[i].absolutePosition; 
             let ha = this.hands[i].position;
-            for (let n = 0; n < 3; n++) {
+            for (let n = 0; n < 6; n++) {
                 let se = e.subtract(s).normalize().scale(upperArmLength);
                 e = s.add(se);
                 

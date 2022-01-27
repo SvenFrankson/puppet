@@ -62,7 +62,6 @@ class Main {
 
 		this.menu = new Menu(this);
 		this.menu.initializeMenu();
-		this.generateScene();
 		this.menu.showIngameMenu();
 
 		this.cameraManager = new CameraManager(this);
@@ -122,6 +121,8 @@ class Main {
         groundMaterial.specularColor.copyFromFloats(0, 0, 0);
 		
 		this.ground.material = groundMaterial;
+
+		this.generateScene();
 	}
 
 	public generateScene(): void {
@@ -146,6 +147,9 @@ class Main {
 		*/
 
 		let robot = new Robot(this);
+		this.cameraManager.camera.setTarget(robot.target);
+		this.cameraManager.camera.beta = Math.PI / 3;
+		this.cameraManager.camera.radius = 15;
 	}
 
 	public disposeScene(): void {
