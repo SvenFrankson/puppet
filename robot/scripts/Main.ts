@@ -152,8 +152,11 @@ class Main {
 		this.cameraManager.camera.beta = Math.PI / 3;
 		this.cameraManager.camera.radius = 15;
 
-		for (let i = 0; i < 1; i++) {
-			new Robot(this);
+		for (let i = 0; i < 10; i++) {
+			let r = new Robot(this);
+			if (Math.random() > 0.5) {
+				r.mode = RobotMode.Run;
+			}
 		}
 	}
 

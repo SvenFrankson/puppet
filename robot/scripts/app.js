@@ -280,8 +280,11 @@ class Main {
         this.cameraManager.camera.setTarget(robot.target);
         this.cameraManager.camera.beta = Math.PI / 3;
         this.cameraManager.camera.radius = 15;
-        for (let i = 0; i < 1; i++) {
-            new Robot(this);
+        for (let i = 0; i < 10; i++) {
+            let r = new Robot(this);
+            if (Math.random() > 0.5) {
+                r.mode = RobotMode.Run;
+            }
         }
     }
     disposeScene() {
@@ -584,6 +587,7 @@ class Robot extends GameObject {
                 this._updatePath();
             }
             this.moveOnPath();
+            this.collide();
             this._updateMesh();
         };
         this._updatePath = () => {
@@ -869,6 +873,35 @@ class Robot extends GameObject {
         if (this.hitpoint <= 0) {
             this.main.game.credit(10);
             this.dispose();
+        }
+    }
+    collide() {
+        let robots = this.main.gameObjects.filter(g => { return g instanceof Robot; });
+        let d = BABYLON.Vector3.Zero();
+        let n = 0;
+        for (let i = 0; i < robots.length; i++) {
+            let other = robots[i];
+            if (other != this) {
+                let bp = this.body.position.clone();
+                bp.y = 0;
+                let op = other.body.position.clone();
+                op.y = 0;
+                let sqrDist = BABYLON.Vector3.Distance(bp, op);
+                if (sqrDist < 4) {
+                    let l = Math.sqrt(sqrDist);
+                    let v = bp.subtract(op).normalize().scaleInPlace(2 - l);
+                    d.addInPlace(v);
+                    n++;
+                }
+            }
+        }
+        if (n > 0) {
+            d.scaleInPlace(1 / n);
+            d.scaleInPlace(0.5);
+            this.body.position.addInPlace(d);
+            this.feet[0].position.addInPlace(d);
+            this.feet[1].position.addInPlace(d);
+            this.target.position.addInPlace(d);
         }
     }
 }
