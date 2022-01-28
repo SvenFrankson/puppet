@@ -146,6 +146,16 @@ class Math2D {
         return d;
     }
 
+    public static AngularClamp(from: number, to: number, v: number): number {
+        if (Math2D.AngularDistance(from, v) < 0) {
+            return from;
+        }
+        else if (Math2D.AngularDistance(v, to) < 0) {
+            return to;
+        }
+        return v;
+    }
+
     public static Rotate(vector: BABYLON.Vector2, alpha: number): BABYLON.Vector2 {
         let v = vector.clone();
         Math2D.RotateInPlace(v, alpha);

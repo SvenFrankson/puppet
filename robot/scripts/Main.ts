@@ -147,9 +147,14 @@ class Main {
 		*/
 
 		let robot = new Robot(this);
+		robot.mode = RobotMode.Run;
 		this.cameraManager.camera.setTarget(robot.target);
 		this.cameraManager.camera.beta = Math.PI / 3;
 		this.cameraManager.camera.radius = 15;
+
+		for (let i = 0; i < 1; i++) {
+			new Robot(this);
+		}
 	}
 
 	public disposeScene(): void {

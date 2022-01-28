@@ -1,3 +1,8 @@
+enum RobotMode {
+    Walk,
+    Run
+}
+
 class RobotTarget extends BABYLON.Mesh {
 
     private _pos2D: BABYLON.Vector2 = BABYLON.Vector2.Zero();
@@ -64,6 +69,8 @@ class Robot extends GameObject {
     public arms: BABYLON.Mesh[];
     public upperArms: BABYLON.Mesh[];
     public upperArmsRoot: BABYLON.Mesh[];
+
+    public mode: RobotMode = RobotMode.Walk;
 
     public target: RobotTarget;
     private _inputDirs: UniqueList<number> = new UniqueList<number>();
@@ -167,22 +174,30 @@ class Robot extends GameObject {
                 let originR = this.feet[legIndex].rotation.y;
                 let l = target.subtract(origin).length();
                 let duration = 1.5;
+                if (this.mode === RobotMode.Run) {
+                    duration = 0.6;
+                }
                 let t = 0;
                 let step = () => {
                     t += this.main.scene.getEngine().getDeltaTime() / 1000;
                     let d = t / duration;
-                    d = d * d;
+                    if (this.mode === RobotMode.Walk) {
+                        d = d * d;
+                    }
+                    else {
+                        d = Math.pow(d, 1.5);
+                    }
                     d = Math.min(d, 1);
                     this.feet[legIndex].position.copyFrom(
                         origin.scale(1 - d).add(target.scale(d))
                     );
                     if (legIndex === 0) {
-                        this.feet[legIndex].position.addInPlace(this.target.right.scale(1 * Math.sin(Math.PI * d)));
+                        this.feet[legIndex].position.addInPlace(this.target.right.scale((this.mode === RobotMode.Walk ? 1: 0.6) * Math.sin(Math.PI * d)));
                     }
                     else {
-                        this.feet[legIndex].position.addInPlace(this.target.right.scale(- 1 * Math.sin(Math.PI * d)));
+                        this.feet[legIndex].position.addInPlace(this.target.right.scale(- (this.mode === RobotMode.Walk ? 1: 0.6) * Math.sin(Math.PI * d)));
                     }
-                    this.feet[legIndex].position.y = 0.35 + 0.65 * Math.sin(Math.PI * d);
+                    this.feet[legIndex].position.y = 0.35 + (this.mode === RobotMode.Walk ? 0.65: 0.4) * Math.sin(Math.PI * d);
                     this.feet[legIndex].rotation.x = Math.PI / 10 * Math.sin(Math.PI * d);
                     this.feet[legIndex].rotation.y = Math2D.LerpFromToCircular(originR, targetR, d);
                     if (d < 1) {
@@ -203,13 +218,13 @@ class Robot extends GameObject {
 
         let forwardSpeed: number = 0;
         if (this._inputForwardAxis > 0) {
-            forwardSpeed = 1 * this._inputForwardAxis;
+            forwardSpeed = (1 + (this.mode === RobotMode.Run ? 3 : 0)) * this._inputForwardAxis;
         }
         else if (this._inputForwardAxis < 0) {
             forwardSpeed = - 0.5 * this._inputForwardAxis;
         }
 
-        let rotateSpeed: number = this._inputRotateAxis * 0.4;
+        let rotateSpeed: number = this._inputRotateAxis * 0.1;
         let sideSpeed: number = 2 * this._inputSideAxis;
 
         if (this._inputDirs.contains(0)) {
@@ -234,6 +249,7 @@ class Robot extends GameObject {
         this.target.position.addInPlace(this.target.forward.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
         this.target.position.addInPlace(this.target.right.scale(sideSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
         this.target.rotation.y -= rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+        this.target.rotation.y = Math2D.AngularClamp(this.feet[1].rotation.y - Math.PI / 8, this.feet[0].rotation.y + Math.PI / 8, this.target.rotation.y);
 
         while (this.target.rotation.y < 0) {
             this.target.rotation.y += 2 * Math.PI;
@@ -256,7 +272,7 @@ class Robot extends GameObject {
             }
             if (dist > 0.1) {
                 this._movingLegCount++;
-                this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y); 
+                this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y + (index === 0 ? 1 : - 1) * Math.PI / 8); 
             }
         }
         if (!this.currentPath || this.currentPath.length === 0) {
@@ -269,6 +285,7 @@ class Robot extends GameObject {
     public nextDebugMesh: BABYLON.Mesh;
 
     private _updatePath = () => {
+        /*
         if (!this.currentTarget) {
             this.currentTarget = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
         }
@@ -277,6 +294,11 @@ class Robot extends GameObject {
             navGraph.update();
             this.currentPath = navGraph.computePathFromTo(this.target.pos2D, this.currentTarget.pos2D);
         }
+        */
+        let navGraph = NavGraphManager.GetForRadius(2);
+        navGraph.update();
+        let rand = new BABYLON.Vector2(- 30 + 60 * Math.random(), - 30 + 60 * Math.random());
+        this.currentPath = navGraph.computePathFromTo(this.target.pos2D, rand);
     }
 
     public moveOnPath(): void {
@@ -297,7 +319,7 @@ class Robot extends GameObject {
             let targetRot = - Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
             let dRot = - Math2D.AngularDistance(this.target.rotation.y, targetRot);
             
-            let dRotFactor = Math.abs(dRot) / (Math.PI * 0.5);
+            let dRotFactor = Math.abs(dRot) / (Math.PI * (this.mode === RobotMode.Walk ? 0.5 : 1.5));
             dRotFactor = Math.min(Math.max(1 - dRotFactor, 0), 1);
             this._inputForwardAxis = dRotFactor;
 
@@ -325,44 +347,70 @@ class Robot extends GameObject {
 
     private _bodyVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     private _handVelocities: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
+    private _debugK: BABYLON.Mesh[] = [];
     public _updateMesh = () => {
         let dt = this.main.engine.getDeltaTime() / 1000;
 
+        let bodyH = this.mode === RobotMode.Walk ? 1.8 : 1.6;
         let targetBody = this.feet[0].absolutePosition.add(this.feet[1].absolutePosition).scaleInPlace(0.5);
-        targetBody.addInPlace(this.body.forward.scale(0.5));
-        targetBody.y += 1.8;
+        targetBody.addInPlace(this.body.forward.scale(this.mode === RobotMode.Walk ? 0.5: 1.2));
+        targetBody.y += bodyH;
 
         let fBody = targetBody.subtract(this.body.position);
-        this._bodyVelocity.addInPlace(fBody.scaleInPlace(0.5 * dt));
-        this._bodyVelocity.scaleInPlace(0.97);
+        this._bodyVelocity.addInPlace(fBody.scaleInPlace((this.mode === RobotMode.Walk ? 0.5: 2) * dt));
+        this._bodyVelocity.scaleInPlace(this.mode === RobotMode.Walk ? 0.97: 0.9);
         this.body.position.addInPlace(this._bodyVelocity);
 
         let dot = BABYLON.Vector3.Dot(this.feet[1].position.subtract(this.feet[0].position).normalize(), this.body.forward);
         let dy = this.feet[0].position.y - this.feet[1].position.y;
 
-        let targetRotX = (this.body.position.y - 1.8) * Math.PI / 10;
+        let targetRotX = (this.body.position.y - bodyH) * Math.PI / 10;
         this.body.rotation.x = Math2D.LerpFromToCircular(this.body.rotation.x, targetRotX, 0.1);
-        this.body.rotation.y = this.target.rotation.y + dot * Math.PI / 10;
+        this.body.rotation.y = Math2D.LerpFromToCircular(this.body.rotation.y, this.target.rotation.y + dot * (this.mode === RobotMode.Walk ? Math.PI / 10: Math.PI / 6), 0.2);
         this.body.rotation.z = dy * Math.PI / 10;
 
         targetRotX = - this.body.rotation.x;
+        let targetRotZ = - this.body.rotation.z;
         this.head.position.copyFrom(this.body.position);
         this.head.position.addInPlace(this.body.forward.scale(1.1));
+        /*
         this.head.rotation.copyFrom(this.body.rotation);
-        this.head.rotation.x = Math2D.LerpFromToCircular(this.head.rotation.x, targetRotX, 0.3);
+        this.head.rotation.x = Math2D.LerpFromToCircular(this.head.rotation.x, targetRotX, 0.5);
+        this.head.rotation.y = Math2D.LerpFromToCircular(this.head.rotation.y, this.target.rotation.y, 0.5);
+        this.head.rotation.z = Math2D.LerpFromToCircular(this.head.rotation.z, targetRotZ, 0.5);
+        */
+       
+        if (this.currentPath && this.currentPath[0]) {
+            let z = new BABYLON.Vector3(
+                this.currentPath[0].x,
+                0.5,
+                this.currentPath[0].y
+            ).subtract(this.head.position);
+            let x = BABYLON.Vector3.Cross(BABYLON.Axis.Y, z);
+            let y = BABYLON.Vector3.Cross(z, x);
+            let targetQ = BABYLON.Quaternion.RotationQuaternionFromAxis(x, y, z);
+            let a = VMath.Angle(this.body.forward, z);
+            let bodyQ = BABYLON.Quaternion.FromEulerVector(this.body.rotation);
+            let f = Math.min(1, (Math.PI / 4) / a);
+            targetQ = BABYLON.Quaternion.Slerp(bodyQ, targetQ, f);
+            if (!this.head.rotationQuaternion) {
+                this.head.rotationQuaternion = targetQ;
+            }
+            this.head.rotationQuaternion = BABYLON.Quaternion.Slerp(this.head.rotationQuaternion, targetQ, 0.1);
+        }
 
         let handTargets = [this.body.position.clone(), this.body.position.clone()];
-        handTargets[0].addInPlace(this.body.right.scale(1.5));
-        handTargets[0].addInPlace(this.body.up.scale(- 1));
-        handTargets[0].addInPlace(this.body.forward.scale(1 + 1 * dot));
-        handTargets[1].addInPlace(this.body.right.scale(- 1.5));
-        handTargets[1].addInPlace(this.body.up.scale(- 1));
-        handTargets[1].addInPlace(this.body.forward.scale(1 - 1 * dot));
+        handTargets[0].addInPlace(this.body.right.scale(1.2));
+        handTargets[0].addInPlace(BABYLON.Axis.Y.scale(- 0.8));
+        handTargets[0].addInPlace(this.body.forward.scale(1.5 + 0.5 * dot));
+        handTargets[1].addInPlace(this.body.right.scale(- 1.2));
+        handTargets[1].addInPlace(BABYLON.Axis.Y.scale(- 0.8));
+        handTargets[1].addInPlace(this.body.forward.scale(1.5 - 0.5 * dot));
 
         for (let i = 0; i < 2; i++) {
             let fHand = handTargets[i].subtract(this.hands[i].position);
-            this._handVelocities[i].addInPlace(fHand.scaleInPlace(2 * dt));
-            this._handVelocities[i].scaleInPlace(0.97);
+            this._handVelocities[i].addInPlace(fHand.scaleInPlace(3 * dt));
+            this._handVelocities[i].scaleInPlace(0.7);
             this.hands[i].position.addInPlace(this._handVelocities[i]);
         }
 
@@ -384,46 +432,48 @@ class Robot extends GameObject {
         let upperArmLength = 0.72;
         let armLength = 0.77;
 
-        this.body.computeWorldMatrix(true);
-
         for (let i = 0; i < 2; i++) {
             let k = kneeTargets[i];
             let h = this.upperLegsRoot[i].absolutePosition; 
             let f = this.feet[i].position;
-            for (let n = 0; n < 6; n++) {
+            for (let n = 0; n < 3; n++) {
                 let hk = k.subtract(h).normalize().scale(upperLegLength);
                 k = h.add(hk);
                 
                 let fk = k.subtract(f).normalize().scale(legLength);
                 k = f.add(fk);
             }
-            this.legs[i].position.copyFrom(k);
 
             let upperLegY = k.subtract(f);
             let upperLegZ = k.subtract(h);
             let upperLegX = BABYLON.Vector3.Cross(upperLegY, upperLegZ);
             upperLegY = BABYLON.Vector3.Cross(upperLegZ, upperLegX);
-            this.upperLegs[i].position.copyFrom(h);
-            this.upperLegs[i].rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(upperLegX, upperLegY, upperLegZ);
+            BABYLON.Vector3.LerpToRef(this.upperLegs[i].position, h, 1, this.upperLegs[i].position);
+            if (!this.upperLegs[i].rotationQuaternion) {
+                this.upperLegs[i].rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(upperLegX, upperLegY, upperLegZ);
+            }
+            BABYLON.Quaternion.SlerpToRef(this.upperLegs[i].rotationQuaternion, BABYLON.Quaternion.RotationQuaternionFromAxis(upperLegX, upperLegY, upperLegZ), 1, this.upperLegs[i].rotationQuaternion);
 
             let legY = h.subtract(k);
             let legZ = f.subtract(k);
             let legX = BABYLON.Vector3.Cross(legY, legZ);
             legY = BABYLON.Vector3.Cross(legZ, legX);
-            this.legs[i].position.copyFrom(k);
-            this.legs[i].rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(legX, legY, legZ);
+            BABYLON.Vector3.LerpToRef(this.legs[i].position, k, 1, this.legs[i].position);
+            if (!this.legs[i].rotationQuaternion) {
+                this.legs[i].rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(legX, legY, legZ);
+            }
+            BABYLON.Quaternion.SlerpToRef(this.legs[i].rotationQuaternion, BABYLON.Quaternion.RotationQuaternionFromAxis(legX, legY, legZ), 1, this.legs[i].rotationQuaternion);
 
             let e = elbowTargets[i];
             let s = this.upperArmsRoot[i].absolutePosition; 
             let ha = this.hands[i].position;
-            for (let n = 0; n < 6; n++) {
+            for (let n = 0; n < 3; n++) {
                 let se = e.subtract(s).normalize().scale(upperArmLength);
                 e = s.add(se);
                 
                 let hae = e.subtract(ha).normalize().scale(armLength);
                 e = ha.add(hae);
             }
-            this.arms[i].position.copyFrom(e);
 
             let upperArmY = e.subtract(ha);
             let upperArmZ = e.subtract(s);
