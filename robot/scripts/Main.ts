@@ -11,7 +11,7 @@ class Main {
 	public cameraManager: CameraManager;
 	public gameObjects: GameObject[] = [];
 	public playerAction: PlayerAction;
-	public ground: BABYLON.Mesh;
+	public ground: Ground;
 	public navGraphManager: NavGraphManager;
 	public game: Game;
 	public menu: Menu;
@@ -81,51 +81,13 @@ class Main {
 		this.game = new Game(this);
 		this.game.credit(300);
 
-		this.ground = new BABYLON.Mesh("ground", this.scene);
-
-		let data = new BABYLON.VertexData();
-        
-        let positions: number[] = [];
-        let indices: number[] = [];
-        let uvs: number[] = [];
-
-        positions.push(
-            - 100, 0, - 100,
-            - 100, 0, 100,
-            100, 0, 100,
-            100, 0, - 100
-        );
-
-        indices.push(
-            0, 2, 1,
-            0, 3, 2
-        );
-
-        uvs.push(
-            0, 0,
-            0, 7,
-            7, 7,
-            7, 0
-        );
-
-        data.positions = positions;
-        data.indices = indices;
-        data.uvs = uvs;
-
-		data.applyToMesh(this.ground);
-
-		let groundMaterial = new BABYLON.StandardMaterial("ground-material", this.scene);
-        //groundMaterial.diffuseTexture = new BABYLON.Texture("assets/ground_2.png", this.scene);
-		groundMaterial.diffuseColor.copyFromFloats(0.83, 0.33, 0.1);
-		groundMaterial.diffuseColor = groundMaterial.diffuseColor.scale(1.4);
-        groundMaterial.specularColor.copyFromFloats(0, 0, 0);
-		
-		this.ground.material = groundMaterial;
+		this.ground = new Ground(50, 50, this);
 
 		this.generateScene();
 	}
 
 	public generateScene(): void {
+		/*
 		for (let i = 0; i < 40; i++) {
 			let n = Math.floor(2 * Math.random()) + 1;
 			let rock = new Prop("rock_" + n.toFixed(0), this);
@@ -133,6 +95,7 @@ class Main {
 			rock.posY = - 40 + 80 * Math.random();
 			rock.rot = 2 * Math.PI * Math.random();
 		}
+		*/
 
 		let commandCenter = new CommandCenter(this);
 		commandCenter.posX = - 30;
@@ -147,17 +110,19 @@ class Main {
 		*/
 
 		let robot = new Robot(this);
-		robot.mode = RobotMode.Run;
+		robot.mode = RobotMode.Walk;
 		this.cameraManager.camera.setTarget(robot.target);
 		this.cameraManager.camera.beta = Math.PI / 3;
 		this.cameraManager.camera.radius = 15;
 
+		/*
 		for (let i = 0; i < 10; i++) {
 			let r = new Robot(this);
 			if (Math.random() > 0.5) {
 				r.mode = RobotMode.Run;
 			}
 		}
+		*/
 	}
 
 	public disposeScene(): void {

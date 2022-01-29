@@ -103,6 +103,8 @@ class Robot extends GameObject {
                     meshes.find(m => { return m.name === "foot-right"; }) as BABYLON.Mesh,
                     meshes.find(m => { return m.name === "foot-left"; }) as BABYLON.Mesh
                 ];
+                this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
+                this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
                 this.legs = [
                     meshes.find(m => { return m.name === "leg-right"; }) as BABYLON.Mesh,
                     meshes.find(m => { return m.name === "leg-left"; }) as BABYLON.Mesh
@@ -175,11 +177,6 @@ class Robot extends GameObject {
     private _generateInputs(): void {
         if (this.currentPath && this.currentPath.length > 0) {
             let next = this.currentPath[0];
-            if (!this.nextDebugMesh) {
-                this.nextDebugMesh = BABYLON.MeshBuilder.CreateBox("next-debug-mesh", { size: 0.5 });
-            }
-            this.nextDebugMesh.position.x = next.x;
-            this.nextDebugMesh.position.z = next.y;
             let distanceToNext = Math2D.Distance(this.target.pos2D, next);
             if (distanceToNext <= 1) {
                 this.currentPath.splice(0, 1);
@@ -239,7 +236,9 @@ class Robot extends GameObject {
         this.target.position.addInPlace(this.target.forward.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
         this.target.position.addInPlace(this.target.right.scale(sideSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
         this.target.rotation.y -= rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
-        this.target.rotation.y = Math2D.AngularClamp(this.feet[1].rotation.y - Math.PI / 8, this.feet[0].rotation.y + Math.PI / 8, this.target.rotation.y);
+        let f0ry = VMath.AngleFromToAround(BABYLON.Axis.Z, this.feet[0].forward, BABYLON.Axis.Y);
+        let f1ry = VMath.AngleFromToAround(BABYLON.Axis.Z, this.feet[1].forward, BABYLON.Axis.Y);
+        this.target.rotation.y = Math2D.AngularClamp(f1ry - Math.PI / 8, f0ry + Math.PI / 8, this.target.rotation.y);
 
         while (this.target.rotation.y < 0) {
             this.target.rotation.y += 2 * Math.PI;
@@ -252,12 +251,12 @@ class Robot extends GameObject {
     private _movingLegCount: number = 0;
     private _movingLegs: UniqueList<number> = new UniqueList<number>();
 
-    private async _moveLeg(legIndex: number, target: BABYLON.Vector3, targetR: number): Promise<void> {
+    private async _moveLeg(legIndex: number, target: BABYLON.Vector3, targetQ: BABYLON.Quaternion): Promise<void> {
         return new Promise<void>(
             resolve => {
                 this._movingLegs.push(legIndex);
                 let origin = this.feet[legIndex].position.clone();
-                let originR = this.feet[legIndex].rotation.y;
+                let originQ = this.feet[legIndex].rotationQuaternion.clone();
                 let l = target.subtract(origin).length();
                 let duration = 1.5;
                 if (this.mode === RobotMode.Run) {
@@ -283,9 +282,8 @@ class Robot extends GameObject {
                     else {
                         this.feet[legIndex].position.addInPlace(this.target.right.scale(- (this.mode === RobotMode.Walk ? 1: 0.6) * Math.sin(Math.PI * d)));
                     }
-                    this.feet[legIndex].position.y = 0.35 + (this.mode === RobotMode.Walk ? 0.65: 0.4) * Math.sin(Math.PI * d);
-                    this.feet[legIndex].rotation.x = Math.PI / 10 * Math.sin(Math.PI * d);
-                    this.feet[legIndex].rotation.y = Math2D.LerpFromToCircular(originR, targetR, d);
+                    this.feet[legIndex].position.y += (this.mode === RobotMode.Walk ? 0.65: 0.4) * Math.sin(Math.PI * d);
+                    this.feet[legIndex].rotationQuaternion = BABYLON.Quaternion.Slerp(originQ, targetQ, d);
                     if (d < 1) {
                         requestAnimationFrame(step);
                     }
@@ -306,21 +304,35 @@ class Robot extends GameObject {
             let dist = 0;
             for (let i = 0; i < 2; i++) {
                 if (!this._movingLegs.contains(i)) {
-                    let iDist = BABYLON.Vector3.DistanceSquared(this.feet[i].position, this.target.targets[i].absolutePosition);
+                    let fp = this.feet[i].position.clone();
+                    fp.y = 0;
+                    let ft = this.target.targets[i].absolutePosition.clone();
+                    ft.y = 0;
+                    let iDist = BABYLON.Vector3.DistanceSquared(fp, ft);
                     if (iDist > dist) {
                         dist = iDist;
                         index = i;
                     }
                 }
             }
-            if (dist > 0.1) {
+            if (dist > 0.05) {
                 this._movingLegCount++;
-                this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y + (index === 0 ? 1 : - 1) * Math.PI / 8); 
+                let ray = new BABYLON.Ray(this.target.targets[index].absolutePosition.add(BABYLON.Axis.Y.scale(10)), BABYLON.Vector3.Down(), 100);
+                let hit = ray.intersectsMesh(this.main.ground);
+                if (hit.hit) {
+                    let fy = hit.getNormal(true, true);
+                    let fz = this.target.forward;
+                    let fx = BABYLON.Vector3.Cross(fy, fz);
+                    fz = BABYLON.Vector3.Cross(fx, fy);
+                    this._moveLeg(
+                        index,
+                        hit.pickedPoint.add(new BABYLON.Vector3(0, 0.4, 0)),
+                        BABYLON.Quaternion.RotationQuaternionFromAxis(fx, fy, fz).multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, (index === 0 ? 1 : - 1) * Math.PI / 6))
+                    ); 
+                }
             }
         }
     }
-
-    public nextDebugMesh: BABYLON.Mesh;
 
     private _updatePath(): void{
         /*
@@ -347,7 +359,7 @@ class Robot extends GameObject {
         let n = 0;
         for (let i = 0; i < robots.length; i++) {
             let other = robots[i];
-            if (other != this) {
+            if (other != this && other.body) {
                 let bp = this.body.position.clone();
                 bp.y = 0;
                 let op = other.body.position.clone();
@@ -367,13 +379,13 @@ class Robot extends GameObject {
             this.body.position.addInPlace(d);
             this.feet[0].position.addInPlace(d);
             this.feet[1].position.addInPlace(d);
+            d.scaleInPlace(0.5);
             this.target.position.addInPlace(d);
         }
     }
 
     private _bodyVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     private _handVelocities: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
-    private _debugK: BABYLON.Mesh[] = [];
     public _updateMesh(): void {
         let dt = this.main.engine.getDeltaTime() / 1000;
 
