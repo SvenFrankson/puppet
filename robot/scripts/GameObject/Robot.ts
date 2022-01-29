@@ -162,6 +162,92 @@ class Robot extends GameObject {
 			}
 		)
     }
+    
+    private _update = () => {
+        this._generateInputs();
+        this._updateLegTarget();
+        this._updateLegMove();
+        this._updatePath();
+        this._updateCollisions();
+        this._updateMesh();
+    }
+
+    private _generateInputs(): void {
+        if (this.currentPath && this.currentPath.length > 0) {
+            let next = this.currentPath[0];
+            if (!this.nextDebugMesh) {
+                this.nextDebugMesh = BABYLON.MeshBuilder.CreateBox("next-debug-mesh", { size: 0.5 });
+            }
+            this.nextDebugMesh.position.x = next.x;
+            this.nextDebugMesh.position.z = next.y;
+            let distanceToNext = Math2D.Distance(this.target.pos2D, next);
+            if (distanceToNext <= 1) {
+                this.currentPath.splice(0, 1);
+                return this._generateInputs();
+            }
+            let stepToNext = next.subtract(this.target.pos2D).normalize();
+            
+            let targetRot = - Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
+            let dRot = - Math2D.AngularDistance(this.target.rotation.y, targetRot);
+            
+            let dRotFactor = Math.abs(dRot) / (Math.PI * (this.mode === RobotMode.Walk ? 0.5 : 1.5));
+            dRotFactor = Math.min(Math.max(1 - dRotFactor, 0), 1);
+            this._inputForwardAxis = dRotFactor;
+
+            this._inputDirs.remove(4);
+            this._inputDirs.remove(5);
+            if (dRot < 0) {
+                this._inputDirs.push(5);
+            }
+            if (dRot > 0) {
+                this._inputDirs.push(4);
+            }
+        }
+    }
+
+    private _updateLegTarget(): void {
+        let forwardSpeed: number = 0;
+        if (this._inputForwardAxis > 0) {
+            forwardSpeed = (1 + (this.mode === RobotMode.Run ? 3 : 0)) * this._inputForwardAxis;
+        }
+        else if (this._inputForwardAxis < 0) {
+            forwardSpeed = - 0.5 * this._inputForwardAxis;
+        }
+
+        let rotateSpeed: number = this._inputRotateAxis * 0.1;
+        let sideSpeed: number = 2 * this._inputSideAxis;
+
+        if (this._inputDirs.contains(0)) {
+            sideSpeed = 2;
+        }
+        if (this._inputDirs.contains(1)) {
+            forwardSpeed = - 0.5;
+        }
+        if (this._inputDirs.contains(2)) {
+            sideSpeed = - 2;
+        }
+        if (this._inputDirs.contains(3)) {
+            forwardSpeed = 1;
+        }
+        if (this._inputDirs.contains(4)) {
+            rotateSpeed = 0.4;
+        }
+        if (this._inputDirs.contains(5)) {
+            rotateSpeed = - 0.4;
+        }
+
+        this.target.position.addInPlace(this.target.forward.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
+        this.target.position.addInPlace(this.target.right.scale(sideSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
+        this.target.rotation.y -= rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
+        this.target.rotation.y = Math2D.AngularClamp(this.feet[1].rotation.y - Math.PI / 8, this.feet[0].rotation.y + Math.PI / 8, this.target.rotation.y);
+
+        while (this.target.rotation.y < 0) {
+            this.target.rotation.y += 2 * Math.PI;
+        }
+        while (this.target.rotation.y >= 2 * Math.PI) {
+            this.target.rotation.y -= 2 * Math.PI;
+        }
+    }
 
     private _movingLegCount: number = 0;
     private _movingLegs: UniqueList<number> = new UniqueList<number>();
@@ -214,50 +300,7 @@ class Robot extends GameObject {
         )
     }
 
-    private _update = () => {
-
-        let forwardSpeed: number = 0;
-        if (this._inputForwardAxis > 0) {
-            forwardSpeed = (1 + (this.mode === RobotMode.Run ? 3 : 0)) * this._inputForwardAxis;
-        }
-        else if (this._inputForwardAxis < 0) {
-            forwardSpeed = - 0.5 * this._inputForwardAxis;
-        }
-
-        let rotateSpeed: number = this._inputRotateAxis * 0.1;
-        let sideSpeed: number = 2 * this._inputSideAxis;
-
-        if (this._inputDirs.contains(0)) {
-            sideSpeed = 2;
-        }
-        if (this._inputDirs.contains(1)) {
-            forwardSpeed = - 0.5;
-        }
-        if (this._inputDirs.contains(2)) {
-            sideSpeed = - 2;
-        }
-        if (this._inputDirs.contains(3)) {
-            forwardSpeed = 1;
-        }
-        if (this._inputDirs.contains(4)) {
-            rotateSpeed = 0.4;
-        }
-        if (this._inputDirs.contains(5)) {
-            rotateSpeed = - 0.4;
-        }
-
-        this.target.position.addInPlace(this.target.forward.scale(forwardSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
-        this.target.position.addInPlace(this.target.right.scale(sideSpeed * this.main.scene.getEngine().getDeltaTime() / 1000));
-        this.target.rotation.y -= rotateSpeed * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000;
-        this.target.rotation.y = Math2D.AngularClamp(this.feet[1].rotation.y - Math.PI / 8, this.feet[0].rotation.y + Math.PI / 8, this.target.rotation.y);
-
-        while (this.target.rotation.y < 0) {
-            this.target.rotation.y += 2 * Math.PI;
-        }
-        while (this.target.rotation.y >= 2 * Math.PI) {
-            this.target.rotation.y -= 2 * Math.PI;
-        }
-
+    private _updateLegMove(): void {
         if (this._movingLegCount <= 0) {
             let index = - 1;
             let dist = 0;
@@ -275,17 +318,11 @@ class Robot extends GameObject {
                 this._moveLeg(index, this.target.targets[index].absolutePosition, this.target.rotation.y + (index === 0 ? 1 : - 1) * Math.PI / 8); 
             }
         }
-        if (!this.currentPath || this.currentPath.length === 0) {
-            this._updatePath();
-        }
-        this.moveOnPath();
-        this.collide();
-        this._updateMesh();
     }
 
     public nextDebugMesh: BABYLON.Mesh;
 
-    private _updatePath = () => {
+    private _updatePath(): void{
         /*
         if (!this.currentTarget) {
             this.currentTarget = this.main.gameObjects.find(go => { return go instanceof CommandCenter; });
@@ -296,57 +333,15 @@ class Robot extends GameObject {
             this.currentPath = navGraph.computePathFromTo(this.target.pos2D, this.currentTarget.pos2D);
         }
         */
-        let navGraph = NavGraphManager.GetForRadius(2);
-        navGraph.update();
-        let rand = new BABYLON.Vector2(- 30 + 60 * Math.random(), - 30 + 60 * Math.random());
-        this.currentPath = navGraph.computePathFromTo(this.target.pos2D, rand);
-    }
-
-    public moveOnPath(): void {
-        if (this.currentPath && this.currentPath.length > 0) {
-            let next = this.currentPath[0];
-            if (!this.nextDebugMesh) {
-                this.nextDebugMesh = BABYLON.MeshBuilder.CreateBox("next-debug-mesh", { size: 0.5 });
-            }
-            this.nextDebugMesh.position.x = next.x;
-            this.nextDebugMesh.position.z = next.y;
-            let distanceToNext = Math2D.Distance(this.target.pos2D, next);
-            if (distanceToNext <= 1) {
-                this.currentPath.splice(0, 1);
-                return this.moveOnPath();
-            }
-            let stepToNext = next.subtract(this.target.pos2D).normalize();
-            
-            let targetRot = - Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), stepToNext);
-            let dRot = - Math2D.AngularDistance(this.target.rotation.y, targetRot);
-            
-            let dRotFactor = Math.abs(dRot) / (Math.PI * (this.mode === RobotMode.Walk ? 0.5 : 1.5));
-            dRotFactor = Math.min(Math.max(1 - dRotFactor, 0), 1);
-            this._inputForwardAxis = dRotFactor;
-
-            this._inputDirs.remove(4);
-            this._inputDirs.remove(5);
-            if (dRot < 0) {
-                this._inputDirs.push(5);
-            }
-            if (dRot > 0) {
-                this._inputDirs.push(4);
-            }
-
-            document.getElementById("distance-to-next").innerText = distanceToNext.toFixed(1) + (Math.random() > 0.5 ? " ." : "");
-            document.getElementById("target-rot").innerText = (this.target.rotation.y / Math.PI * 180).toFixed(1) + "°" + (dRot / Math.PI * 180).toFixed(1) + "°";
+        if (!this.currentPath || this.currentPath.length === 0) {
+            let navGraph = NavGraphManager.GetForRadius(2);
+            navGraph.update();
+            let rand = new BABYLON.Vector2(- 30 + 60 * Math.random(), - 30 + 60 * Math.random());
+            this.currentPath = navGraph.computePathFromTo(this.target.pos2D, rand);
         }
     }
 
-    public wound(n: number): void {
-        this.hitpoint -= n;
-        if (this.hitpoint <= 0) {
-            this.main.game.credit(10);
-            this.dispose();
-        }
-    }
-
-    public collide(): void {
+    private _updateCollisions(): void {
         let robots = this.main.gameObjects.filter(g => { return g instanceof Robot; }) as Robot[];
         let d = BABYLON.Vector3.Zero();
         let n = 0;
@@ -379,7 +374,7 @@ class Robot extends GameObject {
     private _bodyVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     private _handVelocities: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
     private _debugK: BABYLON.Mesh[] = [];
-    public _updateMesh = () => {
+    public _updateMesh(): void {
         let dt = this.main.engine.getDeltaTime() / 1000;
 
         let bodyH = this.mode === RobotMode.Walk ? 1.8 : 1.6;
@@ -400,16 +395,8 @@ class Robot extends GameObject {
         this.body.rotation.y = Math2D.LerpFromToCircular(this.body.rotation.y, this.target.rotation.y + dot * (this.mode === RobotMode.Walk ? Math.PI / 10: Math.PI / 6), 0.2);
         this.body.rotation.z = dy * Math.PI / 10;
 
-        targetRotX = - this.body.rotation.x;
-        let targetRotZ = - this.body.rotation.z;
         this.head.position.copyFrom(this.body.position);
         this.head.position.addInPlace(this.body.forward.scale(1.1));
-        /*
-        this.head.rotation.copyFrom(this.body.rotation);
-        this.head.rotation.x = Math2D.LerpFromToCircular(this.head.rotation.x, targetRotX, 0.5);
-        this.head.rotation.y = Math2D.LerpFromToCircular(this.head.rotation.y, this.target.rotation.y, 0.5);
-        this.head.rotation.z = Math2D.LerpFromToCircular(this.head.rotation.z, targetRotZ, 0.5);
-        */
        
         if (this.currentPath && this.currentPath[0]) {
             let z = new BABYLON.Vector3(
@@ -521,6 +508,14 @@ class Robot extends GameObject {
             this.arms[i].rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(armX, armY, armZ);
             
             this.hands[i].rotationQuaternion = this.arms[i].rotationQuaternion;
+        }
+    }
+
+    public wound(n: number): void {
+        this.hitpoint -= n;
+        if (this.hitpoint <= 0) {
+            this.main.game.credit(10);
+            this.dispose();
         }
     }
 }
