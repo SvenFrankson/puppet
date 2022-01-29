@@ -150,7 +150,6 @@ class Robot extends GameObject {
 				for (let i = 0; i < meshes.length; i++) {
 					let mesh = meshes[i];
                     if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        console.log(mesh.material);
                         let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                         if (mesh.material.name === "RobotMaterial") {
                             toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/robot-texture.png", this.main.scene));
@@ -298,37 +297,31 @@ class Robot extends GameObject {
         )
     }
 
+    private _currentLegIndex: number = 0;
     private _updateLegMove(): void {
         if (this._movingLegCount <= 0) {
-            let index = - 1;
-            let dist = 0;
-            for (let i = 0; i < 2; i++) {
-                if (!this._movingLegs.contains(i)) {
-                    let fp = this.feet[i].position.clone();
-                    fp.y = 0;
-                    let ft = this.target.targets[i].absolutePosition.clone();
-                    ft.y = 0;
-                    let iDist = BABYLON.Vector3.DistanceSquared(fp, ft);
-                    if (iDist > dist) {
-                        dist = iDist;
-                        index = i;
-                    }
-                }
-            }
+            
+            let fp = this.feet[this._currentLegIndex].position.clone();
+            fp.y = 0;
+            let ft = this.target.targets[this._currentLegIndex].absolutePosition.clone();
+            ft.y = 0;
+            let dist = BABYLON.Vector3.DistanceSquared(fp, ft);
+            
             if (dist > 0.05) {
-                this._movingLegCount++;
-                let ray = new BABYLON.Ray(this.target.targets[index].absolutePosition.add(BABYLON.Axis.Y.scale(10)), BABYLON.Vector3.Down(), 100);
+                let ray = new BABYLON.Ray(this.target.targets[this._currentLegIndex].absolutePosition.add(BABYLON.Axis.Y.scale(100)), BABYLON.Vector3.Down(), 200);
                 let hit = ray.intersectsMesh(this.main.ground);
                 if (hit.hit) {
+                    this._movingLegCount++;
                     let fy = hit.getNormal(true, true);
                     let fz = this.target.forward;
                     let fx = BABYLON.Vector3.Cross(fy, fz);
                     fz = BABYLON.Vector3.Cross(fx, fy);
                     this._moveLeg(
-                        index,
+                        this._currentLegIndex,
                         hit.pickedPoint.add(new BABYLON.Vector3(0, 0.4, 0)),
-                        BABYLON.Quaternion.RotationQuaternionFromAxis(fx, fy, fz).multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, (index === 0 ? 1 : - 1) * Math.PI / 6))
-                    ); 
+                        BABYLON.Quaternion.RotationQuaternionFromAxis(fx, fy, fz).multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, (this._currentLegIndex === 0 ? 1 : - 1) * Math.PI / 6))
+                    );
+                    this._currentLegIndex = (this._currentLegIndex + 1) % 2;
                 }
             }
         }

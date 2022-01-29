@@ -449,32 +449,47 @@ class Ground extends BABYLON.Mesh {
         this.width = width;
         this.height = height;
         this.main = main;
-        let data = new BABYLON.VertexData();
-        let positions = [];
-        let indices = [];
-        let uvs = [];
-        let lx = 2;
-        let lz = Math.sin(Math.PI / 3) * lx;
-        let x0 = -lx * (width + height * 0.5) * 0.5;
-        let z0 = -lz * height * 0.5;
-        for (let i = 0; i <= width; i++) {
-            for (let j = 0; j <= height; j++) {
-                let n = i + j * (width + 1);
-                positions.push(x0 + i * lx + j * lx * 0.5, Math.random(), z0 + j * lz);
-                uvs.push(2 * i / width, 2 * j / width);
-                if (i < width && j < width) {
-                    indices.push(n, n + width + 1, n + 1);
-                    indices.push(n + 1, n + width + 1, n + width + 2);
+        let image = new Image(1024, 1024);
+        image.onload = () => {
+            console.log("!");
+            let canvas = document.createElement("canvas");
+            canvas.width = 1024;
+            canvas.height = 1024;
+            let ctx = canvas.getContext("2d");
+            ctx.drawImage(image, 0, 0);
+            let imageData = ctx.getImageData(0, 0, 1024, 1024);
+            console.log(imageData);
+            let data = new BABYLON.VertexData();
+            let positions = [];
+            let indices = [];
+            let uvs = [];
+            let lx = 2;
+            let lz = Math.sin(Math.PI / 3) * lx;
+            let x0 = -lx * (width + height * 0.5) * 0.5;
+            let z0 = -lz * height * 0.5;
+            for (let i = 0; i <= width; i++) {
+                for (let j = 0; j <= height; j++) {
+                    let n = i + j * (width + 1);
+                    let di = Math.floor(i / width * 64);
+                    let dj = Math.floor(j / height * 64);
+                    let h = imageData.data[4 * (di + 1024 * dj)];
+                    positions.push(x0 + i * lx + j * lx * 0.5, h / 256 * 80 - 40, z0 + j * lz);
+                    uvs.push(2 * i / width, 2 * j / width);
+                    if (i < width && j < width) {
+                        indices.push(n, n + width + 1, n + 1);
+                        indices.push(n + 1, n + width + 1, n + width + 2);
+                    }
                 }
             }
-        }
-        let normals = [];
-        BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-        data.positions = positions;
-        data.indices = indices;
-        data.normals = normals;
-        data.uvs = uvs;
-        data.applyToMesh(this);
+            let normals = [];
+            BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+            data.positions = positions;
+            data.indices = indices;
+            data.normals = normals;
+            data.uvs = uvs;
+            data.applyToMesh(this);
+        };
+        image.src = "assets/ground.png";
         let groundMaterial = new ToonMaterial("ground-material", false, this.main.scene);
         groundMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/ground_2.png", this.main.scene));
         groundMaterial.setColor(BABYLON.Color3.White());
@@ -561,6 +576,7 @@ class Robot extends GameObject {
         };
         this._movingLegCount = 0;
         this._movingLegs = new UniqueList();
+        this._currentLegIndex = 0;
         this._bodyVelocity = BABYLON.Vector3.Zero();
         this._handVelocities = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
         this.target = new RobotTarget(this);
@@ -616,7 +632,6 @@ class Robot extends GameObject {
             for (let i = 0; i < meshes.length; i++) {
                 let mesh = meshes[i];
                 if (mesh.material instanceof BABYLON.PBRMaterial) {
-                    console.log(mesh.material);
                     let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                     if (mesh.material.name === "RobotMaterial") {
                         toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/robot-texture.png", this.main.scene));
@@ -740,31 +755,22 @@ class Robot extends GameObject {
     }
     _updateLegMove() {
         if (this._movingLegCount <= 0) {
-            let index = -1;
-            let dist = 0;
-            for (let i = 0; i < 2; i++) {
-                if (!this._movingLegs.contains(i)) {
-                    let fp = this.feet[i].position.clone();
-                    fp.y = 0;
-                    let ft = this.target.targets[i].absolutePosition.clone();
-                    ft.y = 0;
-                    let iDist = BABYLON.Vector3.DistanceSquared(fp, ft);
-                    if (iDist > dist) {
-                        dist = iDist;
-                        index = i;
-                    }
-                }
-            }
+            let fp = this.feet[this._currentLegIndex].position.clone();
+            fp.y = 0;
+            let ft = this.target.targets[this._currentLegIndex].absolutePosition.clone();
+            ft.y = 0;
+            let dist = BABYLON.Vector3.DistanceSquared(fp, ft);
             if (dist > 0.05) {
-                this._movingLegCount++;
-                let ray = new BABYLON.Ray(this.target.targets[index].absolutePosition.add(BABYLON.Axis.Y.scale(10)), BABYLON.Vector3.Down(), 100);
+                let ray = new BABYLON.Ray(this.target.targets[this._currentLegIndex].absolutePosition.add(BABYLON.Axis.Y.scale(100)), BABYLON.Vector3.Down(), 200);
                 let hit = ray.intersectsMesh(this.main.ground);
                 if (hit.hit) {
+                    this._movingLegCount++;
                     let fy = hit.getNormal(true, true);
                     let fz = this.target.forward;
                     let fx = BABYLON.Vector3.Cross(fy, fz);
                     fz = BABYLON.Vector3.Cross(fx, fy);
-                    this._moveLeg(index, hit.pickedPoint.add(new BABYLON.Vector3(0, 0.4, 0)), BABYLON.Quaternion.RotationQuaternionFromAxis(fx, fy, fz).multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, (index === 0 ? 1 : -1) * Math.PI / 6)));
+                    this._moveLeg(this._currentLegIndex, hit.pickedPoint.add(new BABYLON.Vector3(0, 0.4, 0)), BABYLON.Quaternion.RotationQuaternionFromAxis(fx, fy, fz).multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, (this._currentLegIndex === 0 ? 1 : -1) * Math.PI / 6)));
+                    this._currentLegIndex = (this._currentLegIndex + 1) % 2;
                 }
             }
         }
