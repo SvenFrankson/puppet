@@ -835,7 +835,7 @@ class Robot extends GameObject {
         this.body.position.addInPlace(this._bodyVelocity);
         let dot = BABYLON.Vector3.Dot(this.feet[1].position.subtract(this.feet[0].position).normalize(), this.body.forward);
         let dy = this.feet[0].position.y - this.feet[1].position.y;
-        let targetRotX = (this.body.position.y - bodyH) * Math.PI / 10;
+        let targetRotX = (this.body.position.y - Math.min(this.feet[0].position.y, this.feet[1].position.y) - bodyH) * Math.PI / 10;
         this.body.rotation.x = Math2D.LerpFromToCircular(this.body.rotation.x, targetRotX, 0.1);
         this.body.rotation.y = Math2D.LerpFromToCircular(this.body.rotation.y, this.target.rotation.y + dot * (this.mode === RobotMode.Walk ? Math.PI / 10 : Math.PI / 6), 0.2);
         this.body.rotation.z = dy * Math.PI / 10;
