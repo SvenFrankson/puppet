@@ -70,13 +70,12 @@ class Robot extends GameObject {
     public upperArms: BABYLON.Mesh[];
     public upperArmsRoot: BABYLON.Mesh[];
 
+    public footImpactParticle: BABYLON.ParticleSystem;
+
     public mode: RobotMode = RobotMode.Walk;
 
     public target: RobotTarget;
     private _inputDirs: UniqueList<number> = new UniqueList<number>();
-    private get _inputDir(): number {
-        return this._inputDirs.getLast();
-    }
     private _inputForwardAxis: number = 0;
     private _inputSideAxis: number = 0;
     private _inputRotateAxis: number = 0;
@@ -91,6 +90,28 @@ class Robot extends GameObject {
     constructor(main: Main) {
         super(main);
         this.target = new RobotTarget(this);
+
+        this.footImpactParticle = new BABYLON.ParticleSystem("particles", 20, this.main.scene);
+        this.footImpactParticle.particleTexture = new BABYLON.Texture("assets/dust.png", this.main.scene);
+        this.footImpactParticle.targetStopDuration = 0.3;
+
+        this.footImpactParticle.maxLifeTime = 0.3;
+
+        this.footImpactParticle.addSizeGradient(0, 0);
+        this.footImpactParticle.addSizeGradient(0.1, 0);
+        this.footImpactParticle.addSizeGradient(0.2, 1);
+        this.footImpactParticle.addSizeGradient(1, 0);
+
+        this.footImpactParticle.addVelocityGradient(0, 5);
+        this.footImpactParticle.addVelocityGradient(0.1, 5);
+        this.footImpactParticle.addVelocityGradient(0.2, 1);
+        this.footImpactParticle.addSizeGradient(1, 0.5);
+
+        this.footImpactParticle.color1 = new BABYLON.Color4(1, 1, 1, 1);
+        this.footImpactParticle.color2 = new BABYLON.Color4(1, 1, 1, 1);
+
+        this.footImpactParticle.emitRate = 1000;
+
         BABYLON.SceneLoader.ImportMesh(
 			"",
 			"assets/robot.babylon",
@@ -288,34 +309,10 @@ class Robot extends GameObject {
                     }
                     else {
                         this._movingLegCount -= 1;
-                        this._movingLegs.remove(legIndex);
-                        // test
-                        let myParticleSystem = new BABYLON.ParticleSystem("particles", 30, this.main.scene);
-                        myParticleSystem.particleTexture = new BABYLON.Texture("assets/dust.png", this.main.scene);
-                        myParticleSystem.emitter = this.feet[legIndex].position.subtract(this.feet[legIndex].up.scale(0.4));
-                        myParticleSystem.targetStopDuration = 0.3;
+                        this._movingLegs.remove(legIndex);                        
 
-                        myParticleSystem.maxLifeTime = 0.3;
-
-                        myParticleSystem.addSizeGradient(0, 0);
-                        myParticleSystem.addSizeGradient(0.1, 0);
-                        myParticleSystem.addSizeGradient(0.2, 0.7);
-                        myParticleSystem.addSizeGradient(1, 0);
-
-                        myParticleSystem.addVelocityGradient(0, 5);
-                        myParticleSystem.addVelocityGradient(0.1, 5);
-                        myParticleSystem.addVelocityGradient(0.2, 1);
-                        myParticleSystem.addSizeGradient(1, 0.5);
-
-                        myParticleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1);
-                        myParticleSystem.color2 = new BABYLON.Color4(1, 1, 1, 1);
-
-                        myParticleSystem.minAngularSpeed = 0;
-                        myParticleSystem.maxAngularSpeed = 0;
-
-                        myParticleSystem.emitRate = 1000;
-
-                        myParticleSystem.startDirectionFunction = (worldMatrix: BABYLON.Matrix, directionToUpdate: BABYLON.Vector3, particle: BABYLON.Particle) => {
+                        this.footImpactParticle.emitter = this.feet[legIndex].position.subtract(this.feet[legIndex].up.scale(0.4));
+                        this.footImpactParticle.startDirectionFunction = (worldMatrix: BABYLON.Matrix, directionToUpdate: BABYLON.Vector3, particle: BABYLON.Particle) => {
                             let a = 2 * Math.PI * Math.random();
                             let b = Math.PI / 16;
                             let right = this.feet[legIndex].right.scale(Math.cos(a) * Math.cos(b));
@@ -323,8 +320,8 @@ class Robot extends GameObject {
                             let forward = this.feet[legIndex].forward.scale(Math.sin(a) * Math.cos(b));
                             directionToUpdate.copyFrom(right).addInPlace(up).addInPlace(forward).scaleInPlace(1);
                         }
-                        myParticleSystem.start();
-                        // test
+                        this.footImpactParticle.start();
+                        
                         resolve();
                     }
                 }
