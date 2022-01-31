@@ -123,6 +123,22 @@ class Main {
 			}
 		}
 		*/
+
+		setTimeout(
+			() => {
+				let turret = new Turret2(new BABYLON.Vector2(-20, -20), this);
+				setTimeout(
+					() => {
+						this.cameraManager.camera.setTarget(turret.base);
+					},
+					1000
+				)
+				new Turret2(new BABYLON.Vector2(20, -20), this);
+				new Turret2(new BABYLON.Vector2(-20, 20), this);
+				new Turret2(new BABYLON.Vector2(20, 20), this);
+			},
+			1000
+		);
 	}
 
 	public disposeScene(): void {

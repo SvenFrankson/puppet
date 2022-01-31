@@ -273,6 +273,15 @@ class Main {
             }
         }
         */
+        setTimeout(() => {
+            let turret = new Turret2(new BABYLON.Vector2(-20, -20), this);
+            setTimeout(() => {
+                this.cameraManager.camera.setTarget(turret.base);
+            }, 1000);
+            new Turret2(new BABYLON.Vector2(20, -20), this);
+            new Turret2(new BABYLON.Vector2(-20, 20), this);
+            new Turret2(new BABYLON.Vector2(20, 20), this);
+        }, 1000);
     }
     disposeScene() {
         while (this.gameObjects.length > 0) {
@@ -494,6 +503,14 @@ class Ground extends BABYLON.Mesh {
         groundMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/ground_2.png", this.main.scene));
         groundMaterial.setColor(BABYLON.Color3.White());
         this.material = groundMaterial;
+    }
+    getHeightAt(pos2D) {
+        let ray = new BABYLON.Ray(new BABYLON.Vector3(pos2D.x, 100, pos2D.y), BABYLON.Vector3.Down(), 200);
+        let hit = ray.intersectsMesh(this.main.ground);
+        if (hit.hit) {
+            return hit.pickedPoint.y;
+        }
+        return 0;
     }
 }
 /// <reference path="GameObject.ts"/>
@@ -1185,6 +1202,110 @@ class Turret extends GameObject {
         this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
+    }
+}
+class Turret2 extends GameObject {
+    constructor(pos2D, main) {
+        super(main);
+        this.cooldown = 1;
+        this.counter = 0;
+        this._t = 0;
+        this._update = () => {
+            this._updateTarget();
+            this._updateMesh();
+            this._t += this.main.engine.getDeltaTime() / 1000;
+            this.counter -= this.main.engine.getDeltaTime() / 1000;
+            if (this.counter < 0) {
+                this.counter = this.cooldown;
+                this._shoot();
+            }
+        };
+        this.counter = Math.random() * this.cooldown;
+        BABYLON.SceneLoader.ImportMesh("", "assets/canon.babylon", "", this.main.scene, (meshes) => {
+            this.base = meshes.find(m => { return m.name === "base"; });
+            this.body = meshes.find(m => { return m.name === "body"; });
+            this.head = meshes.find(m => { return m.name === "head"; });
+            this.canon = meshes.find(m => { return m.name === "canon"; });
+            console.log(this.base);
+            console.log(this.body);
+            console.log(this.head);
+            console.log(this.canon);
+            for (let i = 0; i < meshes.length; i++) {
+                let mesh = meshes[i];
+                if (mesh.material instanceof BABYLON.PBRMaterial) {
+                    let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                    if (mesh.material.name === "CanonMaterial") {
+                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture.png", this.main.scene));
+                    }
+                    toonMaterial.setColor(mesh.material.albedoColor);
+                    mesh.material = toonMaterial;
+                }
+            }
+            this.posX = pos2D.x;
+            this.posY = pos2D.y;
+            this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
+            this.main.scene.onBeforeRenderObservable.add(this._update);
+        });
+    }
+    get pos2D() {
+        if (!this._pos2D) {
+            this._pos2D = BABYLON.Vector2.Zero();
+        }
+        this._pos2D.x = this.base.position.x;
+        this._pos2D.y = this.base.position.z;
+        return this._pos2D;
+    }
+    get posX() {
+        return this.base.position.x;
+    }
+    set posX(x) {
+        this.base.position.x = x;
+    }
+    get posY() {
+        return this.base.position.z;
+    }
+    set posY(y) {
+        this.base.position.z = y;
+    }
+    _updateTarget() {
+        if (!this.target || this.target.isDisposed) {
+            this.target = this.main.gameObjects.find(g => { return g instanceof Robot; });
+        }
+    }
+    async _shoot() {
+        return new Promise(resolve => {
+            let duration = 0.2;
+            let t = 0;
+            let step = () => {
+                t += this.main.scene.getEngine().getDeltaTime() / 1000;
+                let d = t / duration;
+                d = Math.min(d, 1);
+                if (d < 1) {
+                    if (d < 0.1) {
+                        this.canon.position.z = -0.5 * d / 0.1;
+                        this.head.position.z = -0.2 * d / 0.1;
+                    }
+                    else {
+                        let dd = (d - 0.1) / (1 - 0.1);
+                        this.canon.position.z = -0.5 * (1 - dd);
+                        this.head.position.z = -0.2 * (1 - dd);
+                    }
+                    requestAnimationFrame(step);
+                }
+                else {
+                    resolve();
+                }
+            };
+            step();
+        });
+    }
+    _updateMesh() {
+        if (this.target && !this.target.isDisposed) {
+            let a = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Axis.Z, this.target.body.position.subtract(this.body.absolutePosition), BABYLON.Axis.Y);
+            this.body.rotation.y = a;
+            let b = BABYLON.Vector3.GetAngleBetweenVectors(this.body.forward, this.target.body.position.subtract(this.head.absolutePosition), this.body.right);
+            this.head.rotation.x = b;
+        }
     }
 }
 class WalkerTarget extends BABYLON.Mesh {

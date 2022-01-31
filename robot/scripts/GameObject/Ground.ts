@@ -65,4 +65,13 @@ class Ground extends BABYLON.Mesh {
 		
 		this.material = groundMaterial;
     }
+
+    public getHeightAt(pos2D: BABYLON.Vector2): number {
+        let ray = new BABYLON.Ray(new BABYLON.Vector3(pos2D.x, 100, pos2D.y), BABYLON.Vector3.Down(), 200);
+        let hit = ray.intersectsMesh(this.main.ground);
+        if (hit.hit) {
+            return hit.pickedPoint.y;
+        }
+        return 0;
+    }
 }
