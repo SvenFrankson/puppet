@@ -5,10 +5,9 @@
         "skipLibCheck": true
     },
     "exclude": [
-        "lib",
-        "node_modules",
-        "typings/browser",
-        "typings/browser.d.ts"
+        "./assets",
+        "./shaders",
+        "./work",
     ],
     "compileOnSave": true,
     "buildOnSave": true,
