@@ -3,6 +3,7 @@
 abstract class Building extends GameObject {
 
     public isReady: boolean;
+    public isInstantiated: boolean;
 
     public base: BABYLON.Mesh;
     public obstacle: Obstacle;
@@ -24,6 +25,7 @@ abstract class Building extends GameObject {
 
     public set posX(x: number) {
         this.base.position.x = x;
+        this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
     }
 
     public get posY(): number {
@@ -32,11 +34,20 @@ abstract class Building extends GameObject {
 
     public set posY(y: number) {
         this.base.position.z = y;
+        this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
     }
 
     constructor(main: Main) {
         super(main);
         this.base = new BABYLON.Mesh("building", this.main.scene);
+    }
+
+    public abstract instantiate(): Promise<void>;
+
+    public flattenGround(radius: number): void {
+        let height = this.base.position.y;
+        let ij = this.main.ground.pos2DToIJ(this.pos2D);
+        this.main.ground.flatten(ij.i, ij.j, height, radius);
     }
 
     public makeReady(): void {
@@ -48,46 +59,55 @@ class CommandCenter extends Building {
 
     constructor(main: Main) {
         super(main);
-        BABYLON.SceneLoader.ImportMesh(
-			"",
-			"assets/command-center.babylon",
-			"",
-			this.main.scene,
-			(meshes) => {
-				for (let i = 0; i < meshes.length; i++) {
-					let mesh = meshes[i];
-					mesh.parent = this.base;
-                    if (mesh instanceof BABYLON.Mesh) {
-                        mesh.instances.forEach(
-                            (instancedMesh) => {
-                                instancedMesh.parent = this.base;
+    }
+
+    public async instantiate(): Promise<void> {
+        return new Promise<void>(
+            resolve => {
+                BABYLON.SceneLoader.ImportMesh(
+                    "",
+                    "assets/command-center.babylon",
+                    "",
+                    this.main.scene,
+                    (meshes) => {
+                        for (let i = 0; i < meshes.length; i++) {
+                            let mesh = meshes[i];
+                            mesh.parent = this.base;
+                            if (mesh instanceof BABYLON.Mesh) {
+                                mesh.instances.forEach(
+                                    (instancedMesh) => {
+                                        instancedMesh.parent = this.base;
+                                    }
+                                )
                             }
-                        )
-                    }
-                    if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        console.log(mesh.material);
-                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                        if (mesh.material.name === "EnergyCellMaterial") {
-                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+                            if (mesh.material instanceof BABYLON.PBRMaterial) {
+                                console.log(mesh.material);
+                                let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                                if (mesh.material.name === "EnergyCellMaterial") {
+                                    toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+                                }
+                                if (mesh.material.name === "CommandCenterMaterial") {
+                                    toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/command-center-texture.png", this.main.scene));
+                                }
+                                toonMaterial.setColor(mesh.material.albedoColor);
+                                mesh.material = toonMaterial;
+                            }
+                            else if (mesh.material instanceof BABYLON.MultiMaterial) {
+                                let newSubmaterials: BABYLON.Material[] = [];
+                                mesh.material.subMaterials.forEach((m, i) => {
+                                    let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                                    toonMaterial.setColor((m as BABYLON.PBRMaterial).albedoColor);
+                                    newSubmaterials.push(toonMaterial);
+                                })
+                                mesh.material.subMaterials = newSubmaterials;
+                            }
                         }
-                        if (mesh.material.name === "CommandCenterMaterial") {
-                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/command-center-texture.png", this.main.scene));
-                        }
-                        toonMaterial.setColor(mesh.material.albedoColor);
-                        mesh.material = toonMaterial;
+                        this.isInstantiated = true;
+                        resolve();
                     }
-                    else if (mesh.material instanceof BABYLON.MultiMaterial) {
-                        let newSubmaterials: BABYLON.Material[] = [];
-                        mesh.material.subMaterials.forEach((m, i) => {
-                            let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
-                            toonMaterial.setColor((m as BABYLON.PBRMaterial).albedoColor);
-                            newSubmaterials.push(toonMaterial);
-                        })
-                        mesh.material.subMaterials = newSubmaterials;
-                    }
-				}
-			}
-		)
+                )
+            }
+        );
     }
 
     public makeReady(): void {
@@ -105,27 +125,36 @@ class Beacon extends Building {
 
     constructor(main: Main) {
         super(main);
-        BABYLON.SceneLoader.ImportMesh(
-			"",
-			"assets/beacon.babylon",
-			"",
-			this.main.scene,
-			(meshes) => {
-				for (let i = 0; i < meshes.length; i++) {
-					let mesh = meshes[i];
-					mesh.parent = this.base;
-                    if (mesh instanceof BABYLON.Mesh) {
-                        mesh.instances.forEach(
-                            (instancedMesh) => {
-                                instancedMesh.parent = this.base;
-                            }
-                        )
-                    }
-				}
-			}
-		);
 
         this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+
+    public async instantiate(): Promise<void> {
+        return new Promise<void>(
+            resolve => {
+                BABYLON.SceneLoader.ImportMesh(
+                    "",
+                    "assets/beacon.babylon",
+                    "",
+                    this.main.scene,
+                    (meshes) => {
+                        for (let i = 0; i < meshes.length; i++) {
+                            let mesh = meshes[i];
+                            mesh.parent = this.base;
+                            if (mesh instanceof BABYLON.Mesh) {
+                                mesh.instances.forEach(
+                                    (instancedMesh) => {
+                                        instancedMesh.parent = this.base;
+                                    }
+                                )
+                            }
+                        }
+                        this.isInstantiated = true;
+                        resolve();
+                    }
+                );
+            }
+        );
     }
 
     private _n: number = 0;
