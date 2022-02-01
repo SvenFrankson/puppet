@@ -82,8 +82,11 @@ class Main {
 		this.game.credit(300);
 
 		this.ground = new Ground(50, 50, this);
-
-		this.generateScene();
+		this.ground.instantiate().then(
+			() => {
+				this.generateScene();
+			}
+		)
 	}
 
 	public generateScene(): void {
@@ -100,7 +103,9 @@ class Main {
 		let commandCenter = new CommandCenter(this);
 		commandCenter.posX = - 30;
 		commandCenter.posY = - 30;
+		commandCenter.instantiate();
 		commandCenter.makeReady();
+		commandCenter.flattenGround(8);
 
 		/*
 		let beacon = new Beacon(this);
@@ -110,35 +115,57 @@ class Main {
 		*/
 
 		let robot = new Robot(this);
+		robot.instantiate().then(
+			() => {
+				robot.foldAt(new BABYLON.Vector2(5, 5));
+			}
+		);
 		robot.mode = RobotMode.Walk;
 		this.cameraManager.camera.setTarget(robot.target);
 		this.cameraManager.camera.beta = Math.PI / 3;
 		this.cameraManager.camera.radius = 15;
 
-		/*
-		for (let i = 0; i < 10; i++) {
-			let r = new Robot(this);
-			if (Math.random() > 0.5) {
-				r.mode = RobotMode.Run;
-			}
+		for (let i = 0; i < 5; i++) {
+			setTimeout(
+				() => {
+					let robot = new Robot(this);
+					robot.instantiate().then(
+						() => {
+							robot.foldAt(new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random()));
+						}
+					);
+				},
+				5000 * i
+			);
 		}
-		*/
+		
+		let turret1 = new Canon(this);
+		turret1.posX = - 20;
+		turret1.posY = - 20;
+		turret1.instantiate();
+		turret1.makeReady();
+		turret1.flattenGround(3);
 
-		setTimeout(
-			() => {
-				let turret = new Turret2(new BABYLON.Vector2(-20, -20), this);
-				setTimeout(
-					() => {
-						this.cameraManager.camera.setTarget(turret.base);
-					},
-					1000
-				)
-				new Turret2(new BABYLON.Vector2(20, -20), this);
-				new Turret2(new BABYLON.Vector2(-20, 20), this);
-				new Turret2(new BABYLON.Vector2(20, 20), this);
-			},
-			1000
-		);
+		let turret2 = new Canon(this);
+		turret2.posX = 20;
+		turret2.posY = - 20;
+		turret2.instantiate();
+		turret2.makeReady();
+		turret2.flattenGround(3);
+
+		let turret3 = new Canon(this);
+		turret3.posX = - 20;
+		turret3.posY = 20;
+		turret3.instantiate();
+		turret3.makeReady();
+		turret3.flattenGround(3);
+
+		let turret4 = new Canon(this);
+		turret4.posX = 20;
+		turret4.posY = 20;
+		turret4.instantiate();
+		turret4.makeReady();
+		turret4.flattenGround(3);
 	}
 
 	public disposeScene(): void {

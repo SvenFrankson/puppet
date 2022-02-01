@@ -53,6 +53,8 @@ class RobotTarget extends BABYLON.Mesh {
             target.position.z = positions[i].y;
             target.parent = this;
             this.targets[i] = target;
+
+            //BABYLON.VertexData.CreateBox({ width: 0.2, height: 20, depth: 0.2 }).applyToMesh(target);
         }
     }
 }
@@ -111,78 +113,85 @@ class Robot extends GameObject {
         this.footImpactParticle.color2 = new BABYLON.Color4(1, 1, 1, 1);
 
         this.footImpactParticle.emitRate = 1000;
+    }
 
-        BABYLON.SceneLoader.ImportMesh(
-			"",
-			"assets/robot.babylon",
-			"",
-			this.main.scene,
-			(meshes) => {
-                this.head = meshes.find(m => { return m.name === "head"; }) as BABYLON.Mesh;
-                this.body = meshes.find(m => { return m.name === "body"; }) as BABYLON.Mesh;
-                this.feet = [
-                    meshes.find(m => { return m.name === "foot-right"; }) as BABYLON.Mesh,
-                    meshes.find(m => { return m.name === "foot-left"; }) as BABYLON.Mesh
-                ];
-                this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
-                this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
-                this.legs = [
-                    meshes.find(m => { return m.name === "leg-right"; }) as BABYLON.Mesh,
-                    meshes.find(m => { return m.name === "leg-left"; }) as BABYLON.Mesh
-                ];
-                this.upperLegs = [
-                    meshes.find(m => { return m.name === "upper-leg-right"; }) as BABYLON.Mesh,
-                    meshes.find(m => { return m.name === "upper-leg-left"; }) as BABYLON.Mesh
-                ];
-                this.upperLegsRoot = [
-                    new BABYLON.Mesh("upper-leg-root-0"),
-                    new BABYLON.Mesh("upper-leg-root-1"),
-                ];
-                this.upperLegsRoot[0].position.copyFrom(this.upperLegs[0].position);
-                this.upperLegsRoot[0].parent = this.body;
-                this.upperLegsRoot[1].position.copyFrom(this.upperLegs[1].position);
-                this.upperLegsRoot[1].parent = this.body;
-                this.upperLegs[0].parent = undefined;
-                this.upperLegs[1].parent = undefined;
-
-                this.hands = [
-                    meshes.find(m => { return m.name === "hand-right"; }) as BABYLON.Mesh,
-                    meshes.find(m => { return m.name === "hand-left"; }) as BABYLON.Mesh
-                ];
-                this.arms = [
-                    meshes.find(m => { return m.name === "arm-right"; }) as BABYLON.Mesh,
-                    meshes.find(m => { return m.name === "arm-left"; }) as BABYLON.Mesh
-                ];
-                this.upperArms = [
-                    meshes.find(m => { return m.name === "upper-arm-right"; }) as BABYLON.Mesh,
-                    meshes.find(m => { return m.name === "upper-arm-left"; }) as BABYLON.Mesh
-                ];
-                this.upperArmsRoot = [
-                    new BABYLON.Mesh("upper-arm-root-0"),
-                    new BABYLON.Mesh("upper-arm-root-1"),
-                ];
-                this.upperArmsRoot[0].position.copyFrom(this.upperArms[0].position);
-                this.upperArmsRoot[0].parent = this.body;
-                this.upperArmsRoot[1].position.copyFrom(this.upperArms[1].position);
-                this.upperArmsRoot[1].parent = this.body;
-                this.upperArms[0].parent = undefined;
-                this.upperArms[1].parent = undefined;
-
-				for (let i = 0; i < meshes.length; i++) {
-					let mesh = meshes[i];
-                    if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                        if (mesh.material.name === "RobotMaterial") {
-                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/robot-texture.png", this.main.scene));
+    public async instantiate(): Promise<void> {
+        return new Promise<void>(
+            resolve => {
+                BABYLON.SceneLoader.ImportMesh(
+                    "",
+                    "assets/robot.babylon",
+                    "",
+                    this.main.scene,
+                    (meshes) => {
+                        this.head = meshes.find(m => { return m.name === "head"; }) as BABYLON.Mesh;
+                        this.body = meshes.find(m => { return m.name === "body"; }) as BABYLON.Mesh;
+                        this.feet = [
+                            meshes.find(m => { return m.name === "foot-right"; }) as BABYLON.Mesh,
+                            meshes.find(m => { return m.name === "foot-left"; }) as BABYLON.Mesh
+                        ];
+                        this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
+                        this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
+                        this.legs = [
+                            meshes.find(m => { return m.name === "leg-right"; }) as BABYLON.Mesh,
+                            meshes.find(m => { return m.name === "leg-left"; }) as BABYLON.Mesh
+                        ];
+                        this.upperLegs = [
+                            meshes.find(m => { return m.name === "upper-leg-right"; }) as BABYLON.Mesh,
+                            meshes.find(m => { return m.name === "upper-leg-left"; }) as BABYLON.Mesh
+                        ];
+                        this.upperLegsRoot = [
+                            new BABYLON.Mesh("upper-leg-root-0"),
+                            new BABYLON.Mesh("upper-leg-root-1"),
+                        ];
+                        this.upperLegsRoot[0].position.copyFrom(this.upperLegs[0].position);
+                        this.upperLegsRoot[0].parent = this.body;
+                        this.upperLegsRoot[1].position.copyFrom(this.upperLegs[1].position);
+                        this.upperLegsRoot[1].parent = this.body;
+                        this.upperLegs[0].parent = undefined;
+                        this.upperLegs[1].parent = undefined;
+        
+                        this.hands = [
+                            meshes.find(m => { return m.name === "hand-right"; }) as BABYLON.Mesh,
+                            meshes.find(m => { return m.name === "hand-left"; }) as BABYLON.Mesh
+                        ];
+                        this.arms = [
+                            meshes.find(m => { return m.name === "arm-right"; }) as BABYLON.Mesh,
+                            meshes.find(m => { return m.name === "arm-left"; }) as BABYLON.Mesh
+                        ];
+                        this.upperArms = [
+                            meshes.find(m => { return m.name === "upper-arm-right"; }) as BABYLON.Mesh,
+                            meshes.find(m => { return m.name === "upper-arm-left"; }) as BABYLON.Mesh
+                        ];
+                        this.upperArmsRoot = [
+                            new BABYLON.Mesh("upper-arm-root-0"),
+                            new BABYLON.Mesh("upper-arm-root-1"),
+                        ];
+                        this.upperArmsRoot[0].position.copyFrom(this.upperArms[0].position);
+                        this.upperArmsRoot[0].parent = this.body;
+                        this.upperArmsRoot[1].position.copyFrom(this.upperArms[1].position);
+                        this.upperArmsRoot[1].parent = this.body;
+                        this.upperArms[0].parent = undefined;
+                        this.upperArms[1].parent = undefined;
+        
+                        for (let i = 0; i < meshes.length; i++) {
+                            let mesh = meshes[i];
+                            if (mesh.material instanceof BABYLON.PBRMaterial) {
+                                let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                                if (mesh.material.name === "RobotMaterial") {
+                                    toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/robot-texture.png", this.main.scene));
+                                }
+                                toonMaterial.setColor(mesh.material.albedoColor);
+                                mesh.material = toonMaterial;
+                            }
                         }
-                        toonMaterial.setColor(mesh.material.albedoColor);
-                        mesh.material = toonMaterial;
+        
+                        this.main.scene.onBeforeRenderObservable.add(this._update);
+                        resolve();
                     }
-				}
-
-                this.main.scene.onBeforeRenderObservable.add(this._update);
-			}
-		)
+                )
+            }
+        );
     }
     
     private _update = () => {
@@ -230,6 +239,7 @@ class Robot extends GameObject {
         else if (this._inputForwardAxis < 0) {
             forwardSpeed = - 0.5 * this._inputForwardAxis;
         }
+        forwardSpeed *= this._dragFactor;
 
         let rotateSpeed: number = this._inputRotateAxis * 0.1;
         let sideSpeed: number = 2 * this._inputSideAxis;
@@ -270,6 +280,7 @@ class Robot extends GameObject {
 
     private _movingLegCount: number = 0;
     private _movingLegs: UniqueList<number> = new UniqueList<number>();
+    private _abortLegMove: boolean = false;
 
     private async _moveLeg(legIndex: number, target: BABYLON.Vector3, targetQ: BABYLON.Quaternion): Promise<void> {
         return new Promise<void>(
@@ -284,6 +295,16 @@ class Robot extends GameObject {
                 }
                 let t = 0;
                 let step = () => {
+                    if (this._abortLegMove) {
+                        requestAnimationFrame(
+                            () => {
+                                this._abortLegMove = false;
+                                this._movingLegCount -= 1;
+                                this._movingLegs.remove(legIndex);
+                            }
+                        )
+                        return;
+                    }
                     t += this.main.scene.getEngine().getDeltaTime() / 1000;
                     let d = t / duration;
                     if (this.mode === RobotMode.Walk) {
@@ -302,7 +323,7 @@ class Robot extends GameObject {
                     else {
                         this.feet[legIndex].position.addInPlace(this.target.right.scale(- (this.mode === RobotMode.Walk ? 1: 0.6) * Math.sin(Math.PI * d)));
                     }
-                    this.feet[legIndex].position.y += (this.mode === RobotMode.Walk ? 0.65: 0.4) * Math.sin(Math.PI * d);
+                    this.feet[legIndex].position.y += (this.mode === RobotMode.Walk ? 0.65: 0.4) * Math.sin(Math.PI * d) * this._dragFactor;
                     this.feet[legIndex].rotationQuaternion = BABYLON.Quaternion.Slerp(originQ, targetQ, d);
                     if (d < 1) {
                         requestAnimationFrame(step);
@@ -412,8 +433,10 @@ class Robot extends GameObject {
 
     private _bodyVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     private _handVelocities: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
+    private _dragFactor: number = 1;
     public _updateMesh(): void {
         let dt = this.main.engine.getDeltaTime() / 1000;
+        this._dragFactor = Math.min(this._dragFactor + 0.25 * dt, 1);
 
         let bodyH = this.mode === RobotMode.Walk ? 1.8 : 1.6;
         let targetBody = this.feet[0].absolutePosition.add(this.feet[1].absolutePosition).scaleInPlace(0.5);
@@ -422,7 +445,7 @@ class Robot extends GameObject {
 
         let fBody = targetBody.subtract(this.body.position);
         this._bodyVelocity.addInPlace(fBody.scaleInPlace((this.mode === RobotMode.Walk ? 0.5: 2) * dt));
-        this._bodyVelocity.scaleInPlace(this.mode === RobotMode.Walk ? 0.97: 0.9);
+        this._bodyVelocity.scaleInPlace((this.mode === RobotMode.Walk ? 0.97: 0.9) * this._dragFactor);
         this.body.position.addInPlace(this._bodyVelocity);
 
         let dot = BABYLON.Vector3.Dot(this.feet[1].position.subtract(this.feet[0].position).normalize(), this.body.forward);
@@ -466,7 +489,7 @@ class Robot extends GameObject {
         for (let i = 0; i < 2; i++) {
             let fHand = handTargets[i].subtract(this.hands[i].position);
             this._handVelocities[i].addInPlace(fHand.scaleInPlace(3 * dt));
-            this._handVelocities[i].scaleInPlace(0.7);
+            this._handVelocities[i].scaleInPlace(0.7 * this._dragFactor);
             this.hands[i].position.addInPlace(this._handVelocities[i]);
         }
 
@@ -547,6 +570,31 @@ class Robot extends GameObject {
             
             this.hands[i].rotationQuaternion = this.arms[i].rotationQuaternion;
         }
+    }
+
+    public foldAt(pos2D: BABYLON.Vector2): void {
+        let h = this.main.ground.getHeightAt(pos2D);
+        this.body.position.x = pos2D.x;
+        this.body.position.y = h;
+        this.body.position.z = pos2D.y;
+        this.feet[0].position.copyFrom(this.body.position);
+        this.feet[1].position.copyFrom(this.body.position);
+        this.feet[0].position.addInPlace(this.body.right.scale(0.5));
+        this.feet[1].position.subtractInPlace(this.body.right.scale(0.5));
+        this.hands[0].position.copyFrom(this.body.position);
+        this.hands[1].position.copyFrom(this.body.position);
+
+        this.body.position.y += 0.6;
+        this.feet[0].position.y = this.main.ground.getHeightAt(this.feet[0].position) + 0.4;
+        this.feet[1].position.y = this.main.ground.getHeightAt(this.feet[1].position) + 0.4;
+
+        this.target.posX = pos2D.x;
+        this.target.posY = pos2D.y;
+        this.target.computeWorldMatrix(true);
+
+        this._abortLegMove = true;
+
+        this._dragFactor = 0;
     }
 
     public wound(n: number): void {

@@ -238,7 +238,9 @@ class Main {
         this.game = new Game(this);
         this.game.credit(300);
         this.ground = new Ground(50, 50, this);
-        this.generateScene();
+        this.ground.instantiate().then(() => {
+            this.generateScene();
+        });
     }
     generateScene() {
         /*
@@ -253,7 +255,9 @@ class Main {
         let commandCenter = new CommandCenter(this);
         commandCenter.posX = -30;
         commandCenter.posY = -30;
+        commandCenter.instantiate();
         commandCenter.makeReady();
+        commandCenter.flattenGround(8);
         /*
         let beacon = new Beacon(this);
         beacon.posX = 15;
@@ -261,27 +265,45 @@ class Main {
         beacon.makeReady();
         */
         let robot = new Robot(this);
+        robot.instantiate().then(() => {
+            robot.foldAt(new BABYLON.Vector2(5, 5));
+        });
         robot.mode = RobotMode.Walk;
         this.cameraManager.camera.setTarget(robot.target);
         this.cameraManager.camera.beta = Math.PI / 3;
         this.cameraManager.camera.radius = 15;
-        /*
-        for (let i = 0; i < 10; i++) {
-            let r = new Robot(this);
-            if (Math.random() > 0.5) {
-                r.mode = RobotMode.Run;
-            }
-        }
-        */
-        setTimeout(() => {
-            let turret = new Turret2(new BABYLON.Vector2(-20, -20), this);
+        for (let i = 0; i < 5; i++) {
             setTimeout(() => {
-                this.cameraManager.camera.setTarget(turret.base);
-            }, 1000);
-            new Turret2(new BABYLON.Vector2(20, -20), this);
-            new Turret2(new BABYLON.Vector2(-20, 20), this);
-            new Turret2(new BABYLON.Vector2(20, 20), this);
-        }, 1000);
+                let robot = new Robot(this);
+                robot.instantiate().then(() => {
+                    robot.foldAt(new BABYLON.Vector2(-20 + 40 * Math.random(), -20 + 40 * Math.random()));
+                });
+            }, 5000 * i);
+        }
+        let turret1 = new Canon(this);
+        turret1.posX = -20;
+        turret1.posY = -20;
+        turret1.instantiate();
+        turret1.makeReady();
+        turret1.flattenGround(3);
+        let turret2 = new Canon(this);
+        turret2.posX = 20;
+        turret2.posY = -20;
+        turret2.instantiate();
+        turret2.makeReady();
+        turret2.flattenGround(3);
+        let turret3 = new Canon(this);
+        turret3.posX = -20;
+        turret3.posY = 20;
+        turret3.instantiate();
+        turret3.makeReady();
+        turret3.flattenGround(3);
+        let turret4 = new Canon(this);
+        turret4.posX = 20;
+        turret4.posY = 20;
+        turret4.instantiate();
+        turret4.makeReady();
+        turret4.flattenGround(3);
     }
     disposeScene() {
         while (this.gameObjects.length > 0) {
@@ -362,12 +384,19 @@ class Building extends GameObject {
     }
     set posX(x) {
         this.base.position.x = x;
+        this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
     }
     get posY() {
         return this.base.position.z;
     }
     set posY(y) {
         this.base.position.z = y;
+        this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
+    }
+    flattenGround(radius) {
+        let height = this.base.position.y;
+        let ij = this.main.ground.pos2DToIJ(this.pos2D);
+        this.main.ground.flatten(ij.i, ij.j, height, radius);
     }
     makeReady() {
         this.isReady = true;
@@ -376,37 +405,43 @@ class Building extends GameObject {
 class CommandCenter extends Building {
     constructor(main) {
         super(main);
-        BABYLON.SceneLoader.ImportMesh("", "assets/command-center.babylon", "", this.main.scene, (meshes) => {
-            for (let i = 0; i < meshes.length; i++) {
-                let mesh = meshes[i];
-                mesh.parent = this.base;
-                if (mesh instanceof BABYLON.Mesh) {
-                    mesh.instances.forEach((instancedMesh) => {
-                        instancedMesh.parent = this.base;
-                    });
-                }
-                if (mesh.material instanceof BABYLON.PBRMaterial) {
-                    console.log(mesh.material);
-                    let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                    if (mesh.material.name === "EnergyCellMaterial") {
-                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+    }
+    async instantiate() {
+        return new Promise(resolve => {
+            BABYLON.SceneLoader.ImportMesh("", "assets/command-center.babylon", "", this.main.scene, (meshes) => {
+                for (let i = 0; i < meshes.length; i++) {
+                    let mesh = meshes[i];
+                    mesh.parent = this.base;
+                    if (mesh instanceof BABYLON.Mesh) {
+                        mesh.instances.forEach((instancedMesh) => {
+                            instancedMesh.parent = this.base;
+                        });
                     }
-                    if (mesh.material.name === "CommandCenterMaterial") {
-                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/command-center-texture.png", this.main.scene));
+                    if (mesh.material instanceof BABYLON.PBRMaterial) {
+                        console.log(mesh.material);
+                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                        if (mesh.material.name === "EnergyCellMaterial") {
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
+                        }
+                        if (mesh.material.name === "CommandCenterMaterial") {
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/command-center-texture.png", this.main.scene));
+                        }
+                        toonMaterial.setColor(mesh.material.albedoColor);
+                        mesh.material = toonMaterial;
                     }
-                    toonMaterial.setColor(mesh.material.albedoColor);
-                    mesh.material = toonMaterial;
+                    else if (mesh.material instanceof BABYLON.MultiMaterial) {
+                        let newSubmaterials = [];
+                        mesh.material.subMaterials.forEach((m, i) => {
+                            let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
+                            toonMaterial.setColor(m.albedoColor);
+                            newSubmaterials.push(toonMaterial);
+                        });
+                        mesh.material.subMaterials = newSubmaterials;
+                    }
                 }
-                else if (mesh.material instanceof BABYLON.MultiMaterial) {
-                    let newSubmaterials = [];
-                    mesh.material.subMaterials.forEach((m, i) => {
-                        let toonMaterial = new ToonMaterial("toon-material", false, this.main.scene);
-                        toonMaterial.setColor(m.albedoColor);
-                        newSubmaterials.push(toonMaterial);
-                    });
-                    mesh.material.subMaterials = newSubmaterials;
-                }
-            }
+                this.isInstantiated = true;
+                resolve();
+            });
         });
     }
     makeReady() {
@@ -434,22 +469,92 @@ class Beacon extends Building {
                 walker.forcePosRot(this.posX, this.posY, -Math.PI / 2);
             }
         };
-        BABYLON.SceneLoader.ImportMesh("", "assets/beacon.babylon", "", this.main.scene, (meshes) => {
-            for (let i = 0; i < meshes.length; i++) {
-                let mesh = meshes[i];
-                mesh.parent = this.base;
-                if (mesh instanceof BABYLON.Mesh) {
-                    mesh.instances.forEach((instancedMesh) => {
-                        instancedMesh.parent = this.base;
-                    });
-                }
-            }
-        });
         this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    async instantiate() {
+        return new Promise(resolve => {
+            BABYLON.SceneLoader.ImportMesh("", "assets/beacon.babylon", "", this.main.scene, (meshes) => {
+                for (let i = 0; i < meshes.length; i++) {
+                    let mesh = meshes[i];
+                    mesh.parent = this.base;
+                    if (mesh instanceof BABYLON.Mesh) {
+                        mesh.instances.forEach((instancedMesh) => {
+                            instancedMesh.parent = this.base;
+                        });
+                    }
+                }
+                this.isInstantiated = true;
+                resolve();
+            });
+        });
     }
     dispose() {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
+}
+class FlashParticle extends BABYLON.Mesh {
+    constructor(name, scene, size, lifespan) {
+        super(name, scene);
+        this.scene = scene;
+        this.size = size;
+        this.lifespan = lifespan;
+        this._timer = 0;
+        this._flashUp = BABYLON.Vector3.Up();
+        this._update = () => {
+            this._timer += this.getScene().getEngine().getDeltaTime() / 1000;
+            let s = this.size * this._timer / (this.lifespan / 2);
+            let target;
+            if (this.scene.activeCameras && this.scene.activeCameras[0]) {
+                target = this.scene.activeCameras[0].globalPosition;
+            }
+            else {
+                target = this.scene.activeCamera.globalPosition;
+            }
+            let y = this._flashUp;
+            let z = this.position.subtract(target);
+            let x = BABYLON.Vector3.Cross(y, z);
+            z = BABYLON.Vector3.Cross(x, y);
+            this.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(x, y, z);
+            if (this._timer < this.lifespan / 2) {
+                this.scaling.copyFromFloats(s, s, s);
+                return;
+            }
+            else {
+                this.scaling.copyFromFloats(this.size, this.size, this.size);
+                if (this._timer > this.lifespan) {
+                    this._timer = 0;
+                    this.scaling.copyFromFloats(0, 0, 0);
+                    this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+                }
+            }
+        };
+        let template = BABYLON.MeshBuilder.CreatePlane("template", { size: 1, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        let data = BABYLON.VertexData.ExtractFromMesh(template);
+        data.applyToMesh(this);
+        template.dispose();
+        let material = new BABYLON.StandardMaterial(name + "-material", scene);
+        material.diffuseTexture = new BABYLON.Texture("./assets/" + name + ".png", scene);
+        material.diffuseTexture.hasAlpha = true;
+        material.diffuseColor = BABYLON.Color3.FromHexString("#ffae70");
+        material.specularColor.copyFromFloats(0, 0, 0);
+        material.emissiveColor = material.diffuseColor;
+        this.material = material;
+        this.scaling.copyFromFloats(0, 0, 0);
+        this.layerMask = 1;
+    }
+    destroy() {
+        this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+        this.dispose();
+    }
+    flash(position, up) {
+        if (this._timer > 0) {
+            return;
+        }
+        this.position.copyFrom(position);
+        this._flashUp.copyFrom(up);
+        this.scaling.copyFromFloats(0, 0, 0);
+        this.getScene().onBeforeRenderObservable.add(this._update);
     }
 }
 class Ground extends BABYLON.Mesh {
@@ -458,53 +563,140 @@ class Ground extends BABYLON.Mesh {
         this.width = width;
         this.height = height;
         this.main = main;
-        let image = new Image(1024, 1024);
-        image.onload = () => {
-            console.log("!");
-            let canvas = document.createElement("canvas");
-            canvas.width = 1024;
-            canvas.height = 1024;
-            let ctx = canvas.getContext("2d");
-            ctx.drawImage(image, 0, 0);
-            let imageData = ctx.getImageData(0, 0, 1024, 1024);
-            console.log(imageData);
-            let data = new BABYLON.VertexData();
-            let positions = [];
-            let indices = [];
-            let uvs = [];
-            let lx = 2;
-            let lz = Math.sin(Math.PI / 3) * lx;
-            let x0 = -lx * (width + height * 0.5) * 0.5;
-            let z0 = -lz * height * 0.5;
-            for (let i = 0; i <= width; i++) {
-                for (let j = 0; j <= height; j++) {
-                    let n = i + j * (width + 1);
-                    let di = Math.floor(i / width * 64);
-                    let dj = Math.floor(j / height * 64);
-                    let h = imageData.data[4 * (di + 1024 * dj)];
-                    positions.push(x0 + i * lx + j * lx * 0.5, h / 256 * 80 - 40, z0 + j * lz);
-                    uvs.push(2 * i / width, 2 * j / width);
-                    if (i < width && j < width) {
-                        indices.push(n, n + width + 1, n + 1);
-                        indices.push(n + 1, n + width + 1, n + width + 2);
+        this.heightMap = [];
+    }
+    async instantiate() {
+        return new Promise(resolve => {
+            let image = new Image(1024, 1024);
+            image.onload = () => {
+                let canvas = document.createElement("canvas");
+                canvas.width = 1024;
+                canvas.height = 1024;
+                let ctx = canvas.getContext("2d");
+                ctx.drawImage(image, 0, 0);
+                let imageData = ctx.getImageData(0, 0, 1024, 1024);
+                let data = new BABYLON.VertexData();
+                let positions = [];
+                let indices = [];
+                let uvs = [];
+                let lx = 2;
+                let lz = Math.sin(Math.PI / 3) * lx;
+                let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
+                let z0 = -lz * this.height * 0.5;
+                for (let i = 0; i <= this.width; i++) {
+                    this.heightMap[i] = [];
+                    for (let j = 0; j <= this.height; j++) {
+                        let n = i + j * (this.width + 1);
+                        let di = Math.floor(i / this.width * 64);
+                        let dj = Math.floor(j / this.height * 64);
+                        let h = imageData.data[4 * (di + 1024 * dj)];
+                        this.heightMap[i][j] = h / 256 * 80 - 40;
+                        positions.push(x0 + i * lx + j * lx * 0.5, this.heightMap[i][j], z0 + j * lz);
+                        uvs.push(2 * i / this.width, 2 * j / this.width);
+                        if (i < this.width && j < this.width) {
+                            indices.push(n, n + this.width + 1, n + 1);
+                            indices.push(n + 1, n + this.width + 1, n + this.width + 2);
+                        }
+                    }
+                }
+                let normals = [];
+                BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+                data.positions = positions;
+                data.indices = indices;
+                data.normals = normals;
+                data.uvs = uvs;
+                data.applyToMesh(this);
+                resolve();
+            };
+            image.src = "assets/ground.png";
+            let groundMaterial = new ToonMaterial("ground-material", false, this.main.scene);
+            groundMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/ground_2.png", this.main.scene));
+            groundMaterial.setColor(BABYLON.Color3.White());
+            this.material = groundMaterial;
+        });
+    }
+    flatten(posI, posJ, h, r) {
+        this.heightMap[posI][posJ] = h;
+        for (let d = 1; d <= r; d++) {
+            let f = (1 - d / r) * 2;
+            f = Math.min(1, f);
+            let iIndexes = [
+                posI + d,
+                posI + d,
+                posI,
+                posI - d,
+                posI - d,
+                posI
+            ];
+            let jIndexes = [
+                posJ,
+                posJ - d,
+                posJ - d,
+                posJ,
+                posJ + d,
+                posJ + d
+            ];
+            for (let p = 0; p < 6; p++) {
+                let pi = iIndexes[p];
+                let pj = jIndexes[p];
+                let piNext = iIndexes[(p + 1) % 6];
+                let pjNext = jIndexes[(p + 1) % 6];
+                let di = (piNext - pi) / d;
+                let dj = (pjNext - pj) / d;
+                for (let n = 0; n < d; n++) {
+                    if (this.heightMap[pi + di * n]) {
+                        if (isFinite(this.heightMap[pi + di * n][pj + dj * n])) {
+                            let th = this.heightMap[pi + di * n][pj + dj * n];
+                            this.heightMap[pi + di * n][pj + dj * n] = h * f + th * (1 - f);
+                        }
                     }
                 }
             }
-            let normals = [];
-            BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-            data.positions = positions;
-            data.indices = indices;
-            data.normals = normals;
-            data.uvs = uvs;
-            data.applyToMesh(this);
-        };
-        image.src = "assets/ground.png";
-        let groundMaterial = new ToonMaterial("ground-material", false, this.main.scene);
-        groundMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/ground_2.png", this.main.scene));
-        groundMaterial.setColor(BABYLON.Color3.White());
-        this.material = groundMaterial;
+        }
+        let data = new BABYLON.VertexData();
+        let positions = [];
+        let indices = [];
+        let uvs = [];
+        let lx = 2;
+        let lz = Math.sin(Math.PI / 3) * lx;
+        let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
+        let z0 = -lz * this.height * 0.5;
+        for (let i = 0; i <= this.width; i++) {
+            for (let j = 0; j <= this.height; j++) {
+                let n = i + j * (this.width + 1);
+                positions.push(x0 + i * lx + j * lx * 0.5, this.heightMap[i][j], z0 + j * lz);
+                uvs.push(2 * i / this.width, 2 * j / this.width);
+                if (i < this.width && j < this.width) {
+                    indices.push(n, n + this.width + 1, n + 1);
+                    indices.push(n + 1, n + this.width + 1, n + this.width + 2);
+                }
+            }
+        }
+        let normals = [];
+        BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+        data.positions = positions;
+        data.indices = indices;
+        data.normals = normals;
+        data.uvs = uvs;
+        data.applyToMesh(this);
     }
-    getHeightAt(pos2D) {
+    pos2DToIJ(pos2D) {
+        let lx = 2;
+        let lz = Math.sin(Math.PI / 3) * lx;
+        let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
+        let z0 = -lz * this.height * 0.5;
+        let j = Math.round((pos2D.y - z0) / lz);
+        let i = Math.round((pos2D.x - j * lx / 2 - x0) / lx);
+        return { i: i, j: j };
+    }
+    getHeightAt(a) {
+        let pos2D;
+        if (a instanceof BABYLON.Vector2) {
+            pos2D = a;
+        }
+        else if (a instanceof BABYLON.Vector3) {
+            pos2D = new BABYLON.Vector2(a.x, a.z);
+        }
         let ray = new BABYLON.Ray(new BABYLON.Vector3(pos2D.x, 100, pos2D.y), BABYLON.Vector3.Down(), 200);
         let hit = ray.intersectsMesh(this.main.ground);
         if (hit.hit) {
@@ -547,6 +739,7 @@ class RobotTarget extends BABYLON.Mesh {
             target.position.z = positions[i].y;
             target.parent = this;
             this.targets[i] = target;
+            //BABYLON.VertexData.CreateBox({ width: 0.2, height: 20, depth: 0.2 }).applyToMesh(target);
         }
     }
     get pos2D() {
@@ -593,9 +786,11 @@ class Robot extends GameObject {
         };
         this._movingLegCount = 0;
         this._movingLegs = new UniqueList();
+        this._abortLegMove = false;
         this._currentLegIndex = 0;
         this._bodyVelocity = BABYLON.Vector3.Zero();
         this._handVelocities = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
+        this._dragFactor = 1;
         this.target = new RobotTarget(this);
         this.footImpactParticle = new BABYLON.ParticleSystem("particles", 20, this.main.scene);
         this.footImpactParticle.particleTexture = new BABYLON.Texture("assets/dust.png", this.main.scene);
@@ -612,67 +807,72 @@ class Robot extends GameObject {
         this.footImpactParticle.color1 = new BABYLON.Color4(1, 1, 1, 1);
         this.footImpactParticle.color2 = new BABYLON.Color4(1, 1, 1, 1);
         this.footImpactParticle.emitRate = 1000;
-        BABYLON.SceneLoader.ImportMesh("", "assets/robot.babylon", "", this.main.scene, (meshes) => {
-            this.head = meshes.find(m => { return m.name === "head"; });
-            this.body = meshes.find(m => { return m.name === "body"; });
-            this.feet = [
-                meshes.find(m => { return m.name === "foot-right"; }),
-                meshes.find(m => { return m.name === "foot-left"; })
-            ];
-            this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
-            this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
-            this.legs = [
-                meshes.find(m => { return m.name === "leg-right"; }),
-                meshes.find(m => { return m.name === "leg-left"; })
-            ];
-            this.upperLegs = [
-                meshes.find(m => { return m.name === "upper-leg-right"; }),
-                meshes.find(m => { return m.name === "upper-leg-left"; })
-            ];
-            this.upperLegsRoot = [
-                new BABYLON.Mesh("upper-leg-root-0"),
-                new BABYLON.Mesh("upper-leg-root-1"),
-            ];
-            this.upperLegsRoot[0].position.copyFrom(this.upperLegs[0].position);
-            this.upperLegsRoot[0].parent = this.body;
-            this.upperLegsRoot[1].position.copyFrom(this.upperLegs[1].position);
-            this.upperLegsRoot[1].parent = this.body;
-            this.upperLegs[0].parent = undefined;
-            this.upperLegs[1].parent = undefined;
-            this.hands = [
-                meshes.find(m => { return m.name === "hand-right"; }),
-                meshes.find(m => { return m.name === "hand-left"; })
-            ];
-            this.arms = [
-                meshes.find(m => { return m.name === "arm-right"; }),
-                meshes.find(m => { return m.name === "arm-left"; })
-            ];
-            this.upperArms = [
-                meshes.find(m => { return m.name === "upper-arm-right"; }),
-                meshes.find(m => { return m.name === "upper-arm-left"; })
-            ];
-            this.upperArmsRoot = [
-                new BABYLON.Mesh("upper-arm-root-0"),
-                new BABYLON.Mesh("upper-arm-root-1"),
-            ];
-            this.upperArmsRoot[0].position.copyFrom(this.upperArms[0].position);
-            this.upperArmsRoot[0].parent = this.body;
-            this.upperArmsRoot[1].position.copyFrom(this.upperArms[1].position);
-            this.upperArmsRoot[1].parent = this.body;
-            this.upperArms[0].parent = undefined;
-            this.upperArms[1].parent = undefined;
-            for (let i = 0; i < meshes.length; i++) {
-                let mesh = meshes[i];
-                if (mesh.material instanceof BABYLON.PBRMaterial) {
-                    let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                    if (mesh.material.name === "RobotMaterial") {
-                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/robot-texture.png", this.main.scene));
+    }
+    async instantiate() {
+        return new Promise(resolve => {
+            BABYLON.SceneLoader.ImportMesh("", "assets/robot.babylon", "", this.main.scene, (meshes) => {
+                this.head = meshes.find(m => { return m.name === "head"; });
+                this.body = meshes.find(m => { return m.name === "body"; });
+                this.feet = [
+                    meshes.find(m => { return m.name === "foot-right"; }),
+                    meshes.find(m => { return m.name === "foot-left"; })
+                ];
+                this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
+                this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
+                this.legs = [
+                    meshes.find(m => { return m.name === "leg-right"; }),
+                    meshes.find(m => { return m.name === "leg-left"; })
+                ];
+                this.upperLegs = [
+                    meshes.find(m => { return m.name === "upper-leg-right"; }),
+                    meshes.find(m => { return m.name === "upper-leg-left"; })
+                ];
+                this.upperLegsRoot = [
+                    new BABYLON.Mesh("upper-leg-root-0"),
+                    new BABYLON.Mesh("upper-leg-root-1"),
+                ];
+                this.upperLegsRoot[0].position.copyFrom(this.upperLegs[0].position);
+                this.upperLegsRoot[0].parent = this.body;
+                this.upperLegsRoot[1].position.copyFrom(this.upperLegs[1].position);
+                this.upperLegsRoot[1].parent = this.body;
+                this.upperLegs[0].parent = undefined;
+                this.upperLegs[1].parent = undefined;
+                this.hands = [
+                    meshes.find(m => { return m.name === "hand-right"; }),
+                    meshes.find(m => { return m.name === "hand-left"; })
+                ];
+                this.arms = [
+                    meshes.find(m => { return m.name === "arm-right"; }),
+                    meshes.find(m => { return m.name === "arm-left"; })
+                ];
+                this.upperArms = [
+                    meshes.find(m => { return m.name === "upper-arm-right"; }),
+                    meshes.find(m => { return m.name === "upper-arm-left"; })
+                ];
+                this.upperArmsRoot = [
+                    new BABYLON.Mesh("upper-arm-root-0"),
+                    new BABYLON.Mesh("upper-arm-root-1"),
+                ];
+                this.upperArmsRoot[0].position.copyFrom(this.upperArms[0].position);
+                this.upperArmsRoot[0].parent = this.body;
+                this.upperArmsRoot[1].position.copyFrom(this.upperArms[1].position);
+                this.upperArmsRoot[1].parent = this.body;
+                this.upperArms[0].parent = undefined;
+                this.upperArms[1].parent = undefined;
+                for (let i = 0; i < meshes.length; i++) {
+                    let mesh = meshes[i];
+                    if (mesh.material instanceof BABYLON.PBRMaterial) {
+                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                        if (mesh.material.name === "RobotMaterial") {
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/robot-texture.png", this.main.scene));
+                        }
+                        toonMaterial.setColor(mesh.material.albedoColor);
+                        mesh.material = toonMaterial;
                     }
-                    toonMaterial.setColor(mesh.material.albedoColor);
-                    mesh.material = toonMaterial;
                 }
-            }
-            this.main.scene.onBeforeRenderObservable.add(this._update);
+                this.main.scene.onBeforeRenderObservable.add(this._update);
+                resolve();
+            });
         });
     }
     _generateInputs() {
@@ -707,6 +907,7 @@ class Robot extends GameObject {
         else if (this._inputForwardAxis < 0) {
             forwardSpeed = -0.5 * this._inputForwardAxis;
         }
+        forwardSpeed *= this._dragFactor;
         let rotateSpeed = this._inputRotateAxis * 0.1;
         let sideSpeed = 2 * this._inputSideAxis;
         if (this._inputDirs.contains(0)) {
@@ -752,6 +953,14 @@ class Robot extends GameObject {
             }
             let t = 0;
             let step = () => {
+                if (this._abortLegMove) {
+                    requestAnimationFrame(() => {
+                        this._abortLegMove = false;
+                        this._movingLegCount -= 1;
+                        this._movingLegs.remove(legIndex);
+                    });
+                    return;
+                }
                 t += this.main.scene.getEngine().getDeltaTime() / 1000;
                 let d = t / duration;
                 if (this.mode === RobotMode.Walk) {
@@ -768,7 +977,7 @@ class Robot extends GameObject {
                 else {
                     this.feet[legIndex].position.addInPlace(this.target.right.scale(-(this.mode === RobotMode.Walk ? 1 : 0.6) * Math.sin(Math.PI * d)));
                 }
-                this.feet[legIndex].position.y += (this.mode === RobotMode.Walk ? 0.65 : 0.4) * Math.sin(Math.PI * d);
+                this.feet[legIndex].position.y += (this.mode === RobotMode.Walk ? 0.65 : 0.4) * Math.sin(Math.PI * d) * this._dragFactor;
                 this.feet[legIndex].rotationQuaternion = BABYLON.Quaternion.Slerp(originQ, targetQ, d);
                 if (d < 1) {
                     requestAnimationFrame(step);
@@ -864,13 +1073,14 @@ class Robot extends GameObject {
     }
     _updateMesh() {
         let dt = this.main.engine.getDeltaTime() / 1000;
+        this._dragFactor = Math.min(this._dragFactor + 0.25 * dt, 1);
         let bodyH = this.mode === RobotMode.Walk ? 1.8 : 1.6;
         let targetBody = this.feet[0].absolutePosition.add(this.feet[1].absolutePosition).scaleInPlace(0.5);
         targetBody.addInPlace(this.body.forward.scale(this.mode === RobotMode.Walk ? 0.5 : 1.2));
         targetBody.y += bodyH;
         let fBody = targetBody.subtract(this.body.position);
         this._bodyVelocity.addInPlace(fBody.scaleInPlace((this.mode === RobotMode.Walk ? 0.5 : 2) * dt));
-        this._bodyVelocity.scaleInPlace(this.mode === RobotMode.Walk ? 0.97 : 0.9);
+        this._bodyVelocity.scaleInPlace((this.mode === RobotMode.Walk ? 0.97 : 0.9) * this._dragFactor);
         this.body.position.addInPlace(this._bodyVelocity);
         let dot = BABYLON.Vector3.Dot(this.feet[1].position.subtract(this.feet[0].position).normalize(), this.body.forward);
         let dy = this.feet[0].position.y - this.feet[1].position.y;
@@ -904,7 +1114,7 @@ class Robot extends GameObject {
         for (let i = 0; i < 2; i++) {
             let fHand = handTargets[i].subtract(this.hands[i].position);
             this._handVelocities[i].addInPlace(fHand.scaleInPlace(3 * dt));
-            this._handVelocities[i].scaleInPlace(0.7);
+            this._handVelocities[i].scaleInPlace(0.7 * this._dragFactor);
             this.hands[i].position.addInPlace(this._handVelocities[i]);
         }
         let kneeTargets = [this.body.position.clone(), this.body.position.clone()];
@@ -972,6 +1182,26 @@ class Robot extends GameObject {
             this.arms[i].rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(armX, armY, armZ);
             this.hands[i].rotationQuaternion = this.arms[i].rotationQuaternion;
         }
+    }
+    foldAt(pos2D) {
+        let h = this.main.ground.getHeightAt(pos2D);
+        this.body.position.x = pos2D.x;
+        this.body.position.y = h;
+        this.body.position.z = pos2D.y;
+        this.feet[0].position.copyFrom(this.body.position);
+        this.feet[1].position.copyFrom(this.body.position);
+        this.feet[0].position.addInPlace(this.body.right.scale(0.5));
+        this.feet[1].position.subtractInPlace(this.body.right.scale(0.5));
+        this.hands[0].position.copyFrom(this.body.position);
+        this.hands[1].position.copyFrom(this.body.position);
+        this.body.position.y += 0.6;
+        this.feet[0].position.y = this.main.ground.getHeightAt(this.feet[0].position) + 0.4;
+        this.feet[1].position.y = this.main.ground.getHeightAt(this.feet[1].position) + 0.4;
+        this.target.posX = pos2D.x;
+        this.target.posY = pos2D.y;
+        this.target.computeWorldMatrix(true);
+        this._abortLegMove = true;
+        this._dragFactor = 0;
     }
     wound(n) {
         this.hitpoint -= n;
@@ -1204,8 +1434,8 @@ class Turret extends GameObject {
         this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
     }
 }
-class Turret2 extends GameObject {
-    constructor(pos2D, main) {
+class Canon extends Building {
+    constructor(main) {
         super(main);
         this.cooldown = 1;
         this.counter = 0;
@@ -1221,51 +1451,33 @@ class Turret2 extends GameObject {
             }
         };
         this.counter = Math.random() * this.cooldown;
-        BABYLON.SceneLoader.ImportMesh("", "assets/canon.babylon", "", this.main.scene, (meshes) => {
-            this.base = meshes.find(m => { return m.name === "base"; });
-            this.body = meshes.find(m => { return m.name === "body"; });
-            this.head = meshes.find(m => { return m.name === "head"; });
-            this.canon = meshes.find(m => { return m.name === "canon"; });
-            console.log(this.base);
-            console.log(this.body);
-            console.log(this.head);
-            console.log(this.canon);
-            for (let i = 0; i < meshes.length; i++) {
-                let mesh = meshes[i];
-                if (mesh.material instanceof BABYLON.PBRMaterial) {
-                    let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                    if (mesh.material.name === "CanonMaterial") {
-                        toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-blue.png", this.main.scene));
+    }
+    async instantiate() {
+        return new Promise(resolve => {
+            BABYLON.SceneLoader.ImportMesh("", "assets/canon.babylon", "", this.main.scene, (meshes) => {
+                let p = this.base.position;
+                this.base = meshes.find(m => { return m.name === "base"; });
+                this.base.position.copyFrom(p);
+                this.body = meshes.find(m => { return m.name === "body"; });
+                this.head = meshes.find(m => { return m.name === "head"; });
+                this.canon = meshes.find(m => { return m.name === "canon"; });
+                for (let i = 0; i < meshes.length; i++) {
+                    let mesh = meshes[i];
+                    if (mesh.material instanceof BABYLON.PBRMaterial) {
+                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                        if (mesh.material.name === "CanonMaterial") {
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-dark.png", this.main.scene));
+                        }
+                        toonMaterial.setColor(mesh.material.albedoColor);
+                        mesh.material = toonMaterial;
                     }
-                    toonMaterial.setColor(mesh.material.albedoColor);
-                    mesh.material = toonMaterial;
                 }
-            }
-            this.posX = pos2D.x;
-            this.posY = pos2D.y;
-            this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
-            this.main.scene.onBeforeRenderObservable.add(this._update);
+                this.flashParticle = new FlashParticle("pew", this.main.scene, 1.5, 0.1);
+                this.main.scene.onBeforeRenderObservable.add(this._update);
+                this.isInstantiated = true;
+                resolve();
+            });
         });
-    }
-    get pos2D() {
-        if (!this._pos2D) {
-            this._pos2D = BABYLON.Vector2.Zero();
-        }
-        this._pos2D.x = this.base.position.x;
-        this._pos2D.y = this.base.position.z;
-        return this._pos2D;
-    }
-    get posX() {
-        return this.base.position.x;
-    }
-    set posX(x) {
-        this.base.position.x = x;
-    }
-    get posY() {
-        return this.base.position.z;
-    }
-    set posY(y) {
-        this.base.position.z = y;
     }
     _updateTarget() {
         if (!this.target || this.target.isDisposed) {
@@ -1274,6 +1486,7 @@ class Turret2 extends GameObject {
     }
     async _shoot() {
         return new Promise(resolve => {
+            this.flashParticle.flash(this.canon.absolutePosition.add(this.canon.forward.scale(3.5)), this.canon.forward);
             let duration = 0.2;
             let t = 0;
             let step = () => {
