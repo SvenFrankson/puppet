@@ -60,7 +60,7 @@ class Turret2 extends GameObject {
                     if (mesh.material instanceof BABYLON.PBRMaterial) {
                         let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                         if (mesh.material.name === "CanonMaterial") {
-                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture.png", this.main.scene));
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-blue.png", this.main.scene));
                         }
                         toonMaterial.setColor(mesh.material.albedoColor);
                         mesh.material = toonMaterial;
