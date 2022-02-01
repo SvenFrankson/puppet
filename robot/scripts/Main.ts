@@ -128,14 +128,25 @@ class Main {
 		for (let i = 0; i < 5; i++) {
 			setTimeout(
 				() => {
-					let robot = new Robot(this);
-					robot.instantiate().then(
+					let p = new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random());
+					let meteor = new Meteor(
+						1,
+						p,
+						this,
+						BABYLON.Color3.FromHexString("#cb221b"),
 						() => {
-							robot.foldAt(new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random()));
+							let robot = new Robot(this);
+							robot.instantiate().then(
+								() => {
+									robot.foldAt(p);
+								}
+							);
 						}
 					);
+					meteor.instantiate();
+					
 				},
-				5000 * i
+				3000 * i
 			);
 		}
 		
