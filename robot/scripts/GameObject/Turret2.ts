@@ -1,79 +1,59 @@
-class Turret2 extends GameObject {
+class Canon extends Building {
 
-    public get pos2D(): BABYLON.Vector2 {
-        if (!this._pos2D) {
-            this._pos2D = BABYLON.Vector2.Zero();
-        }
-        this._pos2D.x = this.base.position.x;
-        this._pos2D.y = this.base.position.z;
-
-        return this._pos2D;
-    }
-
-    public get posX(): number {
-        return this.base.position.x;
-    }
-    public set posX(x: number) {
-        this.base.position.x = x;
-    }
-
-    public get posY(): number {
-        return this.base.position.z;
-    }
-    public set posY(y: number) {
-        this.base.position.z = y;
-    }
-
-    public base: BABYLON.Mesh;
     public body: BABYLON.Mesh;
     public head: BABYLON.Mesh;
     public canon: BABYLON.Mesh;
+
+    public flashParticle: FlashParticle;
 
     public target: Robot;
 
     public cooldown: number = 1;
     public counter: number = 0;
 
-    constructor(pos2D: BABYLON.Vector2, main: Main) {
+    constructor(main: Main) {
         super(main);
 
         this.counter = Math.random() * this.cooldown;
-        
-        BABYLON.SceneLoader.ImportMesh(
-			"",
-			"assets/canon.babylon",
-			"",
-			this.main.scene,
-			(meshes) => {
-                this.base = meshes.find(m => { return m.name === "base"; }) as BABYLON.Mesh;
-                this.body = meshes.find(m => { return m.name === "body"; }) as BABYLON.Mesh;
-                this.head = meshes.find(m => { return m.name === "head"; }) as BABYLON.Mesh;
-                this.canon = meshes.find(m => { return m.name === "canon"; }) as BABYLON.Mesh;
+    }
 
-                console.log(this.base);
-                console.log(this.body);
-                console.log(this.head);
-                console.log(this.canon);
-                
-				for (let i = 0; i < meshes.length; i++) {
-					let mesh = meshes[i];
-                    if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                        if (mesh.material.name === "CanonMaterial") {
-                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-blue.png", this.main.scene));
+    public async instantiate(): Promise<void> {
+        return new Promise<void>(
+            resolve => {
+                BABYLON.SceneLoader.ImportMesh(
+                    "",
+                    "assets/canon.babylon",
+                    "",
+                    this.main.scene,
+                    (meshes) => {
+                        let p = this.base.position;
+                        this.base = meshes.find(m => { return m.name === "base"; }) as BABYLON.Mesh;
+                        this.base.position.copyFrom(p);
+                        this.body = meshes.find(m => { return m.name === "body"; }) as BABYLON.Mesh;
+                        this.head = meshes.find(m => { return m.name === "head"; }) as BABYLON.Mesh;
+                        this.canon = meshes.find(m => { return m.name === "canon"; }) as BABYLON.Mesh;
+                        
+                        for (let i = 0; i < meshes.length; i++) {
+                            let mesh = meshes[i];
+                            if (mesh.material instanceof BABYLON.PBRMaterial) {
+                                let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                                if (mesh.material.name === "CanonMaterial") {
+                                    toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-dark.png", this.main.scene));
+                                }
+                                toonMaterial.setColor(mesh.material.albedoColor);
+                                mesh.material = toonMaterial;
+                            }
                         }
-                        toonMaterial.setColor(mesh.material.albedoColor);
-                        mesh.material = toonMaterial;
+        
+                        this.flashParticle = new FlashParticle("pew", this.main.scene, 1.5, 0.1);
+        
+                        this.main.scene.onBeforeRenderObservable.add(this._update);
+                        this.isInstantiated = true;
+                        resolve();
                     }
-				}
-
-                this.posX = pos2D.x;
-                this.posY = pos2D.y;
-                this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
-
-                this.main.scene.onBeforeRenderObservable.add(this._update);
-			}
-		)
+                );
+            }
+        );
     }
     
     private _t: number = 0;
@@ -99,7 +79,8 @@ class Turret2 extends GameObject {
     private async _shoot(): Promise<void> {
         return new Promise<void>(
             resolve => {
-                
+                this.flashParticle.flash(this.canon.absolutePosition.add(this.canon.forward.scale(3.5)), this.canon.forward);
+
                 let duration = 0.2;
                 let t = 0;
                 let step = () => {

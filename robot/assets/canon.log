@@ -14,10 +14,10 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
 	processing begun of mesh:  base
 		processing begun of material:  CanonMaterial
-		num positions      :  284
-		num normals        :  284
+		num positions      :  283
+		num normals        :  283
 		num tangents       :  0
-		num uvs            :  568
+		num uvs            :  566
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  168
@@ -58,4 +58,4 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  head
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0349 secs
+elapsed time:  0 min, 0.0419 secs
