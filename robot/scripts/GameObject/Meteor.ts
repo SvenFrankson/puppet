@@ -2,6 +2,7 @@ class Meteor extends BABYLON.Mesh {
 
     public landDustParticleSystem: BABYLON.ParticleSystem;
     public landFlashParticleSystem: BABYLON.ParticleSystem;
+    public landFlashes: FlashParticle[] = [];
     public destination: BABYLON.Vector3;
 
     constructor(
@@ -26,12 +27,15 @@ class Meteor extends BABYLON.Mesh {
         this.landDustParticleSystem.particleTexture = new BABYLON.Texture("assets/dust.png", this.main.scene);
         this.landDustParticleSystem.targetStopDuration = 1;
 
-        this.landDustParticleSystem.maxLifeTime = 0.5;
-        this.landDustParticleSystem.maxLifeTime = 1;
+        this.landDustParticleSystem.maxLifeTime = 0.75;
+        this.landDustParticleSystem.maxLifeTime = 1.5;
 
-        this.landDustParticleSystem.addSizeGradient(0, 0.2 * this.radius);
-        this.landDustParticleSystem.addSizeGradient(0.05, this.radius);
-        this.landDustParticleSystem.addSizeGradient(1, 0);
+        this.landDustParticleSystem.minAngularSpeed = Math.PI / 4;
+        this.landDustParticleSystem.maxAngularSpeed = Math.PI;
+
+        this.landDustParticleSystem.addSizeGradient(0, 0.4 * this.radius);
+        this.landDustParticleSystem.addSizeGradient(0.05, 2 * this.radius);
+        this.landDustParticleSystem.addSizeGradient(1, 0.1 * this.radius);
 
         this.landDustParticleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1);
         this.landDustParticleSystem.color2 = new BABYLON.Color4(1, 1, 1, 1);
@@ -46,32 +50,43 @@ class Meteor extends BABYLON.Mesh {
             ).scaleInPlace(4 * this.radius);
         }
 
-        this.landFlashParticleSystem = new BABYLON.ParticleSystem("land-flash", 15, this.main.scene);
-        this.landFlashParticleSystem.particleTexture = new BABYLON.Texture("assets/bang-red.png", this.main.scene);
-        this.landFlashParticleSystem.targetStopDuration = 0.3;
+        /*
+        this.landFlashParticleSystem = new BABYLON.ParticleSystem("land-flash", 100, this.main.scene);
+        this.landFlashParticleSystem.particleTexture = new BABYLON.Texture("assets/bang.png", this.main.scene);
+        this.landFlashParticleSystem.targetStopDuration = 0.1;
 
-        this.landFlashParticleSystem.minLifeTime = 0.3;
-        this.landFlashParticleSystem.maxLifeTime = 0.3;
+        this.landFlashParticleSystem.isBillboardBased = true;
 
-        this.landFlashParticleSystem.addSizeGradient(0, 0.2 * this.radius);
-        this.landFlashParticleSystem.addSizeGradient(0.05, 0.75 * this.radius);
-        this.landFlashParticleSystem.addSizeGradient(1, 0.4 * this.radius);
+        this.landFlashParticleSystem.minLifeTime = 0.3 * 0.5;
+        this.landFlashParticleSystem.maxLifeTime = 0.3 * 0.5;
+
+        this.landFlashParticleSystem.minAngularSpeed = 0;
+        this.landFlashParticleSystem.maxAngularSpeed = 0;
+
+        this.landFlashParticleSystem.minSize = 0.2;
+        this.landFlashParticleSystem.maxSize = 0.4;
 
         this.landFlashParticleSystem.addColorGradient(0, new BABYLON.Color4(1, 0, 0, 1));
         this.landFlashParticleSystem.addColorGradient(1, new BABYLON.Color4(1, 0, 0, 1));
 
-        this.landFlashParticleSystem.addVelocityGradient(0, 1);
-        this.landFlashParticleSystem.addVelocityGradient(0.5, 1);
-        this.landFlashParticleSystem.addVelocityGradient(1, 0.1);
-
-        this.landFlashParticleSystem.emitRate = 15 / 0.1;
+        this.landFlashParticleSystem.emitRate = 1000;
 
         this.landFlashParticleSystem.startDirectionFunction = (worldMatrix: BABYLON.Matrix, directionToUpdate: BABYLON.Vector3, particle: BABYLON.Particle) => {
+            let alpha = Math.random() * Math.PI * 2;
+            let cosa = Math.cos(alpha);
+            let sina = Math.sin(alpha);
+            let beta = Math.random() * Math.PI / 8;
+            let cosb = Math.cos(beta);
+            let sinb = Math.sin(beta);
             directionToUpdate.copyFromFloats(
-                - 0.5 + Math.random(),
-                0.2 * Math.random(),
-                - 0.5 + Math.random()
-            ).scaleInPlace(16 * this.radius);
+                cosa * cosb,
+                sinb,
+                sina * cosb
+            ).scaleInPlace((12 + Math.random() * 12) * this.radius);
+        }
+        */
+        for (let i = 0; i < 20; i++) {
+            this.landFlashes.push(new FlashParticle("pew", this.main.scene, 5 + 2 * Math.random(), 0.15 + 0.1 * Math.random()));
         }
     }
 
@@ -102,10 +117,31 @@ class Meteor extends BABYLON.Mesh {
                 this.onLandCallback();
             }
             this.landDustParticleSystem.emitter = this.destination.add(new BABYLON.Vector3(0, 0.5, 0));
+            this.landDustParticleSystem.createSphereEmitter(1, 0.5);
             this.landDustParticleSystem.start();
-            this.landFlashParticleSystem.emitter = this.destination.add(new BABYLON.Vector3(0, 0.3, 0));
-            this.landFlashParticleSystem.start();
+            //this.landFlashParticleSystem.emitter = this.destination.add(new BABYLON.Vector3(0, 0.3, 0));
+            //this.landFlashParticleSystem.start();
             this.dispose();
+            for (let i = 0; i < 20; i++) {
+                let flashParticle = this.landFlashes[i];
+                let alpha = Math.random() * Math.PI * 2;
+                let cosa = Math.cos(alpha);
+                let sina = Math.sin(alpha);
+                let beta = Math.random() * Math.PI / 4;
+                let cosb = Math.cos(beta);
+                let sinb = Math.sin(beta);
+                let dir = new BABYLON.Vector3(
+                    cosa * cosb,
+                    sinb,
+                    sina * cosb
+                )
+                setTimeout(
+                    () => {
+                        flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir);
+                    },
+                    Math.random() * 60
+                )
+            }
         }
     }
 }

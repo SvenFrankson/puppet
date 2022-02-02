@@ -52,11 +52,19 @@ class Menu {
 		playTitle.addTitle1("MARS AT WAR");
 		playTitle.classList.add("menu-title-panel");
 		
-		let playTest = SpacePanel.CreateSpacePanel();
-		playTest.addTitle2("TEST");
-		playTest.classList.add("menu-element-panel");
-        playTest.onpointerup = () => {
-            this.main.generateScene();
+		let playTestMain = SpacePanel.CreateSpacePanel();
+		playTestMain.addTitle2("MAIN TEST");
+		playTestMain.classList.add("menu-element-panel");
+        playTestMain.onpointerup = () => {
+            this.main.generateTestMainScene();
+            this.showIngameMenu();
+        }
+
+        let playTestMeteor = SpacePanel.CreateSpacePanel();
+		playTestMeteor.addTitle2("METEOR TEST");
+		playTestMeteor.classList.add("menu-element-panel");
+        playTestMeteor.onpointerup = () => {
+            this.main.generateTestMeteorScene();
             this.showIngameMenu();
         }
 		
@@ -68,7 +76,7 @@ class Menu {
         }
         
 		this.playMenuContainer.appendChild(playTitle);
-		this.playMenuContainer.appendChild(playTest);
+		this.playMenuContainer.appendChild(playTestMain);
 		this.playMenuContainer.appendChild(playBack);
 
 

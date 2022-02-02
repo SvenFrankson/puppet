@@ -84,12 +84,12 @@ class Main {
 		this.ground = new Ground(50, 50, this);
 		this.ground.instantiate().then(
 			() => {
-				this.generateScene();
+				this.generateTestMeteorScene();
 			}
 		)
 	}
 
-	public generateScene(): void {
+	public generateTestMainScene(): void {
 		/*
 		for (let i = 0; i < 40; i++) {
 			let n = Math.floor(2 * Math.random()) + 1;
@@ -177,6 +177,39 @@ class Main {
 		turret4.instantiate();
 		turret4.makeReady();
 		turret4.flattenGround(3);
+	}
+
+	public generateTestMeteorScene(): void {
+		for (let i = 0; i < 5; i++) {
+			setTimeout(
+				() => {
+					let p = new BABYLON.Vector2(0, 0);
+					let meteor = new Meteor(
+						1,
+						p,
+						this,
+						BABYLON.Color3.FromHexString("#cb221b"),
+						() => {
+							let robot = new Robot(this);
+							robot.instantiate().then(
+								() => {
+									robot.foldAt(p);
+								}
+							);
+							setTimeout(
+								() => {
+									robot.foldAt(new BABYLON.Vector2(15, 15));
+								},
+								4000
+							)
+						}
+					);
+					meteor.instantiate();
+					
+				},
+				5000 * i
+			);
+		}
 	}
 
 	public disposeScene(): void {

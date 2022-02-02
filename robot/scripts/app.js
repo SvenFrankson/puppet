@@ -239,10 +239,10 @@ class Main {
         this.game.credit(300);
         this.ground = new Ground(50, 50, this);
         this.ground.instantiate().then(() => {
-            this.generateScene();
+            this.generateTestMeteorScene();
         });
     }
-    generateScene() {
+    generateTestMainScene() {
         /*
         for (let i = 0; i < 40; i++) {
             let n = Math.floor(2 * Math.random()) + 1;
@@ -308,6 +308,23 @@ class Main {
         turret4.instantiate();
         turret4.makeReady();
         turret4.flattenGround(3);
+    }
+    generateTestMeteorScene() {
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                let p = new BABYLON.Vector2(0, 0);
+                let meteor = new Meteor(1, p, this, BABYLON.Color3.FromHexString("#cb221b"), () => {
+                    let robot = new Robot(this);
+                    robot.instantiate().then(() => {
+                        robot.foldAt(p);
+                    });
+                    setTimeout(() => {
+                        robot.foldAt(new BABYLON.Vector2(15, 15));
+                    }, 4000);
+                });
+                meteor.instantiate();
+            }, 5000 * i);
+        }
     }
     disposeScene() {
         while (this.gameObjects.length > 0) {
@@ -507,7 +524,7 @@ class FlashParticle extends BABYLON.Mesh {
         this._flashUp = BABYLON.Vector3.Up();
         this._update = () => {
             this._timer += this.getScene().getEngine().getDeltaTime() / 1000;
-            let s = this.size * this._timer / (this.lifespan / 2);
+            let s = this.size * this._timer / (this.lifespan / 4);
             let target;
             if (this.scene.activeCameras && this.scene.activeCameras[0]) {
                 target = this.scene.activeCameras[0].globalPosition;
@@ -520,7 +537,7 @@ class FlashParticle extends BABYLON.Mesh {
             let x = BABYLON.Vector3.Cross(y, z);
             z = BABYLON.Vector3.Cross(x, y);
             this.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(x, y, z);
-            if (this._timer < this.lifespan / 2) {
+            if (this._timer < this.lifespan / 4) {
                 this.scaling.copyFromFloats(s, s, s);
                 return;
             }
@@ -716,6 +733,7 @@ class Meteor extends BABYLON.Mesh {
         this.main = main;
         this.color = color;
         this.onLandCallback = onLandCallback;
+        this.landFlashes = [];
         this._update = () => {
             let dt = this.main.engine.getDeltaTime() / 1000;
             let dv = this.destination.subtract(this.position).normalize().scale(120 * dt);
@@ -727,10 +745,24 @@ class Meteor extends BABYLON.Mesh {
                     this.onLandCallback();
                 }
                 this.landDustParticleSystem.emitter = this.destination.add(new BABYLON.Vector3(0, 0.5, 0));
+                this.landDustParticleSystem.createSphereEmitter(1, 0.5);
                 this.landDustParticleSystem.start();
-                this.landFlashParticleSystem.emitter = this.destination.add(new BABYLON.Vector3(0, 0.3, 0));
-                this.landFlashParticleSystem.start();
+                //this.landFlashParticleSystem.emitter = this.destination.add(new BABYLON.Vector3(0, 0.3, 0));
+                //this.landFlashParticleSystem.start();
                 this.dispose();
+                for (let i = 0; i < 20; i++) {
+                    let flashParticle = this.landFlashes[i];
+                    let alpha = Math.random() * Math.PI * 2;
+                    let cosa = Math.cos(alpha);
+                    let sina = Math.sin(alpha);
+                    let beta = Math.random() * Math.PI / 4;
+                    let cosb = Math.cos(beta);
+                    let sinb = Math.sin(beta);
+                    let dir = new BABYLON.Vector3(cosa * cosb, sinb, sina * cosb);
+                    setTimeout(() => {
+                        flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir);
+                    }, Math.random() * 60);
+                }
             }
         };
         this.destination = new BABYLON.Vector3(destination2D.x, this.main.ground.getHeightAt(destination2D), destination2D.y);
@@ -741,34 +773,57 @@ class Meteor extends BABYLON.Mesh {
         this.landDustParticleSystem = new BABYLON.ParticleSystem("land-dust", 70, this.main.scene);
         this.landDustParticleSystem.particleTexture = new BABYLON.Texture("assets/dust.png", this.main.scene);
         this.landDustParticleSystem.targetStopDuration = 1;
-        this.landDustParticleSystem.maxLifeTime = 0.5;
-        this.landDustParticleSystem.maxLifeTime = 1;
-        this.landDustParticleSystem.addSizeGradient(0, 0.2 * this.radius);
-        this.landDustParticleSystem.addSizeGradient(0.05, this.radius);
-        this.landDustParticleSystem.addSizeGradient(1, 0);
+        this.landDustParticleSystem.maxLifeTime = 0.75;
+        this.landDustParticleSystem.maxLifeTime = 1.5;
+        this.landDustParticleSystem.minAngularSpeed = Math.PI / 4;
+        this.landDustParticleSystem.maxAngularSpeed = Math.PI;
+        this.landDustParticleSystem.addSizeGradient(0, 0.4 * this.radius);
+        this.landDustParticleSystem.addSizeGradient(0.05, 2 * this.radius);
+        this.landDustParticleSystem.addSizeGradient(1, 0.1 * this.radius);
         this.landDustParticleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1);
         this.landDustParticleSystem.color2 = new BABYLON.Color4(1, 1, 1, 1);
         this.landDustParticleSystem.emitRate = 1000;
         this.landDustParticleSystem.startDirectionFunction = (worldMatrix, directionToUpdate, particle) => {
             directionToUpdate.copyFromFloats(-0.5 + Math.random(), 0.4 * Math.random(), -0.5 + Math.random()).scaleInPlace(4 * this.radius);
         };
-        this.landFlashParticleSystem = new BABYLON.ParticleSystem("land-flash", 15, this.main.scene);
-        this.landFlashParticleSystem.particleTexture = new BABYLON.Texture("assets/bang-red.png", this.main.scene);
-        this.landFlashParticleSystem.targetStopDuration = 0.3;
-        this.landFlashParticleSystem.minLifeTime = 0.3;
-        this.landFlashParticleSystem.maxLifeTime = 0.3;
-        this.landFlashParticleSystem.addSizeGradient(0, 0.2 * this.radius);
-        this.landFlashParticleSystem.addSizeGradient(0.05, 0.75 * this.radius);
-        this.landFlashParticleSystem.addSizeGradient(1, 0.4 * this.radius);
+        /*
+        this.landFlashParticleSystem = new BABYLON.ParticleSystem("land-flash", 100, this.main.scene);
+        this.landFlashParticleSystem.particleTexture = new BABYLON.Texture("assets/bang.png", this.main.scene);
+        this.landFlashParticleSystem.targetStopDuration = 0.1;
+
+        this.landFlashParticleSystem.isBillboardBased = true;
+
+        this.landFlashParticleSystem.minLifeTime = 0.3 * 0.5;
+        this.landFlashParticleSystem.maxLifeTime = 0.3 * 0.5;
+
+        this.landFlashParticleSystem.minAngularSpeed = 0;
+        this.landFlashParticleSystem.maxAngularSpeed = 0;
+
+        this.landFlashParticleSystem.minSize = 0.2;
+        this.landFlashParticleSystem.maxSize = 0.4;
+
         this.landFlashParticleSystem.addColorGradient(0, new BABYLON.Color4(1, 0, 0, 1));
         this.landFlashParticleSystem.addColorGradient(1, new BABYLON.Color4(1, 0, 0, 1));
-        this.landFlashParticleSystem.addVelocityGradient(0, 1);
-        this.landFlashParticleSystem.addVelocityGradient(0.5, 1);
-        this.landFlashParticleSystem.addVelocityGradient(1, 0.1);
-        this.landFlashParticleSystem.emitRate = 15 / 0.1;
-        this.landFlashParticleSystem.startDirectionFunction = (worldMatrix, directionToUpdate, particle) => {
-            directionToUpdate.copyFromFloats(-0.5 + Math.random(), 0.2 * Math.random(), -0.5 + Math.random()).scaleInPlace(16 * this.radius);
-        };
+
+        this.landFlashParticleSystem.emitRate = 1000;
+
+        this.landFlashParticleSystem.startDirectionFunction = (worldMatrix: BABYLON.Matrix, directionToUpdate: BABYLON.Vector3, particle: BABYLON.Particle) => {
+            let alpha = Math.random() * Math.PI * 2;
+            let cosa = Math.cos(alpha);
+            let sina = Math.sin(alpha);
+            let beta = Math.random() * Math.PI / 8;
+            let cosb = Math.cos(beta);
+            let sinb = Math.sin(beta);
+            directionToUpdate.copyFromFloats(
+                cosa * cosb,
+                sinb,
+                sina * cosb
+            ).scaleInPlace((12 + Math.random() * 12) * this.radius);
+        }
+        */
+        for (let i = 0; i < 20; i++) {
+            this.landFlashes.push(new FlashParticle("pew", this.main.scene, 5 + 2 * Math.random(), 0.15 + 0.1 * Math.random()));
+        }
     }
     instantiate() {
         BABYLON.VertexData.CreateSphere({ diameter: 2 * this.radius }).applyToMesh(this);
@@ -883,6 +938,8 @@ class Robot extends GameObject {
         this.footImpactParticle.addVelocityGradient(0.1, 5);
         this.footImpactParticle.addVelocityGradient(0.2, 1);
         this.footImpactParticle.addVelocityGradient(1, 0.5);
+        this.footImpactParticle.minAngularSpeed = Math.PI / 4;
+        this.footImpactParticle.maxAngularSpeed = Math.PI;
         this.footImpactParticle.color1 = new BABYLON.Color4(1, 1, 1, 1);
         this.footImpactParticle.color2 = new BABYLON.Color4(1, 1, 1, 1);
         this.footImpactParticle.emitRate = 1000;
@@ -2893,11 +2950,18 @@ class Menu {
         let playTitle = SpacePanel.CreateSpacePanel();
         playTitle.addTitle1("MARS AT WAR");
         playTitle.classList.add("menu-title-panel");
-        let playTest = SpacePanel.CreateSpacePanel();
-        playTest.addTitle2("TEST");
-        playTest.classList.add("menu-element-panel");
-        playTest.onpointerup = () => {
-            this.main.generateScene();
+        let playTestMain = SpacePanel.CreateSpacePanel();
+        playTestMain.addTitle2("MAIN TEST");
+        playTestMain.classList.add("menu-element-panel");
+        playTestMain.onpointerup = () => {
+            this.main.generateTestMainScene();
+            this.showIngameMenu();
+        };
+        let playTestMeteor = SpacePanel.CreateSpacePanel();
+        playTestMeteor.addTitle2("METEOR TEST");
+        playTestMeteor.classList.add("menu-element-panel");
+        playTestMeteor.onpointerup = () => {
+            this.main.generateTestMeteorScene();
             this.showIngameMenu();
         };
         let playBack = SpacePanel.CreateSpacePanel();
@@ -2907,7 +2971,7 @@ class Menu {
             this.showMainMenu();
         };
         this.playMenuContainer.appendChild(playTitle);
-        this.playMenuContainer.appendChild(playTest);
+        this.playMenuContainer.appendChild(playTestMain);
         this.playMenuContainer.appendChild(playBack);
         this.creditMenuContainer = document.getElementById("credit-menu");
         let creditTitle = SpacePanel.CreateSpacePanel();

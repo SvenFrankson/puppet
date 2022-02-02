@@ -109,6 +109,9 @@ class Robot extends GameObject {
         this.footImpactParticle.addVelocityGradient(0.2, 1);
         this.footImpactParticle.addVelocityGradient(1, 0.5);
 
+        this.footImpactParticle.minAngularSpeed = Math.PI / 4;
+        this.footImpactParticle.maxAngularSpeed = Math.PI;
+
         this.footImpactParticle.color1 = new BABYLON.Color4(1, 1, 1, 1);
         this.footImpactParticle.color2 = new BABYLON.Color4(1, 1, 1, 1);
 
