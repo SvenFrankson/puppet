@@ -85,8 +85,8 @@ class Meteor extends BABYLON.Mesh {
             ).scaleInPlace((12 + Math.random() * 12) * this.radius);
         }
         */
-        for (let i = 0; i < 20; i++) {
-            this.landFlashes.push(new FlashParticle("pew", this.main.scene, 5 + 2 * Math.random(), 0.15 + 0.1 * Math.random()));
+        for (let i = 0; i < 25; i++) {
+            this.landFlashes.push(new FlashParticle("pew", this.main.scene, 6 + 3 * Math.random(), 0.2 + 0.1 * Math.random()));
         }
     }
 
@@ -122,9 +122,10 @@ class Meteor extends BABYLON.Mesh {
             //this.landFlashParticleSystem.emitter = this.destination.add(new BABYLON.Vector3(0, 0.3, 0));
             //this.landFlashParticleSystem.start();
             this.dispose();
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < this.landFlashes.length; i++) {
                 let flashParticle = this.landFlashes[i];
                 let alpha = Math.random() * Math.PI * 2;
+                alpha = (i / this.landFlashes.length) * Math.PI * 2;
                 let cosa = Math.cos(alpha);
                 let sina = Math.sin(alpha);
                 let beta = Math.random() * Math.PI / 4;
@@ -134,13 +135,8 @@ class Meteor extends BABYLON.Mesh {
                     cosa * cosb,
                     sinb,
                     sina * cosb
-                )
-                setTimeout(
-                    () => {
-                        flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir);
-                    },
-                    Math.random() * 60
-                )
+                );
+                flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir);
             }
         }
     }

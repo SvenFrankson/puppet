@@ -45,7 +45,7 @@ class FlashParticle extends BABYLON.Mesh {
 
     public _update = () => {
         this._timer += this.getScene().getEngine().getDeltaTime() / 1000;
-        let s = this.size * this._timer / (this.lifespan / 4);
+        let s = this.size * Math.sin(this._timer / this.lifespan * Math.PI);
         let target: BABYLON.Vector3;
         if (this.scene.activeCameras && this.scene.activeCameras[0]) {
             target = this.scene.activeCameras[0].globalPosition;
@@ -58,9 +58,8 @@ class FlashParticle extends BABYLON.Mesh {
         let x = BABYLON.Vector3.Cross(y, z);
         z = BABYLON.Vector3.Cross(x, y);
         this.rotationQuaternion = BABYLON.Quaternion.RotationQuaternionFromAxis(x, y, z);
-        if (this._timer < this.lifespan / 4) {
+        if (this._timer < this.lifespan) {
             this.scaling.copyFromFloats(s, s, s);
-            return;
         }
         else {
             this.scaling.copyFromFloats(this.size, this.size, this.size);
