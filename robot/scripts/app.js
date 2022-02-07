@@ -388,10 +388,6 @@ class GameObject {
 }
 /// <reference path="GameObject.ts"/>
 class Building extends GameObject {
-    constructor(main) {
-        super(main);
-        this.base = new BABYLON.Mesh("building", this.main.scene);
-    }
     get pos2D() {
         if (!this._pos2D) {
             this._pos2D = BABYLON.Vector2.Zero();
@@ -413,6 +409,10 @@ class Building extends GameObject {
     set posY(y) {
         this.base.position.z = y;
         this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
+    }
+    constructor(main) {
+        super(main);
+        this.base = new BABYLON.Mesh("building", this.main.scene);
     }
     flattenGround(radius) {
         let height = this.base.position.y;
@@ -2970,6 +2970,7 @@ class Menu {
         };
         this.playMenuContainer.appendChild(playTitle);
         this.playMenuContainer.appendChild(playTestMain);
+        this.playMenuContainer.appendChild(playTestMeteor);
         this.playMenuContainer.appendChild(playBack);
         this.creditMenuContainer = document.getElementById("credit-menu");
         let creditTitle = SpacePanel.CreateSpacePanel();

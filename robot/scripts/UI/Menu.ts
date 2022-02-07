@@ -77,8 +77,8 @@ class Menu {
         
 		this.playMenuContainer.appendChild(playTitle);
 		this.playMenuContainer.appendChild(playTestMain);
+		this.playMenuContainer.appendChild(playTestMeteor);
 		this.playMenuContainer.appendChild(playBack);
-
 
         this.creditMenuContainer = document.getElementById("credit-menu") as HTMLDivElement;
 
