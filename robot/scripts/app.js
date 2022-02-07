@@ -317,13 +317,14 @@ class Main {
                     let robot = new Robot(this);
                     robot.instantiate().then(() => {
                         robot.foldAt(p);
+                        console.log(this.scene.meshes.map(m => { return m.name; }));
                     });
                     setTimeout(() => {
-                        robot.foldAt(new BABYLON.Vector2(15, 15));
-                    }, 4000);
+                        robot.dispose();
+                    }, 8000);
                 });
                 meteor.instantiate();
-            }, 5000 * i);
+            }, 10000 * i);
         }
     }
     disposeScene() {
@@ -522,6 +523,7 @@ class FlashParticle extends BABYLON.Mesh {
         this.lifespan = lifespan;
         this._timer = 0;
         this._flashUp = BABYLON.Vector3.Up();
+        this._disposeAfterFlash = false;
         this._update = () => {
             this._timer += this.getScene().getEngine().getDeltaTime() / 1000;
             let s = this.size * Math.sin(this._timer / this.lifespan * Math.PI);
@@ -546,6 +548,9 @@ class FlashParticle extends BABYLON.Mesh {
                     this._timer = 0;
                     this.scaling.copyFromFloats(0, 0, 0);
                     this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+                    if (this._disposeAfterFlash) {
+                        this.dispose();
+                    }
                 }
             }
         };
@@ -567,12 +572,13 @@ class FlashParticle extends BABYLON.Mesh {
         this.getScene().onBeforeRenderObservable.removeCallback(this._update);
         this.dispose();
     }
-    flash(position, up) {
+    flash(position, up, thenDispose) {
         if (this._timer > 0) {
             return;
         }
         this.position.copyFrom(position);
         this._flashUp.copyFrom(up);
+        this._disposeAfterFlash = thenDispose;
         this.scaling.copyFromFloats(0, 0, 0);
         this.getScene().onBeforeRenderObservable.add(this._update);
     }
@@ -759,7 +765,7 @@ class Meteor extends BABYLON.Mesh {
                     let cosb = Math.cos(beta);
                     let sinb = Math.sin(beta);
                     let dir = new BABYLON.Vector3(cosa * cosb, sinb, sina * cosb);
-                    flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir);
+                    flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir, true);
                 }
             }
         };
@@ -897,6 +903,12 @@ class RobotTarget extends BABYLON.Mesh {
     set rot(r) {
         this.rotation.y = r;
     }
+    dispose(doNotRecurse, disposeMaterialAndTextures) {
+        super.dispose(doNotRecurse, disposeMaterialAndTextures);
+        for (let i = 0; i < this.targets.length; i++) {
+            this.targets[i].dispose();
+        }
+    }
 }
 class Robot extends GameObject {
     constructor(main) {
@@ -945,26 +957,33 @@ class Robot extends GameObject {
     async instantiate() {
         return new Promise(resolve => {
             BABYLON.SceneLoader.ImportMesh("", "assets/robot.babylon", "", this.main.scene, (meshes) => {
+                this.meshes = [];
                 this.head = meshes.find(m => { return m.name === "head"; });
+                this.meshes.push(this.head);
                 this.body = meshes.find(m => { return m.name === "body"; });
+                this.meshes.push(this.body);
                 this.feet = [
                     meshes.find(m => { return m.name === "foot-right"; }),
                     meshes.find(m => { return m.name === "foot-left"; })
                 ];
+                this.meshes.push(...this.feet);
                 this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
                 this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
                 this.legs = [
                     meshes.find(m => { return m.name === "leg-right"; }),
                     meshes.find(m => { return m.name === "leg-left"; })
                 ];
+                this.meshes.push(...this.legs);
                 this.upperLegs = [
                     meshes.find(m => { return m.name === "upper-leg-right"; }),
                     meshes.find(m => { return m.name === "upper-leg-left"; })
                 ];
+                this.meshes.push(...this.upperLegs);
                 this.upperLegsRoot = [
                     new BABYLON.Mesh("upper-leg-root-0"),
                     new BABYLON.Mesh("upper-leg-root-1"),
                 ];
+                this.meshes.push(...this.upperLegsRoot);
                 this.upperLegsRoot[0].position.copyFrom(this.upperLegs[0].position);
                 this.upperLegsRoot[0].parent = this.body;
                 this.upperLegsRoot[1].position.copyFrom(this.upperLegs[1].position);
@@ -975,18 +994,22 @@ class Robot extends GameObject {
                     meshes.find(m => { return m.name === "hand-right"; }),
                     meshes.find(m => { return m.name === "hand-left"; })
                 ];
+                this.meshes.push(...this.hands);
                 this.arms = [
                     meshes.find(m => { return m.name === "arm-right"; }),
                     meshes.find(m => { return m.name === "arm-left"; })
                 ];
+                this.meshes.push(...this.arms);
                 this.upperArms = [
                     meshes.find(m => { return m.name === "upper-arm-right"; }),
                     meshes.find(m => { return m.name === "upper-arm-left"; })
                 ];
+                this.meshes.push(...this.upperArms);
                 this.upperArmsRoot = [
                     new BABYLON.Mesh("upper-arm-root-0"),
                     new BABYLON.Mesh("upper-arm-root-1"),
                 ];
+                this.meshes.push(...this.upperArmsRoot);
                 this.upperArmsRoot[0].position.copyFrom(this.upperArms[0].position);
                 this.upperArmsRoot[0].parent = this.body;
                 this.upperArmsRoot[1].position.copyFrom(this.upperArms[1].position);
@@ -1008,6 +1031,16 @@ class Robot extends GameObject {
                 resolve();
             });
         });
+    }
+    dispose() {
+        super.dispose();
+        this._abortLegMove = true;
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.target.dispose();
+        this.footImpactParticle.dispose();
+        for (let i = 0; i < this.meshes.length; i++) {
+            this.meshes[i].dispose();
+        }
     }
     _generateInputs() {
         if (this.currentPath && this.currentPath.length > 0) {
@@ -1206,6 +1239,9 @@ class Robot extends GameObject {
         }
     }
     _updateMesh() {
+        if (this.isDisposed) {
+            return;
+        }
         let dt = this.main.engine.getDeltaTime() / 1000;
         this._dragFactor = Math.min(this._dragFactor + 0.25 * dt, 1);
         let bodyH = this.mode === RobotMode.Walk ? 1.8 : 1.6;
@@ -3055,6 +3091,10 @@ class Menu {
         debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
         debugPanel.addTitle3("distance to next").id = "distance-to-next";
         debugPanel.addTitle3("target rot").id = "target-rot";
+        debugPanel.addTitle3("Mesh Count").id = "debug-mesh-count";
+        this.main.scene.onBeforeRenderObservable.add(() => {
+            document.getElementById("debug-mesh-count").innerHTML = "Mesh Count = " + this.main.scene.meshes.length.toFixed(0);
+        });
         let navGraphConsole = new NavGraphConsole(this.main.scene);
         navGraphConsole.enable();
         this.showMainMenu();

@@ -2,6 +2,7 @@ class FlashParticle extends BABYLON.Mesh {
 
     private _timer: number = 0;
     private _flashUp: BABYLON.Vector3 = BABYLON.Vector3.Up();
+    private _disposeAfterFlash: boolean = false;
 
     constructor(
         name: string,
@@ -32,13 +33,15 @@ class FlashParticle extends BABYLON.Mesh {
 
     public flash(
         position: BABYLON.Vector3,
-        up: BABYLON.Vector3
+        up: BABYLON.Vector3,
+        thenDispose?: boolean
     ) {
         if (this._timer > 0) {
             return;
         }
         this.position.copyFrom(position);
         this._flashUp.copyFrom(up);
+        this._disposeAfterFlash = thenDispose;
         this.scaling.copyFromFloats(0, 0, 0);
         this.getScene().onBeforeRenderObservable.add(this._update);
     }
@@ -67,6 +70,9 @@ class FlashParticle extends BABYLON.Mesh {
                 this._timer = 0;
                 this.scaling.copyFromFloats(0, 0, 0);
                 this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+                if (this._disposeAfterFlash) {
+                    this.dispose();
+                }
             }
         }
     }

@@ -136,7 +136,7 @@ class Meteor extends BABYLON.Mesh {
                     sinb,
                     sina * cosb
                 );
-                flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir);
+                flashParticle.flash(this.destination.add(new BABYLON.Vector3(cosa, 0, sina)), dir, true);
             }
         }
     }

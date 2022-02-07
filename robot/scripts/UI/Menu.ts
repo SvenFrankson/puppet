@@ -187,7 +187,10 @@ class Menu {
         debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
         debugPanel.addTitle3("distance to next").id = "distance-to-next";
         debugPanel.addTitle3("target rot").id = "target-rot";
-
+        debugPanel.addTitle3("Mesh Count").id = "debug-mesh-count";
+        this.main.scene.onBeforeRenderObservable.add(() => {
+            document.getElementById("debug-mesh-count").innerHTML = "Mesh Count = " + this.main.scene.meshes.length.toFixed(0);
+        })
 
         let navGraphConsole = new NavGraphConsole(this.main.scene);
         navGraphConsole.enable();

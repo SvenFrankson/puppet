@@ -57,6 +57,13 @@ class RobotTarget extends BABYLON.Mesh {
             //BABYLON.VertexData.CreateBox({ width: 0.2, height: 20, depth: 0.2 }).applyToMesh(target);
         }
     }
+
+    public dispose(doNotRecurse?: boolean, disposeMaterialAndTextures?: boolean): void {
+        super.dispose(doNotRecurse, disposeMaterialAndTextures);
+        for (let i = 0; i < this.targets.length; i++) {
+            this.targets[i].dispose();
+        }
+    }
 }
 
 class Robot extends GameObject {
@@ -71,6 +78,8 @@ class Robot extends GameObject {
     public arms: BABYLON.Mesh[];
     public upperArms: BABYLON.Mesh[];
     public upperArmsRoot: BABYLON.Mesh[];
+
+    public meshes: BABYLON.Mesh[];
 
     public footImpactParticle: BABYLON.ParticleSystem;
 
@@ -127,26 +136,33 @@ class Robot extends GameObject {
                     "",
                     this.main.scene,
                     (meshes) => {
+                        this.meshes = [];
                         this.head = meshes.find(m => { return m.name === "head"; }) as BABYLON.Mesh;
+                        this.meshes.push(this.head);
                         this.body = meshes.find(m => { return m.name === "body"; }) as BABYLON.Mesh;
+                        this.meshes.push(this.body);
                         this.feet = [
                             meshes.find(m => { return m.name === "foot-right"; }) as BABYLON.Mesh,
                             meshes.find(m => { return m.name === "foot-left"; }) as BABYLON.Mesh
                         ];
+                        this.meshes.push(...this.feet);
                         this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
                         this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
                         this.legs = [
                             meshes.find(m => { return m.name === "leg-right"; }) as BABYLON.Mesh,
                             meshes.find(m => { return m.name === "leg-left"; }) as BABYLON.Mesh
                         ];
+                        this.meshes.push(...this.legs);
                         this.upperLegs = [
                             meshes.find(m => { return m.name === "upper-leg-right"; }) as BABYLON.Mesh,
                             meshes.find(m => { return m.name === "upper-leg-left"; }) as BABYLON.Mesh
                         ];
+                        this.meshes.push(...this.upperLegs);
                         this.upperLegsRoot = [
                             new BABYLON.Mesh("upper-leg-root-0"),
                             new BABYLON.Mesh("upper-leg-root-1"),
                         ];
+                        this.meshes.push(...this.upperLegsRoot);
                         this.upperLegsRoot[0].position.copyFrom(this.upperLegs[0].position);
                         this.upperLegsRoot[0].parent = this.body;
                         this.upperLegsRoot[1].position.copyFrom(this.upperLegs[1].position);
@@ -158,18 +174,22 @@ class Robot extends GameObject {
                             meshes.find(m => { return m.name === "hand-right"; }) as BABYLON.Mesh,
                             meshes.find(m => { return m.name === "hand-left"; }) as BABYLON.Mesh
                         ];
+                        this.meshes.push(...this.hands);
                         this.arms = [
                             meshes.find(m => { return m.name === "arm-right"; }) as BABYLON.Mesh,
                             meshes.find(m => { return m.name === "arm-left"; }) as BABYLON.Mesh
                         ];
+                        this.meshes.push(...this.arms);
                         this.upperArms = [
                             meshes.find(m => { return m.name === "upper-arm-right"; }) as BABYLON.Mesh,
                             meshes.find(m => { return m.name === "upper-arm-left"; }) as BABYLON.Mesh
                         ];
+                        this.meshes.push(...this.upperArms);
                         this.upperArmsRoot = [
                             new BABYLON.Mesh("upper-arm-root-0"),
                             new BABYLON.Mesh("upper-arm-root-1"),
                         ];
+                        this.meshes.push(...this.upperArmsRoot);
                         this.upperArmsRoot[0].position.copyFrom(this.upperArms[0].position);
                         this.upperArmsRoot[0].parent = this.body;
                         this.upperArmsRoot[1].position.copyFrom(this.upperArms[1].position);
@@ -195,6 +215,17 @@ class Robot extends GameObject {
                 )
             }
         );
+    }
+
+    public dispose(): void {
+        super.dispose();
+        this._abortLegMove = true;
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+        this.target.dispose();
+        this.footImpactParticle.dispose();
+        for (let i = 0; i < this.meshes.length; i++) {
+            this.meshes[i].dispose();
+        }
     }
     
     private _update = () => {
@@ -438,6 +469,9 @@ class Robot extends GameObject {
     private _handVelocities: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
     private _dragFactor: number = 1;
     public _updateMesh(): void {
+        if (this.isDisposed) {
+            return;
+        }
         let dt = this.main.engine.getDeltaTime() / 1000;
         this._dragFactor = Math.min(this._dragFactor + 0.25 * dt, 1);
 

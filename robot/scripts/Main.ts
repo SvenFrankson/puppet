@@ -194,20 +194,21 @@ class Main {
 							robot.instantiate().then(
 								() => {
 									robot.foldAt(p);
+									console.log(this.scene.meshes.map(m => { return m.name; }));
 								}
 							);
 							setTimeout(
 								() => {
-									robot.foldAt(new BABYLON.Vector2(15, 15));
+									robot.dispose();
 								},
-								4000
+								8000
 							)
 						}
 					);
 					meteor.instantiate();
 					
 				},
-				5000 * i
+				10000 * i
 			);
 		}
 	}
