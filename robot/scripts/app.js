@@ -210,7 +210,6 @@ class Main {
             worldX = pick.pickedPoint.x;
             worldY = pick.pickedPoint.z;
         }
-        document.getElementById("debug-pointer-xy").innerText = (worldX).toFixed(1) + " : " + (worldY).toFixed(1);
         return new BABYLON.Vector2(worldX, worldY);
     }
     worldPosToPixel(w) {
@@ -239,7 +238,7 @@ class Main {
         this.game.credit(300);
         this.ground = new Ground(50, 50, this);
         this.ground.instantiate().then(() => {
-            this.generateTestMeteorScene();
+            this.generateTestMainScene();
         });
     }
     generateTestMainScene() {
@@ -258,31 +257,17 @@ class Main {
         commandCenter.instantiate();
         commandCenter.makeReady();
         commandCenter.flattenGround(8);
-        /*
-        let beacon = new Beacon(this);
-        beacon.posX = 15;
-        beacon.posY = 5;
-        beacon.makeReady();
-        */
-        let robot = new Robot(this);
-        robot.instantiate().then(() => {
-            robot.foldAt(new BABYLON.Vector2(5, 5));
-        });
-        robot.mode = RobotMode.Walk;
-        this.cameraManager.camera.setTarget(robot.target);
         this.cameraManager.camera.beta = Math.PI / 3;
         this.cameraManager.camera.radius = 15;
-        for (let i = 0; i < 5; i++) {
-            setTimeout(() => {
-                let p = new BABYLON.Vector2(-20 + 40 * Math.random(), -20 + 40 * Math.random());
-                let meteor = new Meteor(1, p, this, BABYLON.Color3.FromHexString("#cb221b"), () => {
-                    let robot = new Robot(this);
-                    robot.instantiate().then(() => {
-                        robot.foldAt(p);
-                    });
+        for (let i = 0; i < 3; i++) {
+            let p = new BABYLON.Vector2(-20 + 40 * Math.random(), -20 + 40 * Math.random());
+            let meteor = new Meteor(1, p, this, BABYLON.Color3.FromHexString("#cb221b"), () => {
+                let robot = new Robot(this);
+                robot.instantiate().then(() => {
+                    robot.foldAt(p);
                 });
-                meteor.instantiate();
-            }, 3000 * i);
+            });
+            meteor.instantiate();
         }
         let turret1 = new Canon(this);
         turret1.posX = -20;
@@ -350,6 +335,7 @@ class GameObject {
     constructor(main) {
         this.main = main;
         this.isDisposed = false;
+        this.isInstantiated = false;
         main.gameObjects.push(this);
     }
     get pos2D() {
@@ -381,6 +367,7 @@ class GameObject {
     }
     dispose() {
         this.isDisposed = true;
+        this.isInstantiated = false;
         let index = this.main.gameObjects.indexOf(this);
         if (index != -1) {
             this.main.gameObjects.splice(index, 1);
@@ -389,6 +376,10 @@ class GameObject {
 }
 /// <reference path="GameObject.ts"/>
 class Building extends GameObject {
+    constructor(main) {
+        super(main);
+        this.base = new BABYLON.Mesh("building", this.main.scene);
+    }
     get pos2D() {
         if (!this._pos2D) {
             this._pos2D = BABYLON.Vector2.Zero();
@@ -411,9 +402,11 @@ class Building extends GameObject {
         this.base.position.z = y;
         this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
     }
-    constructor(main) {
-        super(main);
-        this.base = new BABYLON.Mesh("building", this.main.scene);
+    dispose() {
+        super.dispose();
+        if (this.base) {
+            this.base.dispose();
+        }
     }
     flattenGround(radius) {
         let height = this.base.position.y;
@@ -440,7 +433,6 @@ class CommandCenter extends Building {
                         });
                     }
                     if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        console.log(mesh.material);
                         let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                         if (mesh.material.name === "EnergyCellMaterial") {
                             toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
@@ -513,6 +505,115 @@ class Beacon extends Building {
     dispose() {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
+}
+class Canon extends Building {
+    constructor(main) {
+        super(main);
+        this.cooldown = 1;
+        this.counter = 0;
+        this._t = 0;
+        this._update = () => {
+            if (this.isInstantiated) {
+                this._updateTarget();
+                this._updateMesh();
+                this._t += this.main.engine.getDeltaTime() / 1000;
+                this.counter -= this.main.engine.getDeltaTime() / 1000;
+                if (this.counter < 0 && this.target && this.target.isInstantiated) {
+                    let d = this.target.body.position.subtract(this.head.absolutePosition);
+                    let a = VMath.Angle(this.canon.forward, d);
+                    if (Math.abs(a) < Math.PI / 50) {
+                        this.counter = this.cooldown;
+                        this.target.wound(1);
+                        this._shoot();
+                    }
+                }
+            }
+        };
+        this.counter = Math.random() * this.cooldown;
+    }
+    async instantiate() {
+        return new Promise(resolve => {
+            BABYLON.SceneLoader.ImportMesh("", "assets/canon.babylon", "", this.main.scene, (meshes) => {
+                let p = this.base.position;
+                if (this.base) {
+                    this.base.dispose();
+                }
+                this.base = meshes.find(m => { return m.name === "base"; });
+                this.base.position.copyFrom(p);
+                this.body = meshes.find(m => { return m.name === "body"; });
+                this.head = meshes.find(m => { return m.name === "head"; });
+                this.canon = meshes.find(m => { return m.name === "canon"; });
+                for (let i = 0; i < meshes.length; i++) {
+                    let mesh = meshes[i];
+                    if (mesh.material instanceof BABYLON.PBRMaterial) {
+                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                        if (mesh.material.name === "CanonMaterial") {
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-dark.png", this.main.scene));
+                        }
+                        toonMaterial.setColor(mesh.material.albedoColor);
+                        mesh.material = toonMaterial;
+                    }
+                }
+                this.flashParticle = new FlashParticle("pew", this.main.scene, 1.5, 0.1);
+                this.main.scene.onBeforeRenderObservable.add(this._update);
+                this.isInstantiated = true;
+                resolve();
+            });
+        });
+    }
+    dispose() {
+        super.dispose();
+        this.body.dispose();
+        this.head.dispose();
+        this.canon.dispose();
+        this.flashParticle.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
+    _updateTarget() {
+        if (!this.target || this.target.isDisposed) {
+            this.target = this.main.gameObjects.find(g => { return g instanceof Robot; });
+        }
+    }
+    async _shoot() {
+        return new Promise(resolve => {
+            this.flashParticle.flash(this.canon.absolutePosition.add(this.canon.forward.scale(3.5)), this.canon.forward);
+            let duration = 0.2;
+            let t = 0;
+            let step = () => {
+                t += this.main.scene.getEngine().getDeltaTime() / 1000;
+                let d = t / duration;
+                d = Math.min(d, 1);
+                if (d < 1) {
+                    if (d < 0.1) {
+                        this.canon.position.z = -0.5 * d / 0.1;
+                        this.head.position.z = -0.2 * d / 0.1;
+                    }
+                    else {
+                        let dd = (d - 0.1) / (1 - 0.1);
+                        this.canon.position.z = -0.5 * (1 - dd);
+                        this.head.position.z = -0.2 * (1 - dd);
+                    }
+                    requestAnimationFrame(step);
+                }
+                else {
+                    resolve();
+                }
+            };
+            step();
+        });
+    }
+    _updateMesh() {
+        if (this.target && this.target.isInstantiated) {
+            let dt = this.main.engine.getDeltaTime() / 1000;
+            let a = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Axis.Z, this.target.body.position.subtract(this.body.absolutePosition), BABYLON.Axis.Y);
+            this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, a, Math.PI / 8 * dt);
+            let d = this.target.body.position.subtract(this.head.absolutePosition);
+            let sinb = d.y / d.length();
+            let b = -Math.asin(sinb);
+            //let b = BABYLON.Vector3.GetAngleBetweenVectors(this.body.forward, this.target.body.position.subtract(this.head.absolutePosition), this.body.right);
+            this.head.rotation.x = Math2D.StepFromToCirular(this.head.rotation.x, b, Math.PI / 8 * dt);
+        }
     }
 }
 class FlashParticle extends BABYLON.Mesh {
@@ -913,6 +1014,7 @@ class RobotTarget extends BABYLON.Mesh {
 class Robot extends GameObject {
     constructor(main) {
         super(main);
+        this.meshes = [];
         this.mode = RobotMode.Walk;
         this._inputDirs = new UniqueList();
         this._inputForwardAxis = 0;
@@ -1028,6 +1130,7 @@ class Robot extends GameObject {
                     }
                 }
                 this.main.scene.onBeforeRenderObservable.add(this._update);
+                this.isInstantiated = true;
                 resolve();
             });
         });
@@ -1602,93 +1705,6 @@ class Turret extends GameObject {
         this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
         this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-    }
-}
-class Canon extends Building {
-    constructor(main) {
-        super(main);
-        this.cooldown = 1;
-        this.counter = 0;
-        this._t = 0;
-        this._update = () => {
-            this._updateTarget();
-            this._updateMesh();
-            this._t += this.main.engine.getDeltaTime() / 1000;
-            this.counter -= this.main.engine.getDeltaTime() / 1000;
-            if (this.counter < 0) {
-                this.counter = this.cooldown;
-                this._shoot();
-            }
-        };
-        this.counter = Math.random() * this.cooldown;
-    }
-    async instantiate() {
-        return new Promise(resolve => {
-            BABYLON.SceneLoader.ImportMesh("", "assets/canon.babylon", "", this.main.scene, (meshes) => {
-                let p = this.base.position;
-                this.base = meshes.find(m => { return m.name === "base"; });
-                this.base.position.copyFrom(p);
-                this.body = meshes.find(m => { return m.name === "body"; });
-                this.head = meshes.find(m => { return m.name === "head"; });
-                this.canon = meshes.find(m => { return m.name === "canon"; });
-                for (let i = 0; i < meshes.length; i++) {
-                    let mesh = meshes[i];
-                    if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                        if (mesh.material.name === "CanonMaterial") {
-                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-dark.png", this.main.scene));
-                        }
-                        toonMaterial.setColor(mesh.material.albedoColor);
-                        mesh.material = toonMaterial;
-                    }
-                }
-                this.flashParticle = new FlashParticle("pew", this.main.scene, 1.5, 0.1);
-                this.main.scene.onBeforeRenderObservable.add(this._update);
-                this.isInstantiated = true;
-                resolve();
-            });
-        });
-    }
-    _updateTarget() {
-        if (!this.target || this.target.isDisposed) {
-            this.target = this.main.gameObjects.find(g => { return g instanceof Robot; });
-        }
-    }
-    async _shoot() {
-        return new Promise(resolve => {
-            this.flashParticle.flash(this.canon.absolutePosition.add(this.canon.forward.scale(3.5)), this.canon.forward);
-            let duration = 0.2;
-            let t = 0;
-            let step = () => {
-                t += this.main.scene.getEngine().getDeltaTime() / 1000;
-                let d = t / duration;
-                d = Math.min(d, 1);
-                if (d < 1) {
-                    if (d < 0.1) {
-                        this.canon.position.z = -0.5 * d / 0.1;
-                        this.head.position.z = -0.2 * d / 0.1;
-                    }
-                    else {
-                        let dd = (d - 0.1) / (1 - 0.1);
-                        this.canon.position.z = -0.5 * (1 - dd);
-                        this.head.position.z = -0.2 * (1 - dd);
-                    }
-                    requestAnimationFrame(step);
-                }
-                else {
-                    resolve();
-                }
-            };
-            step();
-        });
-    }
-    _updateMesh() {
-        if (this.target && !this.target.isDisposed) {
-            let a = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Axis.Z, this.target.body.position.subtract(this.body.absolutePosition), BABYLON.Axis.Y);
-            this.body.rotation.y = a;
-            let b = BABYLON.Vector3.GetAngleBetweenVectors(this.body.forward, this.target.body.position.subtract(this.head.absolutePosition), this.body.right);
-            this.head.rotation.x = b;
-        }
     }
 }
 class WalkerTarget extends BABYLON.Mesh {
@@ -3088,12 +3104,12 @@ class Menu {
         debugPanel.onpointerup = () => {
             this.showIngameMenu();
         };
-        debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
-        debugPanel.addTitle3("distance to next").id = "distance-to-next";
-        debugPanel.addTitle3("target rot").id = "target-rot";
         debugPanel.addTitle3("Mesh Count").id = "debug-mesh-count";
         this.main.scene.onBeforeRenderObservable.add(() => {
             document.getElementById("debug-mesh-count").innerHTML = "Mesh Count = " + this.main.scene.meshes.length.toFixed(0);
+        });
+        debugPanel.addLargeButton("Log Meshes Names", () => {
+            console.log(this.main.scene.meshes.map(m => { return m.name; }).sort());
         });
         let navGraphConsole = new NavGraphConsole(this.main.scene);
         navGraphConsole.enable();

@@ -39,7 +39,6 @@ class Main {
 			worldX = pick.pickedPoint.x;
 			worldY = pick.pickedPoint.z;
 		}
-		document.getElementById("debug-pointer-xy").innerText = (worldX).toFixed(1) + " : " + (worldY).toFixed(1);
 		return new BABYLON.Vector2(worldX, worldY);
 	}
 
@@ -84,7 +83,7 @@ class Main {
 		this.ground = new Ground(50, 50, this);
 		this.ground.instantiate().then(
 			() => {
-				this.generateTestMeteorScene();
+				this.generateTestMainScene();
 			}
 		)
 	}
@@ -106,48 +105,27 @@ class Main {
 		commandCenter.instantiate();
 		commandCenter.makeReady();
 		commandCenter.flattenGround(8);
-
-		/*
-		let beacon = new Beacon(this);
-		beacon.posX = 15;
-		beacon.posY = 5;
-		beacon.makeReady();
-		*/
-
-		let robot = new Robot(this);
-		robot.instantiate().then(
-			() => {
-				robot.foldAt(new BABYLON.Vector2(5, 5));
-			}
-		);
-		robot.mode = RobotMode.Walk;
-		this.cameraManager.camera.setTarget(robot.target);
+		
 		this.cameraManager.camera.beta = Math.PI / 3;
 		this.cameraManager.camera.radius = 15;
 
-		for (let i = 0; i < 5; i++) {
-			setTimeout(
+		for (let i = 0; i < 3; i++) {
+			let p = new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random());
+			let meteor = new Meteor(
+				1,
+				p,
+				this,
+				BABYLON.Color3.FromHexString("#cb221b"),
 				() => {
-					let p = new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random());
-					let meteor = new Meteor(
-						1,
-						p,
-						this,
-						BABYLON.Color3.FromHexString("#cb221b"),
+					let robot = new Robot(this);
+					robot.instantiate().then(
 						() => {
-							let robot = new Robot(this);
-							robot.instantiate().then(
-								() => {
-									robot.foldAt(p);
-								}
-							);
+							robot.foldAt(p);
 						}
 					);
-					meteor.instantiate();
-					
-				},
-				3000 * i
+				}
 			);
+			meteor.instantiate();
 		}
 		
 		let turret1 = new Canon(this);

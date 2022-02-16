@@ -3,7 +3,6 @@
 abstract class Building extends GameObject {
 
     public isReady: boolean;
-    public isInstantiated: boolean;
 
     public base: BABYLON.Mesh;
     public obstacle: Obstacle;
@@ -44,6 +43,13 @@ abstract class Building extends GameObject {
 
     public abstract instantiate(): Promise<void>;
 
+    public dispose(): void {
+        super.dispose();
+        if (this.base) {
+            this.base.dispose();
+        }
+    }
+
     public flattenGround(radius: number): void {
         let height = this.base.position.y;
         let ij = this.main.ground.pos2DToIJ(this.pos2D);
@@ -81,7 +87,6 @@ class CommandCenter extends Building {
                                 )
                             }
                             if (mesh.material instanceof BABYLON.PBRMaterial) {
-                                console.log(mesh.material);
                                 let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                                 if (mesh.material.name === "EnergyCellMaterial") {
                                     toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));

@@ -79,7 +79,7 @@ class Robot extends GameObject {
     public upperArms: BABYLON.Mesh[];
     public upperArmsRoot: BABYLON.Mesh[];
 
-    public meshes: BABYLON.Mesh[];
+    public meshes: BABYLON.Mesh[] = [];
 
     public footImpactParticle: BABYLON.ParticleSystem;
 
@@ -210,6 +210,7 @@ class Robot extends GameObject {
                         }
         
                         this.main.scene.onBeforeRenderObservable.add(this._update);
+                        this.isInstantiated = true;
                         resolve();
                     }
                 )

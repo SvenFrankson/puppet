@@ -27,6 +27,9 @@ class Canon extends Building {
                     this.main.scene,
                     (meshes) => {
                         let p = this.base.position;
+                        if (this.base) {
+                            this.base.dispose();
+                        }
                         this.base = meshes.find(m => { return m.name === "base"; }) as BABYLON.Mesh;
                         this.base.position.copyFrom(p);
                         this.body = meshes.find(m => { return m.name === "body"; }) as BABYLON.Mesh;
@@ -55,18 +58,35 @@ class Canon extends Building {
             }
         );
     }
+
+    public dispose(): void {
+        super.dispose();
+        this.body.dispose();
+        this.head.dispose();
+        this.canon.dispose();
+        this.flashParticle.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
     
     private _t: number = 0;
     private _update = () => {
-        this._updateTarget();
-        this._updateMesh();
-
-        this._t += this.main.engine.getDeltaTime() / 1000;
-        this.counter -= this.main.engine.getDeltaTime() / 1000;
-        
-        if (this.counter < 0) {
-            this.counter = this.cooldown;
-            this._shoot();
+        if (this.isInstantiated) {
+            this._updateTarget();
+            this._updateMesh();
+    
+            this._t += this.main.engine.getDeltaTime() / 1000;
+            this.counter -= this.main.engine.getDeltaTime() / 1000;
+            
+            if (this.counter < 0 && this.target && this.target.isInstantiated) {
+                
+                let d = this.target.body.position.subtract(this.head.absolutePosition);
+                let a = VMath.Angle(this.canon.forward, d);
+                if (Math.abs(a) < Math.PI / 50) {
+                    this.counter = this.cooldown;
+                    this.target.wound(1);
+                    this._shoot();
+                }
+            }
         }
     }
 
@@ -109,12 +129,17 @@ class Canon extends Building {
     }
 
     private _updateMesh(): void {
-        if (this.target && !this.target.isDisposed) {
-            let a = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Axis.Z, this.target.body.position.subtract(this.body.absolutePosition), BABYLON.Axis.Y);
-            this.body.rotation.y = a;
+        if (this.target && this.target.isInstantiated) {
+            let dt = this.main.engine.getDeltaTime() / 1000;
 
-            let b = BABYLON.Vector3.GetAngleBetweenVectors(this.body.forward, this.target.body.position.subtract(this.head.absolutePosition), this.body.right);
-            this.head.rotation.x = b;
+            let a = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Axis.Z, this.target.body.position.subtract(this.body.absolutePosition), BABYLON.Axis.Y);
+            this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, a, Math.PI / 8 * dt);
+
+            let d = this.target.body.position.subtract(this.head.absolutePosition);
+            let sinb = d.y / d.length();
+            let b = - Math.asin(sinb);
+            //let b = BABYLON.Vector3.GetAngleBetweenVectors(this.body.forward, this.target.body.position.subtract(this.head.absolutePosition), this.body.right);
+            this.head.rotation.x = Math2D.StepFromToCirular(this.head.rotation.x, b, Math.PI / 8 * dt);
         }
     }
 }
