@@ -70,7 +70,7 @@ class Canon extends Building {
     
     private _t: number = 0;
     private _update = () => {
-        if (this.isInstantiated) {
+        if (this.isReady && this.isInstantiated) {
             this._updateTarget();
             this._updateMesh();
     

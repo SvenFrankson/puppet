@@ -120,11 +120,11 @@ class Menu {
             ["TOWER", "WALL"],
             [
                 () => {
-                    if (this.main.playerAction.currentActionType === PlayerActionType.AddTurret) {
-                        this.main.playerAction.cancelAddTurret();
+                    if (this.main.playerAction.currentActionType === PlayerActionType.AddCanon) {
+                        this.main.playerAction.cancelAddCanon();
                     }
                     else {
-                        this.main.playerAction.addTurret(buildingButtons[0]);
+                        this.main.playerAction.addCanon(buildingButtons[0]);
                     }
                 },
                 () => { this.main.playerAction.addWall(buildingButtons[1]); }

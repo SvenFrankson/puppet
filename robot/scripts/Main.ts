@@ -134,27 +134,6 @@ class Main {
 		turret1.instantiate();
 		turret1.makeReady();
 		turret1.flattenGround(3);
-
-		let turret2 = new Canon(this);
-		turret2.posX = 20;
-		turret2.posY = - 20;
-		turret2.instantiate();
-		turret2.makeReady();
-		turret2.flattenGround(3);
-
-		let turret3 = new Canon(this);
-		turret3.posX = - 20;
-		turret3.posY = 20;
-		turret3.instantiate();
-		turret3.makeReady();
-		turret3.flattenGround(3);
-
-		let turret4 = new Canon(this);
-		turret4.posX = 20;
-		turret4.posY = 20;
-		turret4.instantiate();
-		turret4.makeReady();
-		turret4.flattenGround(3);
 	}
 
 	public generateTestMeteorScene(): void {

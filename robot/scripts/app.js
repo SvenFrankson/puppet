@@ -275,24 +275,6 @@ class Main {
         turret1.instantiate();
         turret1.makeReady();
         turret1.flattenGround(3);
-        let turret2 = new Canon(this);
-        turret2.posX = 20;
-        turret2.posY = -20;
-        turret2.instantiate();
-        turret2.makeReady();
-        turret2.flattenGround(3);
-        let turret3 = new Canon(this);
-        turret3.posX = -20;
-        turret3.posY = 20;
-        turret3.instantiate();
-        turret3.makeReady();
-        turret3.flattenGround(3);
-        let turret4 = new Canon(this);
-        turret4.posX = 20;
-        turret4.posY = 20;
-        turret4.instantiate();
-        turret4.makeReady();
-        turret4.flattenGround(3);
     }
     generateTestMeteorScene() {
         for (let i = 0; i < 5; i++) {
@@ -514,7 +496,7 @@ class Canon extends Building {
         this.counter = 0;
         this._t = 0;
         this._update = () => {
-            if (this.isInstantiated) {
+            if (this.isReady && this.isInstantiated) {
                 this._updateTarget();
                 this._updateMesh();
                 this._t += this.main.engine.getDeltaTime() / 1000;
@@ -1589,122 +1571,6 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
     }
     setColor(color) {
         this.setColor3("mColor", color);
-    }
-}
-class Turret extends GameObject {
-    constructor(main) {
-        super(main);
-        this.isReady = true;
-        this.cooldown = 1;
-        this.counter = 0;
-        this._t = 0;
-        this._update = () => {
-            if (!this.isReady) {
-                return;
-            }
-            this._t += this.main.engine.getDeltaTime() / 1000;
-            this.counter -= this.main.engine.getDeltaTime() / 1000;
-            if (this.target && this.target.isDisposed) {
-                this.target = undefined;
-            }
-            if (!this.target) {
-                let walker = this.main.gameObjects.find(g => { return g instanceof Walker; });
-                if (walker) {
-                    this.target = walker;
-                }
-            }
-            if (this.target) {
-                let dirToTarget = new BABYLON.Vector2(this.target.sprite.posX - this.sprite.posX, this.target.sprite.posY - this.sprite.posY);
-                let targetA = -Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
-                this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, targetA, 1 / 10 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
-                let aligned = Math2D.AreEqualsCircular(this.body.rotation.y, targetA, Math.PI / 180);
-                if (aligned) {
-                    if (this.counter < 0) {
-                        this.target.wound(1);
-                        this.counter = this.cooldown;
-                        this._shoot();
-                    }
-                }
-            }
-        };
-        this.sprite = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
-        this.sprite.height = 1;
-        this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
-        this.body.height = 3;
-        this.body.position.y = Sprite.LEVEL_STEP;
-        this.body.parent = this.sprite;
-        this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
-        this.canon.height = 5;
-        this.canon.posY = 0.6;
-        this.canon.position.y = 2 * Sprite.LEVEL_STEP;
-        this.canon.parent = this.body;
-        this.top = new Sprite("turret-top", "assets/turret_top.png", this.main.scene);
-        this.top.height = 5;
-        this.top.position.y = 3 * Sprite.LEVEL_STEP;
-        this.top.parent = this.body;
-        this.setDarkness(0.5);
-        this.main.scene.onBeforeRenderObservable.add(this._update);
-    }
-    dispose() {
-        super.dispose();
-        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-        this.sprite.dispose();
-        this.body.dispose();
-        this.canon.dispose();
-        this.top.dispose();
-    }
-    makeReady() {
-        this.isReady = true;
-        this.setDarkness(1);
-        if (!this.obstacle) {
-            this.obstacle = Obstacle.CreateRect(this.sprite.posX, this.sprite.posY, 2.6, 2.6, 0);
-            this.obstacle.shape.rotation2D = Math.PI / 4;
-            NavGraphManager.AddObstacle(this.obstacle);
-        }
-    }
-    async _shoot() {
-        return new Promise(resolve => {
-            let duration = 0.5;
-            let t = 0;
-            let bullets = [];
-            let bulletsCount = 5;
-            let step = () => {
-                t += this.main.scene.getEngine().getDeltaTime() / 1000;
-                let d = t / duration;
-                d = Math.min(d, 1);
-                if (d < 1) {
-                    this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
-                    this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
-                    this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
-                    if (d * bulletsCount > bullets.length) {
-                        let p0 = this.canon.absolutePosition.clone();
-                        p0.y = 1;
-                        let p1 = this.target.pos2D;
-                        let bullet = BABYLON.MeshBuilder.CreateLines("bullet", {
-                            points: [p0, new BABYLON.Vector3(p1.x, 1, p1.y)]
-                        });
-                        bullets.push(bullet);
-                        setTimeout(() => {
-                            bullet.dispose();
-                        }, 0.3);
-                    }
-                    requestAnimationFrame(step);
-                }
-                else {
-                    this.canon.posY = 0.6;
-                    this.body.posX = 0;
-                    this.body.posY = 0;
-                    resolve();
-                }
-            };
-            step();
-        });
-    }
-    setDarkness(d) {
-        this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-        this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-        this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-        this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
     }
 }
 class WalkerTarget extends BABYLON.Mesh {
@@ -3055,11 +2921,11 @@ class Menu {
         */
         let buildingButtons = buildingMenu.addSquareButtons(["TOWER", "WALL"], [
             () => {
-                if (this.main.playerAction.currentActionType === PlayerActionType.AddTurret) {
-                    this.main.playerAction.cancelAddTurret();
+                if (this.main.playerAction.currentActionType === PlayerActionType.AddCanon) {
+                    this.main.playerAction.cancelAddCanon();
                 }
                 else {
-                    this.main.playerAction.addTurret(buildingButtons[0]);
+                    this.main.playerAction.addCanon(buildingButtons[0]);
                 }
             },
             () => { this.main.playerAction.addWall(buildingButtons[1]); }
@@ -3442,33 +3308,34 @@ window.customElements.define("space-panel-label", SpacePanelLabel);
 var PlayerActionType;
 (function (PlayerActionType) {
     PlayerActionType[PlayerActionType["None"] = 0] = "None";
-    PlayerActionType[PlayerActionType["AddTurret"] = 1] = "AddTurret";
+    PlayerActionType[PlayerActionType["AddCanon"] = 1] = "AddCanon";
     PlayerActionType[PlayerActionType["AddWall"] = 2] = "AddWall";
 })(PlayerActionType || (PlayerActionType = {}));
 class PlayerAction {
     constructor(main) {
         this.main = main;
         this.currentActionType = PlayerActionType.None;
-        this._updateAddingTurret = () => {
-            if (this._selectedTurret) {
+        this._updateAddingCanon = () => {
+            if (this._selectedCanon) {
                 let world = this.main.getPointerWorldPos();
-                this._selectedTurret.posX = world.x;
-                this._selectedTurret.posY = world.y;
+                this._selectedCanon.posX = world.x;
+                this._selectedCanon.posY = world.y;
             }
         };
-        this._pointerUpAddingTurret = (eventData) => {
-            if (this._selectedTurret) {
+        this._pointerUpAddingCanon = (eventData) => {
+            if (this._selectedCanon) {
                 if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
                     if (this.main.game.pay(100)) {
-                        let newTurret = this._selectedTurret;
-                        this._selectedTurret = undefined;
-                        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-                        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                        let newCanon = this._selectedCanon;
+                        this._selectedCanon = undefined;
+                        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingCanon);
+                        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingCanon);
                         this.currentActionType = PlayerActionType.None;
                         this.currentActionButton.classList.remove("selected");
                         this.currentActionButton = undefined;
-                        new LoadingPlane(newTurret.pos2D, 3, () => {
-                            newTurret.makeReady();
+                        new LoadingPlane(newCanon.pos2D, 3, () => {
+                            newCanon.makeReady();
+                            newCanon.flattenGround(3);
                         }, this.main);
                     }
                 }
@@ -3558,29 +3425,28 @@ class PlayerAction {
             }
         };
     }
-    addTurret(actionButton) {
-        if (this._selectedTurret) {
+    addCanon(actionButton) {
+        if (this._selectedCanon) {
             return;
         }
-        this.currentActionType = PlayerActionType.AddTurret;
+        this.currentActionType = PlayerActionType.AddCanon;
         this.currentActionButton = actionButton;
         this.currentActionButton.classList.add("selected");
-        this._selectedTurret = new Turret(this.main);
-        this._selectedTurret.isReady = false;
-        this._selectedTurret.setDarkness(0.5);
-        this.main.scene.onBeforeRenderObservable.add(this._updateAddingTurret);
-        this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret);
+        this._selectedCanon = new Canon(this.main);
+        this._selectedCanon.instantiate();
+        this.main.scene.onBeforeRenderObservable.add(this._updateAddingCanon);
+        this.main.scene.onPointerObservable.add(this._pointerUpAddingCanon);
     }
-    cancelAddTurret() {
-        if (this._selectedTurret) {
-            this._selectedTurret.dispose();
-            this._selectedTurret = undefined;
+    cancelAddCanon() {
+        if (this._selectedCanon) {
+            this._selectedCanon.dispose();
+            this._selectedCanon = undefined;
         }
         this.currentActionType = PlayerActionType.None;
         this.currentActionButton.classList.remove("selected");
         this.currentActionButton = undefined;
-        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingCanon);
+        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingCanon);
     }
     addWall(actionButton) {
         if (this._selectedWallNode1 || this._selectedWallNode2) {
