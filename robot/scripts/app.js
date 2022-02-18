@@ -236,7 +236,7 @@ class Main {
         };
         this.game = new Game(this);
         this.game.credit(300);
-        this.ground = new Ground(50, 50, this);
+        this.ground = new Ground(50, this);
         this.ground.instantiate().then(() => {
             this.generateTestMainScene();
         });
@@ -667,10 +667,9 @@ class FlashParticle extends BABYLON.Mesh {
     }
 }
 class Ground extends BABYLON.Mesh {
-    constructor(width, height, main) {
+    constructor(size, main) {
         super("ground", main.scene);
-        this.width = width;
-        this.height = height;
+        this.size = size;
         this.main = main;
         this.heightMap = [];
     }
@@ -684,29 +683,84 @@ class Ground extends BABYLON.Mesh {
                 let ctx = canvas.getContext("2d");
                 ctx.drawImage(image, 0, 0);
                 let imageData = ctx.getImageData(0, 0, 1024, 1024);
+                let lx = 2;
+                let lz = Math.sin(Math.PI / 3) * lx;
+                let x0 = -lx * (this.size + this.size * 0.5) * 0.5;
+                let z0 = -lz * this.size * 0.5;
                 let data = new BABYLON.VertexData();
                 let positions = [];
                 let indices = [];
                 let uvs = [];
-                let lx = 2;
-                let lz = Math.sin(Math.PI / 3) * lx;
-                let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
-                let z0 = -lz * this.height * 0.5;
-                for (let i = 0; i <= this.width; i++) {
+                let colors = [];
+                for (let i = 0; i <= this.size; i++) {
                     this.heightMap[i] = [];
-                    for (let j = 0; j <= this.height; j++) {
-                        let n = i + j * (this.width + 1);
-                        let di = Math.floor(i / this.width * 64);
-                        let dj = Math.floor(j / this.height * 64);
+                    for (let j = 0; j <= this.size; j++) {
+                        let n = i + j * (this.size + 1);
+                        let di = Math.floor(i / this.size * 64);
+                        let dj = Math.floor(j / this.size * 64);
                         let h = imageData.data[4 * (di + 1024 * dj)];
                         this.heightMap[i][j] = h / 256 * 80 - 40;
-                        positions.push(x0 + i * lx + j * lx * 0.5, this.heightMap[i][j], z0 + j * lz);
-                        uvs.push(2 * i / this.width, 2 * j / this.width);
-                        if (i < this.width && j < this.width) {
-                            indices.push(n, n + this.width + 1, n + 1);
-                            indices.push(n + 1, n + this.width + 1, n + this.width + 2);
+                        let x = i * lx + j * lx * 0.5;
+                        let z = j * lz;
+                        positions.push(x0 + x, this.heightMap[i][j], z0 + z);
+                        uvs.push(2 * i / this.size, 2 * j / this.size);
+                        if (i < this.size && j < this.size) {
+                            indices.push(n, n + this.size + 1, n + 1);
+                            indices.push(n + 1, n + this.size + 1, n + this.size + 2);
+                        }
+                        let di2 = Math.floor(i / this.size * 64 + 128);
+                        let dj2 = Math.floor(j / this.size * 64 + 256);
+                        let c = imageData.data[4 * (di2 + 1024 * dj2)];
+                        if (Math.floor(c) % 12 < 6) {
+                            colors.push(1, 1, 1, 1);
+                        }
+                        else {
+                            colors.push(1, 0.5, 0, 1);
                         }
                     }
+                }
+                for (let it = 0; it < 1; it++) {
+                    let newColors = [];
+                    for (let i = 0; i <= this.size; i++) {
+                        for (let j = 0; j <= this.size; j++) {
+                            let n = i + j * (this.size + 1);
+                            let r = colors[4 * n];
+                            let g = colors[4 * n + 1];
+                            let b = colors[4 * n + 2];
+                            let iIndexes = [
+                                i + 1,
+                                i + 1,
+                                i,
+                                i - 1,
+                                i - 1,
+                                i
+                            ];
+                            let jIndexes = [
+                                j,
+                                j - 1,
+                                j - 1,
+                                j,
+                                j + 1,
+                                j + 1
+                            ];
+                            let count = 1;
+                            for (let p = 0; p < 6; p++) {
+                                let pi = iIndexes[p];
+                                let pj = jIndexes[p];
+                                let pn = pi + pj * (this.size + 1);
+                                if (pn >= 0 && 4 * pn < colors.length) {
+                                    r += colors[4 * pn];
+                                    g += colors[4 * pn + 1];
+                                    b += colors[4 * pn + 2];
+                                    count++;
+                                }
+                            }
+                            newColors[4 * n] = r / count;
+                            newColors[4 * n + 1] = g / count;
+                            newColors[4 * n + 2] = b / count;
+                        }
+                    }
+                    colors = newColors;
                 }
                 let normals = [];
                 BABYLON.VertexData.ComputeNormals(positions, indices, normals);
@@ -714,13 +768,57 @@ class Ground extends BABYLON.Mesh {
                 data.indices = indices;
                 data.normals = normals;
                 data.uvs = uvs;
+                data.colors = colors;
                 data.applyToMesh(this);
+                /*
+                let dataDirtMesh = new BABYLON.VertexData();
+                let positionsDirtMesh: number[] = [];
+                let indicesDirtMesh: number[] = [];
+                let uvsDirtMesh: number[] = [];
+                let colorsDirtMesh: number[] = [];
+
+                for (let i = 0; i <= this.size; i++) {
+                    for (let j = 0; j <= this.size; j++) {
+                        let n = i + j * (this.size + 1);
+                        
+                        let di2 = Math.floor(i / this.size * 64 + 128);
+                        let dj2 = Math.floor(j / this.size * 64 + 256);
+                        let c = imageData.data[4 * (di2 + 1024 * dj2)];
+                        let dh = c / 256 * 1 - 0.5;
+
+                        let x = i * lx + j * lx * 0.5;
+                        let z = j * lz;
+                        positionsDirtMesh.push(x0 + x, this.heightMap[i][j] + dh, z0 + z);
+                        uvsDirtMesh.push(2 * i / this.size, 2 * j / this.size);
+                        if (i < this.size && j < this.size) {
+                            indicesDirtMesh.push(n, n + this.size + 1, n + 1);
+                            indicesDirtMesh.push(n + 1, n + this.size + 1, n + this.size + 2);
+                        }
+                        colorsDirtMesh.push(1, 0.7, 0.5, 1);
+                    }
+                }
+
+                let normalsDirtMesh: number[] = [];
+                BABYLON.VertexData.ComputeNormals(positionsDirtMesh, indicesDirtMesh, normalsDirtMesh);
+
+                dataDirtMesh.positions = positionsDirtMesh;
+                dataDirtMesh.indices = indicesDirtMesh;
+                dataDirtMesh.normals = normalsDirtMesh;
+                dataDirtMesh.uvs = uvsDirtMesh;
+                dataDirtMesh.colors = colorsDirtMesh;
+
+                dataDirtMesh.applyToMesh(this.dirtMesh);
+
+                this.dirtMesh.material = this.material;
+
+                this.dirtMesh = new BABYLON.Mesh("dirt-mesh");
+                this.dirtMesh.parent = this;
+                */
                 resolve();
             };
             image.src = "assets/ground.png";
-            let groundMaterial = new ToonMaterial("ground-material", false, this.main.scene);
+            let groundMaterial = new TerrainMaterial("ground-material", false, this.main.scene);
             groundMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/ground_2.png", this.main.scene));
-            groundMaterial.setColor(BABYLON.Color3.White());
             this.material = groundMaterial;
         });
     }
@@ -768,16 +866,16 @@ class Ground extends BABYLON.Mesh {
         let uvs = [];
         let lx = 2;
         let lz = Math.sin(Math.PI / 3) * lx;
-        let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
-        let z0 = -lz * this.height * 0.5;
-        for (let i = 0; i <= this.width; i++) {
-            for (let j = 0; j <= this.height; j++) {
-                let n = i + j * (this.width + 1);
+        let x0 = -lx * (this.size + this.size * 0.5) * 0.5;
+        let z0 = -lz * this.size * 0.5;
+        for (let i = 0; i <= this.size; i++) {
+            for (let j = 0; j <= this.size; j++) {
+                let n = i + j * (this.size + 1);
                 positions.push(x0 + i * lx + j * lx * 0.5, this.heightMap[i][j], z0 + j * lz);
-                uvs.push(2 * i / this.width, 2 * j / this.width);
-                if (i < this.width && j < this.width) {
-                    indices.push(n, n + this.width + 1, n + 1);
-                    indices.push(n + 1, n + this.width + 1, n + this.width + 2);
+                uvs.push(2 * i / this.size, 2 * j / this.size);
+                if (i < this.size && j < this.size) {
+                    indices.push(n, n + this.size + 1, n + 1);
+                    indices.push(n + 1, n + this.size + 1, n + this.size + 2);
                 }
             }
         }
@@ -792,8 +890,8 @@ class Ground extends BABYLON.Mesh {
     pos2DToIJ(pos2D) {
         let lx = 2;
         let lz = Math.sin(Math.PI / 3) * lx;
-        let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
-        let z0 = -lz * this.height * 0.5;
+        let x0 = -lx * (this.size + this.size * 0.5) * 0.5;
+        let z0 = -lz * this.size * 0.5;
         let j = Math.round((pos2D.y - z0) / lz);
         let i = Math.round((pos2D.x - j * lx / 2 - x0) / lx);
         return { i: i, j: j };
@@ -1562,7 +1660,7 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
             vertex: "toon",
             fragment: "toon",
         }, {
-            attributes: ["position", "normal", "uv", "color"],
+            attributes: ["position", "normal", "uv"],
             uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
             samplers: ["colorTexture"]
         });
@@ -1571,6 +1669,20 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
     }
     setColor(color) {
         this.setColor3("mColor", color);
+    }
+}
+class TerrainMaterial extends BABYLON.ShaderMaterial {
+    constructor(name, transparent, scene) {
+        super(name, scene, {
+            vertex: "terrain-toon",
+            fragment: "terrain-toon",
+        }, {
+            attributes: ["position", "normal", "uv", "color"],
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
+            samplers: ["colorTexture"]
+        });
+        this.setTexture("colorTexture", new BABYLON.Texture("assets/empty.png", scene));
+        this.setVector3("lightInvDirW", (new BABYLON.Vector3(-1, 1, -1)).normalize());
     }
 }
 class WalkerTarget extends BABYLON.Mesh {

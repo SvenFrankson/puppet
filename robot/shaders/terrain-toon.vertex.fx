@@ -4,6 +4,7 @@ precision highp float;
 attribute vec3 position;
 attribute vec3 normal;
 attribute vec2 uv;
+attribute vec4 color;
 
 // Uniforms
 uniform mat4 world;
@@ -23,4 +24,5 @@ void main(void) {
     vNormalW = normalize(vec3(world * vec4(normal, 0.0)));
 
     vUV = uv;
+    vColor = color;
 }

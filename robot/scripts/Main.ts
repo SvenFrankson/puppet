@@ -80,7 +80,7 @@ class Main {
 		this.game = new Game(this);
 		this.game.credit(300);
 
-		this.ground = new Ground(50, 50, this);
+		this.ground = new Ground(50, this);
 		this.ground.instantiate().then(
 			() => {
 				this.generateTestMainScene();
