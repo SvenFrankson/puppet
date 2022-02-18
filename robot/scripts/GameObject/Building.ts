@@ -54,6 +54,7 @@ abstract class Building extends GameObject {
         let height = this.base.position.y;
         let ij = this.main.ground.pos2DToIJ(this.pos2D);
         this.main.ground.flatten(ij.i, ij.j, height, radius);
+        this.main.ground.colorize(ij.i, ij.j, 1.5 * radius, BABYLON.Color3.Red());
     }
 
     public makeReady(): void {
