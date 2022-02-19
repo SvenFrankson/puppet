@@ -251,14 +251,22 @@ class Main {
             rock.rot = 2 * Math.PI * Math.random();
         }
         */
+        for (let i = 0; i < 10; i++) {
+            //this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Red());
+            //this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Green());
+        }
+        this.ground.material.setColor4("vColorR", BABYLON.Color4.FromHexString("#d4290fff"));
+        this.ground.material.setColor4("vColorG", BABYLON.Color4.FromHexString("#d4570fff"));
+        this.ground.material.setColor4("vColorB", BABYLON.Color4.FromHexString("#d49f0fff"));
+        this.ground.material.setColor4("vColorW", BABYLON.Color4.FromHexString("#b59e77ff"));
         let commandCenter = new CommandCenter(this);
         commandCenter.posX = -30;
         commandCenter.posY = -30;
         commandCenter.instantiate();
         commandCenter.makeReady();
         commandCenter.flattenGround(8);
-        this.cameraManager.camera.beta = Math.PI / 3;
-        this.cameraManager.camera.radius = 15;
+        this.cameraManager.camera.beta = Math.PI / 4;
+        this.cameraManager.camera.radius = 30;
         for (let i = 0; i < 3; i++) {
             let p = new BABYLON.Vector2(-20 + 40 * Math.random(), -20 + 40 * Math.random());
             let meteor = new Meteor(1, p, this, BABYLON.Color3.FromHexString("#cb221b"), () => {
@@ -394,7 +402,6 @@ class Building extends GameObject {
         let height = this.base.position.y;
         let ij = this.main.ground.pos2DToIJ(this.pos2D);
         this.main.ground.flatten(ij.i, ij.j, height, radius);
-        this.main.ground.colorize(ij.i, ij.j, 1.5 * radius, BABYLON.Color3.Red());
     }
     makeReady() {
         this.isReady = true;
@@ -692,8 +699,18 @@ class Ground extends BABYLON.Mesh {
                         let di = Math.floor(i / this.size * 64);
                         let dj = Math.floor(j / this.size * 64);
                         let h = imageData.data[4 * (di + 1024 * dj)];
-                        this.heightMap[i][j] = h / 256 * 80 - 40;
+                        this.heightMap[i][j] = h / 256 * 60 - 30;
+                        di = Math.floor(i / this.size * 32 + 128);
+                        dj = Math.floor(j / this.size * 32 + 128);
+                        let c = imageData.data[4 * (di + 1024 * dj)];
                         this.colorMap[i][j] = BABYLON.Color3.White();
+                        c = c % 16;
+                        c = Math.sin(c / 16 * Math.PI);
+                        c = Math.round(c * c);
+                        this.colorMap[i][j] = BABYLON.Color3.Lerp(this.colorMap[i][j], BABYLON.Color3.Green(), c);
+                        if (h < 122) {
+                            //this.colorMap[i][j] = BABYLON.Color3.Blue();
+                        }
                     }
                 }
                 this.refreshMesh();
@@ -733,8 +750,8 @@ class Ground extends BABYLON.Mesh {
                 let di = (piNext - pi) / d;
                 let dj = (pjNext - pj) / d;
                 for (let n = 0; n < d; n++) {
-                    if (pi + di * n > 0 && pi + di * n <= this.size) {
-                        if (pj + dj * n > 0 && pj + dj * n <= this.size) {
+                    if (pi + di * n >= 0 && pi + di * n <= this.size) {
+                        if (pj + dj * n >= 0 && pj + dj * n <= this.size) {
                             callback(pi + di * n, pj + dj * n, d);
                         }
                     }
@@ -787,9 +804,9 @@ class Ground extends BABYLON.Mesh {
             for (let i = 0; i <= this.size; i++) {
                 for (let j = 0; j <= this.size; j++) {
                     let n = i + j * (this.size + 1);
-                    let r = colors[4 * n];
-                    let g = colors[4 * n + 1];
-                    let b = colors[4 * n + 2];
+                    let r = colors[4 * n] * 3;
+                    let g = colors[4 * n + 1] * 3;
+                    let b = colors[4 * n + 2] * 3;
                     let iIndexes = [
                         i + 1,
                         i + 1,
@@ -806,7 +823,7 @@ class Ground extends BABYLON.Mesh {
                         j + 1,
                         j + 1
                     ];
-                    let count = 1;
+                    let count = 3;
                     for (let p = 0; p < 6; p++) {
                         let pi = iIndexes[p];
                         let pj = jIndexes[p];

@@ -99,6 +99,16 @@ class Main {
 		}
 		*/
 
+		for (let i = 0; i < 10; i++) {
+			//this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Red());
+			//this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Green());
+		}
+		
+        (this.ground.material as TerrainMaterial).setColor4("vColorR", BABYLON.Color4.FromHexString("#d4290fff"));
+        (this.ground.material as TerrainMaterial).setColor4("vColorG", BABYLON.Color4.FromHexString("#d4570fff"));
+        (this.ground.material as TerrainMaterial).setColor4("vColorB", BABYLON.Color4.FromHexString("#d49f0fff"));
+        (this.ground.material as TerrainMaterial).setColor4("vColorW", BABYLON.Color4.FromHexString("#b59e77ff"));
+
 		let commandCenter = new CommandCenter(this);
 		commandCenter.posX = - 30;
 		commandCenter.posY = - 30;
@@ -106,8 +116,8 @@ class Main {
 		commandCenter.makeReady();
 		commandCenter.flattenGround(8);
 		
-		this.cameraManager.camera.beta = Math.PI / 3;
-		this.cameraManager.camera.radius = 15;
+		this.cameraManager.camera.beta = Math.PI / 4;
+		this.cameraManager.camera.radius = 30;
 
 		for (let i = 0; i < 3; i++) {
 			let p = new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random());
