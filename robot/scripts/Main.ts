@@ -115,6 +115,14 @@ class Main {
 		commandCenter.instantiate();
 		commandCenter.makeReady();
 		commandCenter.flattenGround(8);
+
+		for (let i = 0; i < 10; i++) {
+			let rock = new Rock(this);
+			rock.posX = - 25 + 50 * Math.random();
+			rock.posY = - 25 + 50 * Math.random();
+			rock.instantiate();
+			rock.makeReady();
+		}
 		
 		this.cameraManager.camera.beta = Math.PI / 4;
 		this.cameraManager.camera.radius = 30;
