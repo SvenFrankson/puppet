@@ -1,0 +1,374 @@
+@font-face {
+    font-family: "Orbitron Black";
+    src:    url("./fonts/Orbitron\ Black.otf") format("opentype"),
+            url("./fonts/Orbitron\ Black.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Orbitron Bold";
+    src:    url("./fonts/Orbitron\ Bold.otf") format("opentype"),
+            url("./fonts/Orbitron\ Bold.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Orbitron Light";
+    src:    url("./fonts/Orbitron\ Light.otf") format("opentype"),
+            url("./fonts/Orbitron\ Light.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Orbitron Medium";
+    src:    url("./fonts/Orbitron\ Medium.otf") format("opentype"),
+            url("./fonts/Orbitron\ Medium.ttf") format("truetype");
+}
+@font-face {
+    font-family: "Anurati";
+    src:    url("./fonts/Anurati-Regular.otf") format("opentype");
+}
+
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+space-panel {
+    position: relative;
+    display: block;
+    width: 350px;
+    padding: 3px;
+    margin: 0px 0px 5px 0px;
+    background-color: rgb(21, 104, 77, 0.75);
+    border: 1px solid white;
+    color: white;
+    font-family: "Orbitron Medium";
+    text-shadow: 0 0 1px white,
+}
+
+space-panel::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    z-index: -1;
+    background-size: 100% 3px, 4px 100%;
+    pointer-events: none;
+}
+
+.space-panel-inner-border {
+    display: block;
+    padding: 10px;
+    border-left: 2px solid white;
+    border-top: 2px solid white;
+}
+
+space-panel-label {
+    display: inline-block;
+    width: 40%;
+    margin-left: 0;
+    margin-right: 0;
+    padding-right: 10px;
+    text-align: right;
+    font-family: "Orbitron Light";
+    border-bottom: dashed lightgray 1px;
+    color: lightgray;
+}
+
+.space-title-1-line {
+    margin-top: 0;
+    border-bottom: solid white 1px;
+    margin-bottom: 5px;
+    text-shadow: 
+        0 0 1px white,
+        0 0 2px white,
+        0 0 4px white;
+}
+
+.space-title-1 {
+    display: block;
+    margin-top: 0px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 5vh;
+    font-family: "Anurati";
+}
+
+.space-title-1-shadow {
+    display: block;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -6vh;
+    color: #083325;
+    font-size: 3vh;
+    transform: translateY(-6vh);
+}
+
+.space-title-2-line {
+    margin-top: 0;
+    border-bottom: solid white 1px;
+    margin-bottom: 5px;
+    text-shadow: 
+        0 0 1px white,
+        0 0 2px white,
+        0 0 4px white;
+}
+
+.space-title-2 {
+    display: block;
+    margin-top: 0px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 3.5vh;
+    font-family: "Anurati";
+}
+
+.space-title-2-shadow {
+    display: block;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -5vh;
+    color: #083325;
+    font-size: 2vh;
+    transform: translateY(-5vh);
+}
+
+.space-title-3 {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.space-panel-line {
+    padding: 0;
+    margin-bottom: 5px;
+}
+
+.space-input {
+    display: inline-block;
+    width: 50%;
+    height: 24px;
+    margin-left: 5%;
+    margin-right: 0;
+    border: none;
+    background-color: rgba(20, 33, 28, 0.7);
+    border-radius: 4px;
+    text-align: center;
+    font-family: "Orbitron Light";
+    color: lightgray;
+}
+
+.space-button-lg {
+    display: inline-block;
+    width: 90%;
+    padding: 5px;
+    margin-left: 4%;
+    margin-right: 4%;
+    margin-top: 5px;
+    margin-top: 5px;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    color: lightgray;
+    cursor: pointer;
+}
+
+.space-panel-toggle-visibility {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 30px;
+    height: 30px;
+    padding: 1px;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    color: lightgray;
+}
+
+.space-button {
+    display: inline-block;
+    width: 40%;
+    padding: 5px;
+    margin-left: 4%;
+    margin-right: 4%;
+    margin-top: 5px;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    color: lightgray;
+    cursor: pointer;
+}
+
+.space-button-square {
+    display: inline-block;
+    padding-top: 6.8vh;
+    width: 9vh;
+    height: 9vh;
+    margin-left: 0.8vh;
+    margin-right: 0.8vh;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    color: lightgray;
+    cursor: pointer;
+    background-size: contain;
+}
+
+.space-button-square.selected {
+    background-color: rgba(80, 132, 114, 0.8);
+}
+
+.space-button-inline {
+    display: inline-block;
+    width: 50%;
+    height: 24px;
+    margin-left: 5%;
+    margin-right: 0;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    color: lightgray;
+    cursor: pointer;
+}
+
+.space-input-toggle {
+    vertical-align: bottom;
+    margin-top: 0;
+    margin-bottom: 0;
+    border: solid 1px white;
+    color: blue;
+    background-color:red;
+    border-radius: 2px;
+}
+
+.board {
+    position: fixed;
+    bottom: 0px;
+    left: 0px;
+    width: 100%;
+    height: 250px;
+    padding: 3px;
+    margin: 0px 0px 0px 0px;
+    background-color: rgb(21, 104, 77, 0.75);
+    border-top: 1px solid white;
+    color: white;
+    font-family: "Orbitron Medium";
+    text-shadow: 
+        0 0 1px white,
+}
+
+.board::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+    z-index: -1;
+    background-size: 100% 3px, 4px 100%;
+    pointer-events: none;
+}
+
+.board-inner-border {
+    display: block;
+    padding: 10px;
+    height: calc(100% - 20px);
+    border-right: 2px solid white;
+    border-top: 2px solid white;
+}
+
+.board-left {
+    display: inline-block;
+    width: 250px;
+    height: 100%;
+    margin: 0px;
+    vertical-align: top;
+}
+
+.board-page-left {
+    display: inline-block;
+    width: calc(50% - 274px);
+    height: 100%;
+    margin: 0px;
+    vertical-align: top;
+    text-align: right;
+}
+
+.board-page-right {
+    display: inline-block;
+    width: calc(50% - 274px);
+    height: 100%;
+    margin: 0px;
+    vertical-align: top;
+    text-align: right;
+}
+
+.board-page-scroll {
+    display: inline-block;
+    width: 30px;
+    height: 100%;
+    margin: 0px;
+    vertical-align: top;
+}
+
+.board-right {
+    display: inline-block;
+    width: 250px;
+    height: 100%;
+    margin: 0px;
+}
+
+.board-miniature {
+    display: block;
+    position: absolute;
+    top: 30px;
+    left: 25px;
+    width: 200px;
+    height: 200px;
+}
+
+.board-button {
+    display: inline-block;
+    width: 105px;
+    height: 105px;
+    padding: 5px;
+    padding-top: 60px;
+    margin: 5px;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    background-size: cover;
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    text-shadow: 
+        1px 0 1px #083325,
+        -1px 0 1px #083325,
+        0 1px 1px #083325,
+        0 -1px 1px #083325,
+        2px 0 1px #083325,
+        -2px 0 1px #083325,
+        0 2px 1px #083325,
+        0 -2px 1px #083325;
+    color: white;
+    vertical-align: bottom;
+}
+
+.board-button-vertical {
+    display: inline-block;
+    width: 20px;
+    height: 105px;
+    padding: 5px;
+    margin: 5px;
+    border: solid 1px white;
+    background-color: rgba(40, 66, 57, 0.8);
+    border-radius: 2px;
+    font-family: "Orbitron Light";
+    color: lightgray;
+}

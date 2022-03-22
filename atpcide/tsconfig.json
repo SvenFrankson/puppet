@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "outFile": "./scripts/app.js",
+        "skipLibCheck": true
+    },
+    "exclude": [
+        "./assets",
+        "./shaders",
+        "./work",
+    ],
+    "compileOnSave": true,
+    "buildOnSave": true,
+    "atom": {
+        "rewriteTsconfig": false
+    }
+}
