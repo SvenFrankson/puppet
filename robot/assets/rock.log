@@ -1,0 +1,61 @@
+Exporter version: 6.4.5, Blender version: 2.90.1
+========= Conversion from Blender to Babylon.js =========
+	Scene settings used :
+		Inline textures     :  false
+		Material Type       :  PBR
+		Positions Precision :  4
+		Normals Precision   :  3
+		UVs Precision       :  3
+		Vert Color Precision:  3
+		Mat Weight Precision:  2
+		Keep Z-up r-handed  :  no
+		Texture directory   :  C:\Users\svent\Documents\Sven Frankson\puppet\robot\assets\
+	Python World class constructor completed
+	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
+	processing begun of mesh:  rock-2
+		processing begun of material:  RockMaterial
+		num positions      :  94
+		num normals        :  94
+		num tangents       :  0
+		num uvs            :  188
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  60
+	processing begun of mesh:  rock-3
+		processing begun of material:  RockMaterial
+		registered as also a user of material:  RockMaterial
+		num positions      :  95
+		num normals        :  95
+		num tangents       :  0
+		num uvs            :  190
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  60
+	processing begun of mesh:  rock-4
+		processing begun of material:  RockMaterial
+		registered as also a user of material:  RockMaterial
+		num positions      :  100
+		num normals        :  100
+		num tangents       :  0
+		num uvs            :  200
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  60
+	processing begun of mesh:  rock-1
+		processing begun of material:  RockMaterial
+		registered as also a user of material:  RockMaterial
+		num positions      :  99
+		num normals        :  99
+		num tangents       :  0
+		num uvs            :  198
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  56
+========= Writing of JSON file started =========
+	writing mesh:  rock-2
+	writing mesh:  rock-3
+	writing mesh:  rock-4
+	writing mesh:  rock-1
+========= Writing of JSON file completed =========
+========= end of processing =========
+elapsed time:  0 min, 0.0319 secs

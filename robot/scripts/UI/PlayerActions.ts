@@ -1,12 +1,12 @@
 enum PlayerActionType {
     None,
-    AddTurret,
+    AddCanon,
     AddWall
 }
 
 class PlayerAction {
 
-    public _selectedTurret: Turret;
+    public _selectedCanon: Canon;
 
     public _selectedWallNode1: WallNode;
     public _selectedWallNode2: WallNode;
@@ -21,32 +21,31 @@ class PlayerAction {
 
     }
 
-    public addTurret(actionButton: HTMLInputElement): void {
-        if (this._selectedTurret) {
+    public addCanon(actionButton: HTMLInputElement): void {
+        if (this._selectedCanon) {
             return;
         }
 
-        this.currentActionType = PlayerActionType.AddTurret;
+        this.currentActionType = PlayerActionType.AddCanon;
         this.currentActionButton = actionButton;
         this.currentActionButton.classList.add("selected");
         
-        this._selectedTurret = new Turret(this.main);
-        this._selectedTurret.isReady = false;
-        this._selectedTurret.setDarkness(0.5);
-        this.main.scene.onBeforeRenderObservable.add(this._updateAddingTurret);
-        this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret)
+        this._selectedCanon = new Canon(this.main);
+        this._selectedCanon.instantiate();
+        this.main.scene.onBeforeRenderObservable.add(this._updateAddingCanon);
+        this.main.scene.onPointerObservable.add(this._pointerUpAddingCanon)
     }
 
-    public cancelAddTurret(): void {
-        if (this._selectedTurret) {
-            this._selectedTurret.dispose();
-            this._selectedTurret = undefined;
+    public cancelAddCanon(): void {
+        if (this._selectedCanon) {
+            this._selectedCanon.dispose();
+            this._selectedCanon = undefined;
         }
         this.currentActionType = PlayerActionType.None;
         this.currentActionButton.classList.remove("selected");
         this.currentActionButton = undefined;
-        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret)
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingCanon);
+        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingCanon)
     }
 
     public addWall(actionButton: HTMLInputElement): void {
@@ -64,30 +63,31 @@ class PlayerAction {
         this.main.scene.onPointerObservable.add(this._pointerUpAddingWall);
     }
 
-    public _updateAddingTurret = () => {
-        if (this._selectedTurret) {
+    public _updateAddingCanon = () => {
+        if (this._selectedCanon) {
             let world = this.main.getPointerWorldPos();
-            this._selectedTurret.posX = world.x;
-            this._selectedTurret.posY = world.y;
+            this._selectedCanon.posX = world.x;
+            this._selectedCanon.posY = world.y;
         }
     }
 
-    public _pointerUpAddingTurret = (eventData: BABYLON.PointerInfo) => {
-        if (this._selectedTurret) {
+    public _pointerUpAddingCanon = (eventData: BABYLON.PointerInfo) => {
+        if (this._selectedCanon) {
             if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
                 if (this.main.game.pay(100)) {
-                    let newTurret = this._selectedTurret;
-                    this._selectedTurret = undefined;
-                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                    let newCanon = this._selectedCanon;
+                    this._selectedCanon = undefined;
+                    this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingCanon);
+                    this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingCanon);
                     this.currentActionType = PlayerActionType.None;
                     this.currentActionButton.classList.remove("selected");
                     this.currentActionButton = undefined;
                     new LoadingPlane(
-                        newTurret.pos2D,
+                        newCanon.pos2D,
                         3,
                         () => {
-                            newTurret.makeReady();
+                            newCanon.makeReady();
+		                    newCanon.flattenGround(3);
                         },
                         this.main
                     );

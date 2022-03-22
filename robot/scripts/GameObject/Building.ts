@@ -3,7 +3,6 @@
 abstract class Building extends GameObject {
 
     public isReady: boolean;
-    public isInstantiated: boolean;
 
     public base: BABYLON.Mesh;
     public obstacle: Obstacle;
@@ -44,6 +43,13 @@ abstract class Building extends GameObject {
 
     public abstract instantiate(): Promise<void>;
 
+    public dispose(): void {
+        super.dispose();
+        if (this.base) {
+            this.base.dispose();
+        }
+    }
+
     public flattenGround(radius: number): void {
         let height = this.base.position.y;
         let ij = this.main.ground.pos2DToIJ(this.pos2D);
@@ -81,7 +87,6 @@ class CommandCenter extends Building {
                                 )
                             }
                             if (mesh.material instanceof BABYLON.PBRMaterial) {
-                                console.log(mesh.material);
                                 let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                                 if (mesh.material.name === "EnergyCellMaterial") {
                                     toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
@@ -174,5 +179,41 @@ class Beacon extends Building {
     public dispose(): void {
         super.dispose();
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
+}
+
+class Rock extends Building {
+
+    public async instantiate(): Promise<void> {
+        return new Promise<void>(
+            resolve => {
+                BABYLON.SceneLoader.ImportMesh(
+                    "",
+                    "assets/rock.babylon",
+                    "",
+                    this.main.scene,
+                    (meshes) => {
+                        let r = Math.floor(Math.random() * meshes.length);
+                        for (let i = 0; i < meshes.length; i++) {
+                            let mesh = meshes[i];
+                            if (i === r) {
+                                mesh.parent = this.base;
+                                let s = 0.5 + 2 * Math.random();
+                                mesh.rotation.copyFromFloats(Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2);
+                                mesh.scaling.copyFromFloats(s, s, s);
+                                let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                                toonMaterial.setColor(BABYLON.Color3.Gray());
+                                mesh.material = toonMaterial;
+                            }
+                            else {
+                                mesh.dispose();
+                            }
+                        }
+                        this.isInstantiated = true;
+                        resolve();
+                    }
+                );
+            }
+        );
     }
 }

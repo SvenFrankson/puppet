@@ -39,7 +39,6 @@ class Main {
 			worldX = pick.pickedPoint.x;
 			worldY = pick.pickedPoint.z;
 		}
-		document.getElementById("debug-pointer-xy").innerText = (worldX).toFixed(1) + " : " + (worldY).toFixed(1);
 		return new BABYLON.Vector2(worldX, worldY);
 	}
 
@@ -81,10 +80,10 @@ class Main {
 		this.game = new Game(this);
 		this.game.credit(300);
 
-		this.ground = new Ground(50, 50, this);
+		this.ground = new Ground(50, this);
 		this.ground.instantiate().then(
 			() => {
-				this.generateTestMeteorScene();
+				this.generateTestMainScene();
 			}
 		)
 	}
@@ -100,6 +99,16 @@ class Main {
 		}
 		*/
 
+		for (let i = 0; i < 10; i++) {
+			//this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Red());
+			//this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Green());
+		}
+		
+        (this.ground.material as TerrainMaterial).setColor4("vColorR", BABYLON.Color4.FromHexString("#d4290fff"));
+        (this.ground.material as TerrainMaterial).setColor4("vColorG", BABYLON.Color4.FromHexString("#d4570fff"));
+        (this.ground.material as TerrainMaterial).setColor4("vColorB", BABYLON.Color4.FromHexString("#d49f0fff"));
+        (this.ground.material as TerrainMaterial).setColor4("vColorW", BABYLON.Color4.FromHexString("#b59e77ff"));
+
 		let commandCenter = new CommandCenter(this);
 		commandCenter.posX = - 30;
 		commandCenter.posY = - 30;
@@ -107,47 +116,34 @@ class Main {
 		commandCenter.makeReady();
 		commandCenter.flattenGround(8);
 
-		/*
-		let beacon = new Beacon(this);
-		beacon.posX = 15;
-		beacon.posY = 5;
-		beacon.makeReady();
-		*/
+		for (let i = 0; i < 10; i++) {
+			let rock = new Rock(this);
+			rock.posX = - 25 + 50 * Math.random();
+			rock.posY = - 25 + 50 * Math.random();
+			rock.instantiate();
+			rock.makeReady();
+		}
+		
+		this.cameraManager.camera.beta = Math.PI / 4;
+		this.cameraManager.camera.radius = 30;
 
-		let robot = new Robot(this);
-		robot.instantiate().then(
-			() => {
-				robot.foldAt(new BABYLON.Vector2(5, 5));
-			}
-		);
-		robot.mode = RobotMode.Walk;
-		this.cameraManager.camera.setTarget(robot.target);
-		this.cameraManager.camera.beta = Math.PI / 3;
-		this.cameraManager.camera.radius = 15;
-
-		for (let i = 0; i < 5; i++) {
-			setTimeout(
+		for (let i = 0; i < 3; i++) {
+			let p = new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random());
+			let meteor = new Meteor(
+				1,
+				p,
+				this,
+				BABYLON.Color3.FromHexString("#cb221b"),
 				() => {
-					let p = new BABYLON.Vector2(- 20 + 40 * Math.random(), - 20 + 40 * Math.random());
-					let meteor = new Meteor(
-						1,
-						p,
-						this,
-						BABYLON.Color3.FromHexString("#cb221b"),
+					let robot = new Robot(this);
+					robot.instantiate().then(
 						() => {
-							let robot = new Robot(this);
-							robot.instantiate().then(
-								() => {
-									robot.foldAt(p);
-								}
-							);
+							robot.foldAt(p);
 						}
 					);
-					meteor.instantiate();
-					
-				},
-				3000 * i
+				}
 			);
+			meteor.instantiate();
 		}
 		
 		let turret1 = new Canon(this);
@@ -156,27 +152,6 @@ class Main {
 		turret1.instantiate();
 		turret1.makeReady();
 		turret1.flattenGround(3);
-
-		let turret2 = new Canon(this);
-		turret2.posX = 20;
-		turret2.posY = - 20;
-		turret2.instantiate();
-		turret2.makeReady();
-		turret2.flattenGround(3);
-
-		let turret3 = new Canon(this);
-		turret3.posX = - 20;
-		turret3.posY = 20;
-		turret3.instantiate();
-		turret3.makeReady();
-		turret3.flattenGround(3);
-
-		let turret4 = new Canon(this);
-		turret4.posX = 20;
-		turret4.posY = 20;
-		turret4.instantiate();
-		turret4.makeReady();
-		turret4.flattenGround(3);
 	}
 
 	public generateTestMeteorScene(): void {

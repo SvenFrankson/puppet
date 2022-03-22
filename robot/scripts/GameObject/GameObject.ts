@@ -1,6 +1,7 @@
 abstract class GameObject {
 
     public isDisposed: boolean = false;
+    public isInstantiated: boolean = false;
 
     public sprite: Sprite;
 
@@ -44,6 +45,7 @@ abstract class GameObject {
 
     public dispose(): void {
         this.isDisposed = true;
+        this.isInstantiated = false;
         let index = this.main.gameObjects.indexOf(this);
         if (index != - 1) {
             this.main.gameObjects.splice(index, 1);

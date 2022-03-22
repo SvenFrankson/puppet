@@ -120,11 +120,11 @@ class Menu {
             ["TOWER", "WALL"],
             [
                 () => {
-                    if (this.main.playerAction.currentActionType === PlayerActionType.AddTurret) {
-                        this.main.playerAction.cancelAddTurret();
+                    if (this.main.playerAction.currentActionType === PlayerActionType.AddCanon) {
+                        this.main.playerAction.cancelAddCanon();
                     }
                     else {
-                        this.main.playerAction.addTurret(buildingButtons[0]);
+                        this.main.playerAction.addCanon(buildingButtons[0]);
                     }
                 },
                 () => { this.main.playerAction.addWall(buildingButtons[1]); }
@@ -184,13 +184,13 @@ class Menu {
             this.showIngameMenu();
         }
 
-        debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
-        debugPanel.addTitle3("distance to next").id = "distance-to-next";
-        debugPanel.addTitle3("target rot").id = "target-rot";
         debugPanel.addTitle3("Mesh Count").id = "debug-mesh-count";
         this.main.scene.onBeforeRenderObservable.add(() => {
             document.getElementById("debug-mesh-count").innerHTML = "Mesh Count = " + this.main.scene.meshes.length.toFixed(0);
         })
+        debugPanel.addLargeButton("Log Meshes Names", () => {
+            console.log(this.main.scene.meshes.map(m => { return m.name; }).sort());
+        });
 
         let navGraphConsole = new NavGraphConsole(this.main.scene);
         navGraphConsole.enable();

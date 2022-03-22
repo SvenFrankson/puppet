@@ -4,11 +4,16 @@ precision highp float;
 varying vec3 vPositionW;
 varying vec3 vNormalW;
 varying vec2 vUV;
+varying vec4 vColor;
 
 // Refs
+uniform vec4 vColorW;
+uniform vec4 vColorR;
+uniform vec4 vColorG;
+uniform vec4 vColorB;
+uniform vec4 vColorU;
 uniform sampler2D colorTexture;
 uniform vec3 lightInvDirW;
-uniform vec3 mColor;
 
 void main(void) {
     float ToonThresholds[5];
@@ -29,8 +34,23 @@ void main(void) {
     // diffuse
     float ndl = dot(vNormalW, lightInvDirW);
 
-    //vec4 color = vec4(mColor, 1.);
-    vec4 color = texture2D(colorTexture, vUV) * vec4(mColor, 1.);
+    vec4 color = vColorU;
+    float r = round(vColor.r * 1.) / 1.;
+    float g = round(vColor.g * 1.) / 1.;
+    float b = round(vColor.b * 1.) / 1.;
+    if (r > 0. && g > 0. && b > 0.) {
+        color = vColorW;
+    }
+    else if (r > 0.) {
+        color = vColorR;
+    }
+    else if (g > 0.) {
+        color = vColorG;
+    }
+    else if (b > 0.) {
+        color = vColorB;
+    }
+    color = color * texture2D(colorTexture, vUV);
 
     if (ndl > ToonThresholds[0])
     {

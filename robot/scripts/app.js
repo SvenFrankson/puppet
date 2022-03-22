@@ -210,7 +210,6 @@ class Main {
             worldX = pick.pickedPoint.x;
             worldY = pick.pickedPoint.z;
         }
-        document.getElementById("debug-pointer-xy").innerText = (worldX).toFixed(1) + " : " + (worldY).toFixed(1);
         return new BABYLON.Vector2(worldX, worldY);
     }
     worldPosToPixel(w) {
@@ -237,9 +236,9 @@ class Main {
         };
         this.game = new Game(this);
         this.game.credit(300);
-        this.ground = new Ground(50, 50, this);
+        this.ground = new Ground(50, this);
         this.ground.instantiate().then(() => {
-            this.generateTestMeteorScene();
+            this.generateTestMainScene();
         });
     }
     generateTestMainScene() {
@@ -252,37 +251,38 @@ class Main {
             rock.rot = 2 * Math.PI * Math.random();
         }
         */
+        for (let i = 0; i < 10; i++) {
+            //this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Red());
+            //this.ground.colorize(Math.round(Math.random() * 49), Math.round(Math.random() * 49), Math.round(Math.random() * 10), BABYLON.Color3.Green());
+        }
+        this.ground.material.setColor4("vColorR", BABYLON.Color4.FromHexString("#d4290fff"));
+        this.ground.material.setColor4("vColorG", BABYLON.Color4.FromHexString("#d4570fff"));
+        this.ground.material.setColor4("vColorB", BABYLON.Color4.FromHexString("#d49f0fff"));
+        this.ground.material.setColor4("vColorW", BABYLON.Color4.FromHexString("#b59e77ff"));
         let commandCenter = new CommandCenter(this);
         commandCenter.posX = -30;
         commandCenter.posY = -30;
         commandCenter.instantiate();
         commandCenter.makeReady();
         commandCenter.flattenGround(8);
-        /*
-        let beacon = new Beacon(this);
-        beacon.posX = 15;
-        beacon.posY = 5;
-        beacon.makeReady();
-        */
-        let robot = new Robot(this);
-        robot.instantiate().then(() => {
-            robot.foldAt(new BABYLON.Vector2(5, 5));
-        });
-        robot.mode = RobotMode.Walk;
-        this.cameraManager.camera.setTarget(robot.target);
-        this.cameraManager.camera.beta = Math.PI / 3;
-        this.cameraManager.camera.radius = 15;
-        for (let i = 0; i < 5; i++) {
-            setTimeout(() => {
-                let p = new BABYLON.Vector2(-20 + 40 * Math.random(), -20 + 40 * Math.random());
-                let meteor = new Meteor(1, p, this, BABYLON.Color3.FromHexString("#cb221b"), () => {
-                    let robot = new Robot(this);
-                    robot.instantiate().then(() => {
-                        robot.foldAt(p);
-                    });
+        for (let i = 0; i < 10; i++) {
+            let rock = new Rock(this);
+            rock.posX = -25 + 50 * Math.random();
+            rock.posY = -25 + 50 * Math.random();
+            rock.instantiate();
+            rock.makeReady();
+        }
+        this.cameraManager.camera.beta = Math.PI / 4;
+        this.cameraManager.camera.radius = 30;
+        for (let i = 0; i < 3; i++) {
+            let p = new BABYLON.Vector2(-20 + 40 * Math.random(), -20 + 40 * Math.random());
+            let meteor = new Meteor(1, p, this, BABYLON.Color3.FromHexString("#cb221b"), () => {
+                let robot = new Robot(this);
+                robot.instantiate().then(() => {
+                    robot.foldAt(p);
                 });
-                meteor.instantiate();
-            }, 3000 * i);
+            });
+            meteor.instantiate();
         }
         let turret1 = new Canon(this);
         turret1.posX = -20;
@@ -290,24 +290,6 @@ class Main {
         turret1.instantiate();
         turret1.makeReady();
         turret1.flattenGround(3);
-        let turret2 = new Canon(this);
-        turret2.posX = 20;
-        turret2.posY = -20;
-        turret2.instantiate();
-        turret2.makeReady();
-        turret2.flattenGround(3);
-        let turret3 = new Canon(this);
-        turret3.posX = -20;
-        turret3.posY = 20;
-        turret3.instantiate();
-        turret3.makeReady();
-        turret3.flattenGround(3);
-        let turret4 = new Canon(this);
-        turret4.posX = 20;
-        turret4.posY = 20;
-        turret4.instantiate();
-        turret4.makeReady();
-        turret4.flattenGround(3);
     }
     generateTestMeteorScene() {
         for (let i = 0; i < 5; i++) {
@@ -350,6 +332,7 @@ class GameObject {
     constructor(main) {
         this.main = main;
         this.isDisposed = false;
+        this.isInstantiated = false;
         main.gameObjects.push(this);
     }
     get pos2D() {
@@ -381,6 +364,7 @@ class GameObject {
     }
     dispose() {
         this.isDisposed = true;
+        this.isInstantiated = false;
         let index = this.main.gameObjects.indexOf(this);
         if (index != -1) {
             this.main.gameObjects.splice(index, 1);
@@ -389,6 +373,10 @@ class GameObject {
 }
 /// <reference path="GameObject.ts"/>
 class Building extends GameObject {
+    constructor(main) {
+        super(main);
+        this.base = new BABYLON.Mesh("building", this.main.scene);
+    }
     get pos2D() {
         if (!this._pos2D) {
             this._pos2D = BABYLON.Vector2.Zero();
@@ -411,9 +399,11 @@ class Building extends GameObject {
         this.base.position.z = y;
         this.base.position.y = this.main.ground.getHeightAt(this.pos2D);
     }
-    constructor(main) {
-        super(main);
-        this.base = new BABYLON.Mesh("building", this.main.scene);
+    dispose() {
+        super.dispose();
+        if (this.base) {
+            this.base.dispose();
+        }
     }
     flattenGround(radius) {
         let height = this.base.position.y;
@@ -440,7 +430,6 @@ class CommandCenter extends Building {
                         });
                     }
                     if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        console.log(mesh.material);
                         let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
                         if (mesh.material.name === "EnergyCellMaterial") {
                             toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/energy-cell-texture.png", this.main.scene));
@@ -515,6 +504,141 @@ class Beacon extends Building {
         this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
     }
 }
+class Rock extends Building {
+    async instantiate() {
+        return new Promise(resolve => {
+            BABYLON.SceneLoader.ImportMesh("", "assets/rock.babylon", "", this.main.scene, (meshes) => {
+                let r = Math.floor(Math.random() * meshes.length);
+                for (let i = 0; i < meshes.length; i++) {
+                    let mesh = meshes[i];
+                    if (i === r) {
+                        mesh.parent = this.base;
+                        let s = 0.5 + 2 * Math.random();
+                        mesh.rotation.copyFromFloats(Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2);
+                        mesh.scaling.copyFromFloats(s, s, s);
+                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                        toonMaterial.setColor(BABYLON.Color3.Gray());
+                        mesh.material = toonMaterial;
+                    }
+                    else {
+                        mesh.dispose();
+                    }
+                }
+                this.isInstantiated = true;
+                resolve();
+            });
+        });
+    }
+}
+class Canon extends Building {
+    constructor(main) {
+        super(main);
+        this.cooldown = 1;
+        this.counter = 0;
+        this._t = 0;
+        this._update = () => {
+            if (this.isReady && this.isInstantiated) {
+                this._updateTarget();
+                this._updateMesh();
+                this._t += this.main.engine.getDeltaTime() / 1000;
+                this.counter -= this.main.engine.getDeltaTime() / 1000;
+                if (this.counter < 0 && this.target && this.target.isInstantiated) {
+                    let d = this.target.body.position.subtract(this.head.absolutePosition);
+                    let a = VMath.Angle(this.canon.forward, d);
+                    if (Math.abs(a) < Math.PI / 50) {
+                        this.counter = this.cooldown;
+                        this.target.wound(1);
+                        this._shoot();
+                    }
+                }
+            }
+        };
+        this.counter = Math.random() * this.cooldown;
+    }
+    async instantiate() {
+        return new Promise(resolve => {
+            BABYLON.SceneLoader.ImportMesh("", "assets/canon.babylon", "", this.main.scene, (meshes) => {
+                let p = this.base.position;
+                if (this.base) {
+                    this.base.dispose();
+                }
+                this.base = meshes.find(m => { return m.name === "base"; });
+                this.base.position.copyFrom(p);
+                this.body = meshes.find(m => { return m.name === "body"; });
+                this.head = meshes.find(m => { return m.name === "head"; });
+                this.canon = meshes.find(m => { return m.name === "canon"; });
+                for (let i = 0; i < meshes.length; i++) {
+                    let mesh = meshes[i];
+                    if (mesh.material instanceof BABYLON.PBRMaterial) {
+                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
+                        if (mesh.material.name === "CanonMaterial") {
+                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-dark.png", this.main.scene));
+                        }
+                        toonMaterial.setColor(mesh.material.albedoColor);
+                        mesh.material = toonMaterial;
+                    }
+                }
+                this.flashParticle = new FlashParticle("pew", this.main.scene, 1.5, 0.1);
+                this.main.scene.onBeforeRenderObservable.add(this._update);
+                this.isInstantiated = true;
+                resolve();
+            });
+        });
+    }
+    dispose() {
+        super.dispose();
+        this.body.dispose();
+        this.head.dispose();
+        this.canon.dispose();
+        this.flashParticle.dispose();
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
+    }
+    _updateTarget() {
+        if (!this.target || this.target.isDisposed) {
+            this.target = this.main.gameObjects.find(g => { return g instanceof Robot; });
+        }
+    }
+    async _shoot() {
+        return new Promise(resolve => {
+            this.flashParticle.flash(this.canon.absolutePosition.add(this.canon.forward.scale(3.5)), this.canon.forward);
+            let duration = 0.2;
+            let t = 0;
+            let step = () => {
+                t += this.main.scene.getEngine().getDeltaTime() / 1000;
+                let d = t / duration;
+                d = Math.min(d, 1);
+                if (d < 1) {
+                    if (d < 0.1) {
+                        this.canon.position.z = -0.5 * d / 0.1;
+                        this.head.position.z = -0.2 * d / 0.1;
+                    }
+                    else {
+                        let dd = (d - 0.1) / (1 - 0.1);
+                        this.canon.position.z = -0.5 * (1 - dd);
+                        this.head.position.z = -0.2 * (1 - dd);
+                    }
+                    requestAnimationFrame(step);
+                }
+                else {
+                    resolve();
+                }
+            };
+            step();
+        });
+    }
+    _updateMesh() {
+        if (this.target && this.target.isInstantiated) {
+            let dt = this.main.engine.getDeltaTime() / 1000;
+            let a = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Axis.Z, this.target.body.position.subtract(this.body.absolutePosition), BABYLON.Axis.Y);
+            this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, a, Math.PI / 8 * dt);
+            let d = this.target.body.position.subtract(this.head.absolutePosition);
+            let sinb = d.y / d.length();
+            let b = -Math.asin(sinb);
+            //let b = BABYLON.Vector3.GetAngleBetweenVectors(this.body.forward, this.target.body.position.subtract(this.head.absolutePosition), this.body.right);
+            this.head.rotation.x = Math2D.StepFromToCirular(this.head.rotation.x, b, Math.PI / 8 * dt);
+        }
+    }
+}
 class FlashParticle extends BABYLON.Mesh {
     constructor(name, scene, size, lifespan) {
         super(name, scene);
@@ -584,12 +708,12 @@ class FlashParticle extends BABYLON.Mesh {
     }
 }
 class Ground extends BABYLON.Mesh {
-    constructor(width, height, main) {
+    constructor(size, main) {
         super("ground", main.scene);
-        this.width = width;
-        this.height = height;
+        this.size = size;
         this.main = main;
         this.heightMap = [];
+        this.colorMap = [];
     }
     async instantiate() {
         return new Promise(resolve => {
@@ -601,48 +725,37 @@ class Ground extends BABYLON.Mesh {
                 let ctx = canvas.getContext("2d");
                 ctx.drawImage(image, 0, 0);
                 let imageData = ctx.getImageData(0, 0, 1024, 1024);
-                let data = new BABYLON.VertexData();
-                let positions = [];
-                let indices = [];
-                let uvs = [];
-                let lx = 2;
-                let lz = Math.sin(Math.PI / 3) * lx;
-                let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
-                let z0 = -lz * this.height * 0.5;
-                for (let i = 0; i <= this.width; i++) {
+                for (let i = 0; i <= this.size; i++) {
                     this.heightMap[i] = [];
-                    for (let j = 0; j <= this.height; j++) {
-                        let n = i + j * (this.width + 1);
-                        let di = Math.floor(i / this.width * 64);
-                        let dj = Math.floor(j / this.height * 64);
+                    this.colorMap[i] = [];
+                    for (let j = 0; j <= this.size; j++) {
+                        let di = Math.floor(i / this.size * 64);
+                        let dj = Math.floor(j / this.size * 64);
                         let h = imageData.data[4 * (di + 1024 * dj)];
-                        this.heightMap[i][j] = h / 256 * 80 - 40;
-                        positions.push(x0 + i * lx + j * lx * 0.5, this.heightMap[i][j], z0 + j * lz);
-                        uvs.push(2 * i / this.width, 2 * j / this.width);
-                        if (i < this.width && j < this.width) {
-                            indices.push(n, n + this.width + 1, n + 1);
-                            indices.push(n + 1, n + this.width + 1, n + this.width + 2);
+                        this.heightMap[i][j] = h / 256 * 60 - 30;
+                        di = Math.floor(i / this.size * 32 + 128);
+                        dj = Math.floor(j / this.size * 32 + 128);
+                        let c = imageData.data[4 * (di + 1024 * dj)];
+                        this.colorMap[i][j] = BABYLON.Color3.White();
+                        c = c % 16;
+                        c = Math.sin(c / 16 * Math.PI);
+                        c = Math.round(c * c);
+                        this.colorMap[i][j] = BABYLON.Color3.Lerp(this.colorMap[i][j], BABYLON.Color3.Green(), c);
+                        if (h < 122) {
+                            //this.colorMap[i][j] = BABYLON.Color3.Blue();
                         }
                     }
                 }
-                let normals = [];
-                BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-                data.positions = positions;
-                data.indices = indices;
-                data.normals = normals;
-                data.uvs = uvs;
-                data.applyToMesh(this);
+                this.refreshMesh();
                 resolve();
             };
             image.src = "assets/ground.png";
-            let groundMaterial = new ToonMaterial("ground-material", false, this.main.scene);
+            let groundMaterial = new TerrainMaterial("ground-material", false, this.main.scene);
             groundMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/ground_2.png", this.main.scene));
-            groundMaterial.setColor(BABYLON.Color3.White());
             this.material = groundMaterial;
         });
     }
-    flatten(posI, posJ, h, r) {
-        this.heightMap[posI][posJ] = h;
+    do(posI, posJ, r, callback) {
         for (let d = 1; d <= r; d++) {
             let f = (1 - d / r) * 2;
             f = Math.min(1, f);
@@ -670,33 +783,97 @@ class Ground extends BABYLON.Mesh {
                 let di = (piNext - pi) / d;
                 let dj = (pjNext - pj) / d;
                 for (let n = 0; n < d; n++) {
-                    if (this.heightMap[pi + di * n]) {
-                        if (isFinite(this.heightMap[pi + di * n][pj + dj * n])) {
-                            let th = this.heightMap[pi + di * n][pj + dj * n];
-                            this.heightMap[pi + di * n][pj + dj * n] = h * f + th * (1 - f);
+                    if (pi + di * n >= 0 && pi + di * n <= this.size) {
+                        if (pj + dj * n >= 0 && pj + dj * n <= this.size) {
+                            callback(pi + di * n, pj + dj * n, d);
                         }
                     }
                 }
             }
         }
+    }
+    flatten(posI, posJ, h, r) {
+        this.heightMap[posI][posJ] = h;
+        this.do(posI, posJ, r, (i, j, d) => {
+            let f = (1 - d / r) * 2;
+            f = Math.min(1, f);
+            let th = this.heightMap[i][j];
+            this.heightMap[i][j] = h * f + th * (1 - f);
+        });
+        this.refreshMesh();
+    }
+    colorize(posI, posJ, r, c) {
+        this.colorMap[posI][posJ].copyFrom(c);
+        this.do(posI, posJ, r, (i, j, d) => {
+            this.colorMap[i][j].copyFrom(c);
+        });
+        this.refreshMesh();
+    }
+    refreshMesh() {
         let data = new BABYLON.VertexData();
         let positions = [];
         let indices = [];
         let uvs = [];
+        let colors = [];
         let lx = 2;
         let lz = Math.sin(Math.PI / 3) * lx;
-        let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
-        let z0 = -lz * this.height * 0.5;
-        for (let i = 0; i <= this.width; i++) {
-            for (let j = 0; j <= this.height; j++) {
-                let n = i + j * (this.width + 1);
+        let x0 = -lx * (this.size + this.size * 0.5) * 0.5;
+        let z0 = -lz * this.size * 0.5;
+        for (let i = 0; i <= this.size; i++) {
+            for (let j = 0; j <= this.size; j++) {
+                let n = i + j * (this.size + 1);
                 positions.push(x0 + i * lx + j * lx * 0.5, this.heightMap[i][j], z0 + j * lz);
-                uvs.push(2 * i / this.width, 2 * j / this.width);
-                if (i < this.width && j < this.width) {
-                    indices.push(n, n + this.width + 1, n + 1);
-                    indices.push(n + 1, n + this.width + 1, n + this.width + 2);
+                uvs.push(2 * i / this.size, 2 * j / this.size);
+                if (i < this.size && j < this.size) {
+                    indices.push(n, n + this.size + 1, n + 1);
+                    indices.push(n + 1, n + this.size + 1, n + this.size + 2);
+                }
+                let c = this.colorMap[i][j];
+                colors.push(c.r, c.g, c.b, 1);
+            }
+        }
+        for (let it = 0; it < 2; it++) {
+            let newColors = [];
+            for (let i = 0; i <= this.size; i++) {
+                for (let j = 0; j <= this.size; j++) {
+                    let n = i + j * (this.size + 1);
+                    let r = colors[4 * n] * 3;
+                    let g = colors[4 * n + 1] * 3;
+                    let b = colors[4 * n + 2] * 3;
+                    let iIndexes = [
+                        i + 1,
+                        i + 1,
+                        i,
+                        i - 1,
+                        i - 1,
+                        i
+                    ];
+                    let jIndexes = [
+                        j,
+                        j - 1,
+                        j - 1,
+                        j,
+                        j + 1,
+                        j + 1
+                    ];
+                    let count = 3;
+                    for (let p = 0; p < 6; p++) {
+                        let pi = iIndexes[p];
+                        let pj = jIndexes[p];
+                        let pn = pi + pj * (this.size + 1);
+                        if (pn >= 0 && 4 * pn < colors.length) {
+                            r += colors[4 * pn];
+                            g += colors[4 * pn + 1];
+                            b += colors[4 * pn + 2];
+                            count++;
+                        }
+                    }
+                    newColors[4 * n] = r / count;
+                    newColors[4 * n + 1] = g / count;
+                    newColors[4 * n + 2] = b / count;
                 }
             }
+            colors = newColors;
         }
         let normals = [];
         BABYLON.VertexData.ComputeNormals(positions, indices, normals);
@@ -704,13 +881,14 @@ class Ground extends BABYLON.Mesh {
         data.indices = indices;
         data.normals = normals;
         data.uvs = uvs;
+        data.colors = colors;
         data.applyToMesh(this);
     }
     pos2DToIJ(pos2D) {
         let lx = 2;
         let lz = Math.sin(Math.PI / 3) * lx;
-        let x0 = -lx * (this.width + this.height * 0.5) * 0.5;
-        let z0 = -lz * this.height * 0.5;
+        let x0 = -lx * (this.size + this.size * 0.5) * 0.5;
+        let z0 = -lz * this.size * 0.5;
         let j = Math.round((pos2D.y - z0) / lz);
         let i = Math.round((pos2D.x - j * lx / 2 - x0) / lx);
         return { i: i, j: j };
@@ -913,6 +1091,7 @@ class RobotTarget extends BABYLON.Mesh {
 class Robot extends GameObject {
     constructor(main) {
         super(main);
+        this.meshes = [];
         this.mode = RobotMode.Walk;
         this._inputDirs = new UniqueList();
         this._inputForwardAxis = 0;
@@ -1028,6 +1207,7 @@ class Robot extends GameObject {
                     }
                 }
                 this.main.scene.onBeforeRenderObservable.add(this._update);
+                this.isInstantiated = true;
                 resolve();
             });
         });
@@ -1477,7 +1657,7 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
             vertex: "toon",
             fragment: "toon",
         }, {
-            attributes: ["position", "normal", "uv", "color"],
+            attributes: ["position", "normal", "uv"],
             uniforms: ["world", "worldView", "worldViewProjection", "view", "projection"],
             samplers: ["colorTexture"]
         });
@@ -1488,207 +1668,23 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
         this.setColor3("mColor", color);
     }
 }
-class Turret extends GameObject {
-    constructor(main) {
-        super(main);
-        this.isReady = true;
-        this.cooldown = 1;
-        this.counter = 0;
-        this._t = 0;
-        this._update = () => {
-            if (!this.isReady) {
-                return;
-            }
-            this._t += this.main.engine.getDeltaTime() / 1000;
-            this.counter -= this.main.engine.getDeltaTime() / 1000;
-            if (this.target && this.target.isDisposed) {
-                this.target = undefined;
-            }
-            if (!this.target) {
-                let walker = this.main.gameObjects.find(g => { return g instanceof Walker; });
-                if (walker) {
-                    this.target = walker;
-                }
-            }
-            if (this.target) {
-                let dirToTarget = new BABYLON.Vector2(this.target.sprite.posX - this.sprite.posX, this.target.sprite.posY - this.sprite.posY);
-                let targetA = -Math2D.AngleFromTo(new BABYLON.Vector2(0, 1), dirToTarget);
-                this.body.rotation.y = Math2D.StepFromToCirular(this.body.rotation.y, targetA, 1 / 10 * 2 * Math.PI * this.main.scene.getEngine().getDeltaTime() / 1000);
-                let aligned = Math2D.AreEqualsCircular(this.body.rotation.y, targetA, Math.PI / 180);
-                if (aligned) {
-                    if (this.counter < 0) {
-                        this.target.wound(1);
-                        this.counter = this.cooldown;
-                        this._shoot();
-                    }
-                }
-            }
-        };
-        this.sprite = new Sprite("turret-base", "assets/turret_base.png", this.main.scene);
-        this.sprite.height = 1;
-        this.body = new Sprite("turret-body", "assets/turret_body.png", this.main.scene);
-        this.body.height = 3;
-        this.body.position.y = Sprite.LEVEL_STEP;
-        this.body.parent = this.sprite;
-        this.canon = new Sprite("turret-canon", "assets/turret_canon.png", this.main.scene);
-        this.canon.height = 5;
-        this.canon.posY = 0.6;
-        this.canon.position.y = 2 * Sprite.LEVEL_STEP;
-        this.canon.parent = this.body;
-        this.top = new Sprite("turret-top", "assets/turret_top.png", this.main.scene);
-        this.top.height = 5;
-        this.top.position.y = 3 * Sprite.LEVEL_STEP;
-        this.top.parent = this.body;
-        this.setDarkness(0.5);
-        this.main.scene.onBeforeRenderObservable.add(this._update);
-    }
-    dispose() {
-        super.dispose();
-        this.main.scene.onBeforeRenderObservable.removeCallback(this._update);
-        this.sprite.dispose();
-        this.body.dispose();
-        this.canon.dispose();
-        this.top.dispose();
-    }
-    makeReady() {
-        this.isReady = true;
-        this.setDarkness(1);
-        if (!this.obstacle) {
-            this.obstacle = Obstacle.CreateRect(this.sprite.posX, this.sprite.posY, 2.6, 2.6, 0);
-            this.obstacle.shape.rotation2D = Math.PI / 4;
-            NavGraphManager.AddObstacle(this.obstacle);
-        }
-    }
-    async _shoot() {
-        return new Promise(resolve => {
-            let duration = 0.5;
-            let t = 0;
-            let bullets = [];
-            let bulletsCount = 5;
-            let step = () => {
-                t += this.main.scene.getEngine().getDeltaTime() / 1000;
-                let d = t / duration;
-                d = Math.min(d, 1);
-                if (d < 1) {
-                    this.canon.posY = 0.6 + 0.05 * Math.cos(7 * this._t * 2 * Math.PI);
-                    this.body.posX = 0.03 * Math.cos(6 * this._t * 2 * Math.PI);
-                    this.body.posY = 0.03 * Math.cos(8 * this._t * 2 * Math.PI);
-                    if (d * bulletsCount > bullets.length) {
-                        let p0 = this.canon.absolutePosition.clone();
-                        p0.y = 1;
-                        let p1 = this.target.pos2D;
-                        let bullet = BABYLON.MeshBuilder.CreateLines("bullet", {
-                            points: [p0, new BABYLON.Vector3(p1.x, 1, p1.y)]
-                        });
-                        bullets.push(bullet);
-                        setTimeout(() => {
-                            bullet.dispose();
-                        }, 0.3);
-                    }
-                    requestAnimationFrame(step);
-                }
-                else {
-                    this.canon.posY = 0.6;
-                    this.body.posX = 0;
-                    this.body.posY = 0;
-                    resolve();
-                }
-            };
-            step();
+class TerrainMaterial extends BABYLON.ShaderMaterial {
+    constructor(name, transparent, scene) {
+        super(name, scene, {
+            vertex: "terrain-toon",
+            fragment: "terrain-toon",
+        }, {
+            attributes: ["position", "normal", "uv", "color"],
+            uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "vColorW", "vColorR", "vColorG", "vColorB", "vColorU"],
+            samplers: ["colorTexture"]
         });
-    }
-    setDarkness(d) {
-        this.sprite.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-        this.body.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-        this.canon.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-        this.top.spriteMaterial.diffuseColor.copyFromFloats(d, d, d);
-    }
-}
-class Canon extends Building {
-    constructor(main) {
-        super(main);
-        this.cooldown = 1;
-        this.counter = 0;
-        this._t = 0;
-        this._update = () => {
-            this._updateTarget();
-            this._updateMesh();
-            this._t += this.main.engine.getDeltaTime() / 1000;
-            this.counter -= this.main.engine.getDeltaTime() / 1000;
-            if (this.counter < 0) {
-                this.counter = this.cooldown;
-                this._shoot();
-            }
-        };
-        this.counter = Math.random() * this.cooldown;
-    }
-    async instantiate() {
-        return new Promise(resolve => {
-            BABYLON.SceneLoader.ImportMesh("", "assets/canon.babylon", "", this.main.scene, (meshes) => {
-                let p = this.base.position;
-                this.base = meshes.find(m => { return m.name === "base"; });
-                this.base.position.copyFrom(p);
-                this.body = meshes.find(m => { return m.name === "body"; });
-                this.head = meshes.find(m => { return m.name === "head"; });
-                this.canon = meshes.find(m => { return m.name === "canon"; });
-                for (let i = 0; i < meshes.length; i++) {
-                    let mesh = meshes[i];
-                    if (mesh.material instanceof BABYLON.PBRMaterial) {
-                        let toonMaterial = new ToonMaterial(mesh.material.name + "-toon", false, this.main.scene);
-                        if (mesh.material.name === "CanonMaterial") {
-                            toonMaterial.setTexture("colorTexture", new BABYLON.Texture("assets/canon-texture-dark.png", this.main.scene));
-                        }
-                        toonMaterial.setColor(mesh.material.albedoColor);
-                        mesh.material = toonMaterial;
-                    }
-                }
-                this.flashParticle = new FlashParticle("pew", this.main.scene, 1.5, 0.1);
-                this.main.scene.onBeforeRenderObservable.add(this._update);
-                this.isInstantiated = true;
-                resolve();
-            });
-        });
-    }
-    _updateTarget() {
-        if (!this.target || this.target.isDisposed) {
-            this.target = this.main.gameObjects.find(g => { return g instanceof Robot; });
-        }
-    }
-    async _shoot() {
-        return new Promise(resolve => {
-            this.flashParticle.flash(this.canon.absolutePosition.add(this.canon.forward.scale(3.5)), this.canon.forward);
-            let duration = 0.2;
-            let t = 0;
-            let step = () => {
-                t += this.main.scene.getEngine().getDeltaTime() / 1000;
-                let d = t / duration;
-                d = Math.min(d, 1);
-                if (d < 1) {
-                    if (d < 0.1) {
-                        this.canon.position.z = -0.5 * d / 0.1;
-                        this.head.position.z = -0.2 * d / 0.1;
-                    }
-                    else {
-                        let dd = (d - 0.1) / (1 - 0.1);
-                        this.canon.position.z = -0.5 * (1 - dd);
-                        this.head.position.z = -0.2 * (1 - dd);
-                    }
-                    requestAnimationFrame(step);
-                }
-                else {
-                    resolve();
-                }
-            };
-            step();
-        });
-    }
-    _updateMesh() {
-        if (this.target && !this.target.isDisposed) {
-            let a = BABYLON.Vector3.GetAngleBetweenVectors(BABYLON.Axis.Z, this.target.body.position.subtract(this.body.absolutePosition), BABYLON.Axis.Y);
-            this.body.rotation.y = a;
-            let b = BABYLON.Vector3.GetAngleBetweenVectors(this.body.forward, this.target.body.position.subtract(this.head.absolutePosition), this.body.right);
-            this.head.rotation.x = b;
-        }
+        this.setTexture("colorTexture", new BABYLON.Texture("assets/empty.png", scene));
+        this.setVector3("lightInvDirW", (new BABYLON.Vector3(-1, 1, -1)).normalize());
+        this.setColor4("vColorW", new BABYLON.Color4(1, 1, 1, 1));
+        this.setColor4("vColorR", new BABYLON.Color4(95 / 255, 16 / 255, 10 / 255, 1));
+        this.setColor4("vColorG", new BABYLON.Color4(144 / 255, 24 / 255, 11 / 255, 1));
+        this.setColor4("vColorB", new BABYLON.Color4(211 / 255, 113 / 255, 63 / 255, 1));
+        this.setColor4("vColorU", new BABYLON.Color4(30 / 255, 30 / 255, 30 / 255, 1));
     }
 }
 class WalkerTarget extends BABYLON.Mesh {
@@ -3039,11 +3035,11 @@ class Menu {
         */
         let buildingButtons = buildingMenu.addSquareButtons(["TOWER", "WALL"], [
             () => {
-                if (this.main.playerAction.currentActionType === PlayerActionType.AddTurret) {
-                    this.main.playerAction.cancelAddTurret();
+                if (this.main.playerAction.currentActionType === PlayerActionType.AddCanon) {
+                    this.main.playerAction.cancelAddCanon();
                 }
                 else {
-                    this.main.playerAction.addTurret(buildingButtons[0]);
+                    this.main.playerAction.addCanon(buildingButtons[0]);
                 }
             },
             () => { this.main.playerAction.addWall(buildingButtons[1]); }
@@ -3088,12 +3084,12 @@ class Menu {
         debugPanel.onpointerup = () => {
             this.showIngameMenu();
         };
-        debugPanel.addTitle3("X : Y").id = "debug-pointer-xy";
-        debugPanel.addTitle3("distance to next").id = "distance-to-next";
-        debugPanel.addTitle3("target rot").id = "target-rot";
         debugPanel.addTitle3("Mesh Count").id = "debug-mesh-count";
         this.main.scene.onBeforeRenderObservable.add(() => {
             document.getElementById("debug-mesh-count").innerHTML = "Mesh Count = " + this.main.scene.meshes.length.toFixed(0);
+        });
+        debugPanel.addLargeButton("Log Meshes Names", () => {
+            console.log(this.main.scene.meshes.map(m => { return m.name; }).sort());
         });
         let navGraphConsole = new NavGraphConsole(this.main.scene);
         navGraphConsole.enable();
@@ -3426,33 +3422,34 @@ window.customElements.define("space-panel-label", SpacePanelLabel);
 var PlayerActionType;
 (function (PlayerActionType) {
     PlayerActionType[PlayerActionType["None"] = 0] = "None";
-    PlayerActionType[PlayerActionType["AddTurret"] = 1] = "AddTurret";
+    PlayerActionType[PlayerActionType["AddCanon"] = 1] = "AddCanon";
     PlayerActionType[PlayerActionType["AddWall"] = 2] = "AddWall";
 })(PlayerActionType || (PlayerActionType = {}));
 class PlayerAction {
     constructor(main) {
         this.main = main;
         this.currentActionType = PlayerActionType.None;
-        this._updateAddingTurret = () => {
-            if (this._selectedTurret) {
+        this._updateAddingCanon = () => {
+            if (this._selectedCanon) {
                 let world = this.main.getPointerWorldPos();
-                this._selectedTurret.posX = world.x;
-                this._selectedTurret.posY = world.y;
+                this._selectedCanon.posX = world.x;
+                this._selectedCanon.posY = world.y;
             }
         };
-        this._pointerUpAddingTurret = (eventData) => {
-            if (this._selectedTurret) {
+        this._pointerUpAddingCanon = (eventData) => {
+            if (this._selectedCanon) {
                 if (eventData.type === BABYLON.PointerEventTypes.POINTERUP) {
                     if (this.main.game.pay(100)) {
-                        let newTurret = this._selectedTurret;
-                        this._selectedTurret = undefined;
-                        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-                        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+                        let newCanon = this._selectedCanon;
+                        this._selectedCanon = undefined;
+                        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingCanon);
+                        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingCanon);
                         this.currentActionType = PlayerActionType.None;
                         this.currentActionButton.classList.remove("selected");
                         this.currentActionButton = undefined;
-                        new LoadingPlane(newTurret.pos2D, 3, () => {
-                            newTurret.makeReady();
+                        new LoadingPlane(newCanon.pos2D, 3, () => {
+                            newCanon.makeReady();
+                            newCanon.flattenGround(3);
                         }, this.main);
                     }
                 }
@@ -3542,29 +3539,28 @@ class PlayerAction {
             }
         };
     }
-    addTurret(actionButton) {
-        if (this._selectedTurret) {
+    addCanon(actionButton) {
+        if (this._selectedCanon) {
             return;
         }
-        this.currentActionType = PlayerActionType.AddTurret;
+        this.currentActionType = PlayerActionType.AddCanon;
         this.currentActionButton = actionButton;
         this.currentActionButton.classList.add("selected");
-        this._selectedTurret = new Turret(this.main);
-        this._selectedTurret.isReady = false;
-        this._selectedTurret.setDarkness(0.5);
-        this.main.scene.onBeforeRenderObservable.add(this._updateAddingTurret);
-        this.main.scene.onPointerObservable.add(this._pointerUpAddingTurret);
+        this._selectedCanon = new Canon(this.main);
+        this._selectedCanon.instantiate();
+        this.main.scene.onBeforeRenderObservable.add(this._updateAddingCanon);
+        this.main.scene.onPointerObservable.add(this._pointerUpAddingCanon);
     }
-    cancelAddTurret() {
-        if (this._selectedTurret) {
-            this._selectedTurret.dispose();
-            this._selectedTurret = undefined;
+    cancelAddCanon() {
+        if (this._selectedCanon) {
+            this._selectedCanon.dispose();
+            this._selectedCanon = undefined;
         }
         this.currentActionType = PlayerActionType.None;
         this.currentActionButton.classList.remove("selected");
         this.currentActionButton = undefined;
-        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingTurret);
-        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingTurret);
+        this.main.scene.onBeforeRenderObservable.removeCallback(this._updateAddingCanon);
+        this.main.scene.onPointerObservable.removeCallback(this._pointerUpAddingCanon);
     }
     addWall(actionButton) {
         if (this._selectedWallNode1 || this._selectedWallNode2) {
